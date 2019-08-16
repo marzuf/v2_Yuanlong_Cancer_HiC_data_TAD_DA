@@ -13,7 +13,9 @@ require(doMC)
 require(lattice)
 require(ggplot2)
 
-registerDoMC(40)
+registerDoMC(1)
+
+source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 
 plotType <- "png"
 myHeight <- ifelse(plotType=="png", 400, 7)
@@ -23,7 +25,7 @@ axisCex <- 1.4
 myWidthGG <- 12
 myHeightGG <- 8
 
-script0_gene <- "0_prepGeneData"
+script0_name <- "0_prepGeneData"
 
 
 mainFolder <- file.path(".")
@@ -34,6 +36,10 @@ all_hicds <- list.files(pipFolder)
 file.path(mainFolder, all_hicds)[!dir.exists(file.path(mainFolder, all_hicds))]
 stopifnot(dir.exists(file.path(mainFolder, all_hicds)))
 
+hicds = all_hicds[1]
+all_exprds <- lapply(all_hicds, function(x) list.files(file.path(pipFolder, x)))
+names(all_exprds) <- all_hicds
+exprds = all_exprds[1]
 outFolder <- "DESC_TADS_FEATURES"
 dir.create(outFolder, recursive = TRUE)
 
@@ -68,8 +74,8 @@ all_dt$size_log10 <- log10(all_dt$size)
 
 # length(unique(all_dt$hicds)) # 18
 
-nRows <- 8
-nCols <- 8
+nRows <- 5
+nCols <- 6
 
 all_vars <- c("size", "size_log10")
 plot_var=all_vars[1]
@@ -89,6 +95,63 @@ for(plot_var in all_vars) {
   foo <- dev.off()
   cat(paste0("... written: ", outFile, "\n"))
 }
+
+
+
+######################################################### >>> boxplot size
+
+all_dt$datasetName <- gsub("_40kb", "", all_dt$hicds)
+stopifnot(is.numeric(all_dt$size))
+stopifnot(is.numeric(all_dt$size_log10))
+
+mean_dt <- aggregate(size ~ datasetName, FUN=mean, data=all_dt)
+mean_dt <- mean_dt[order(mean_dt$size, decreasing = TRUE),]
+
+all_dt$datasetName <- factor(as.character(all_dt$datasetName), levels=as.character(mean_dt$datasetName))
+
+plot_vars <- c("size", "size_log10")
+
+plot_var=plot_vars[1]
+
+for(plot_var in plot_vars) {
+  
+  p_var <-  ggplot(all_dt, aes_string(x = "datasetName", y = plot_var)) + 
+    geom_boxplot()+
+    # coord_cartesian(expand = FALSE) +
+    ggtitle(paste0("TAD ", plot_var))+
+    scale_x_discrete(name="")+
+    scale_y_continuous(name=paste0(plot_var),
+                       breaks = scales::pretty_breaks(n = 20))+
+    theme( # Increase size of axis lines
+      strip.text = element_text(size = 12),
+      # top, right, bottom and left
+      # plot.margin = unit(c(1, 1, 4.5, 1), "lines"),
+      plot.title = element_text(hjust = 0.5, face = "bold", size=16),
+      plot.subtitle = element_text(hjust = 0.5, face = "italic", size = 14),
+      panel.grid = element_blank(),
+      panel.grid.major.y = element_line(colour = "grey"),
+      panel.grid.minor.y = element_line(colour = "grey"),
+      strip.text.x = element_text(size = 10),
+      axis.line.x = element_line(size = .2, color = "black"),
+      axis.line.y = element_line(size = .3, color = "black"),
+      axis.text.y = element_text(color="black", hjust=1,vjust = 0.5),
+      axis.text.x =  element_text(color="black", hjust=1,vjust = 0.5, angle=90),
+      axis.ticks.x = element_blank(),
+      axis.title.y = element_text(color="black", size=12),
+      axis.title.x = element_text(color="black", size=12),
+      panel.border = element_blank(),
+      panel.background = element_rect(fill = "transparent"),
+      legend.background =  element_rect(),
+      legend.key = element_blank(),
+      legend.title = element_text(face="bold")
+    )
+  
+  outFile <- file.path(outFolder, paste0("TAD", "_", plot_var, "_all_hicds_boxplot.", plotType))
+  ggsave(plot = p_var, filename = outFile, height=myHeightGG, width = myWidthGG)
+  cat(paste0("... written: ", outFile, "\n"))
+  
+}
+
 ######################################################### >>> plot # TADs by chromo
 
 all_dt_chr <- aggregate(region ~ hicds + chromo, FUN=length, data = all_dt)
@@ -114,12 +177,101 @@ for(plot_var in all_vars) {
   cat(paste0("... written: ", outFile, "\n"))
 }
 
+######################################################### >>> boxplot # TADs
+
+all_dt_chr$datasetName <- gsub("_40kb", "", all_dt_chr$hicds)
+stopifnot(is.numeric(all_dt_chr$chromo_nbrTADs))
+
+mean_dt <- aggregate(chromo_nbrTADs ~ datasetName, FUN=mean, data=all_dt_chr)
+mean_dt <- mean_dt[order(mean_dt$chromo_nbrTADs, decreasing = TRUE),]
+
+all_dt_chr$datasetName <- factor(as.character(all_dt_chr$datasetName), levels=as.character(mean_dt$datasetName))
+
+plot_vars <- c("chromo_nbrTADs")
+
+plot_var=plot_vars[1]
+
+for(plot_var in plot_vars) {
+  
+  p_var <-  ggplot(all_dt_chr, aes_string(x = "datasetName", y = plot_var)) + 
+    geom_boxplot()+
+    # coord_cartesian(expand = FALSE) +
+    ggtitle(paste0("TAD ", plot_var))+
+    scale_x_discrete(name="")+
+    scale_y_continuous(name=paste0(plot_var),
+                       breaks = scales::pretty_breaks(n = 20))+
+    theme( # Increase size of axis lines
+      strip.text = element_text(size = 12),
+      # top, right, bottom and left
+      # plot.margin = unit(c(1, 1, 4.5, 1), "lines"),
+      plot.title = element_text(hjust = 0.5, face = "bold", size=16),
+      plot.subtitle = element_text(hjust = 0.5, face = "italic", size = 14),
+      panel.grid = element_blank(),
+      panel.grid.major.y = element_line(colour = "grey"),
+      panel.grid.minor.y = element_line(colour = "grey"),
+      strip.text.x = element_text(size = 10),
+      axis.line.x = element_line(size = .2, color = "black"),
+      axis.line.y = element_line(size = .3, color = "black"),
+      axis.text.y = element_text(color="black", hjust=1,vjust = 0.5),
+      axis.text.x =  element_text(color="black", hjust=1,vjust = 0.5, angle=90),
+      axis.ticks.x = element_blank(),
+      axis.title.y = element_text(color="black", size=12),
+      axis.title.x = element_text(color="black", size=12),
+      panel.border = element_blank(),
+      panel.background = element_rect(fill = "transparent"),
+      legend.background =  element_rect(),
+      legend.key = element_blank(),
+      legend.title = element_text(face="bold")
+    )
+  
+  outFile <- file.path(outFolder, paste0("TAD", "_", plot_var, "_all_hicds_boxplot.", plotType))
+  ggsave(plot = p_var, filename = outFile, height=myHeightGG, width = myWidthGG)
+  cat(paste0("... written: ", outFile, "\n"))
+  
+}
+
+
+all_dt_chr_size <- aggregate(size_log10 ~ datasetName + chromo, data = all_dt, FUN=mean)
+
+colnames(all_dt_chr_size)[colnames(all_dt_chr_size) == "size_log10"] <- "chromo_meanSizeLog10"
+
+merged_dt <- merge(all_dt_chr[, c("datasetName", "chromo", "chromo_nbrTADs"),],
+                   all_dt_chr_size[, c("datasetName", "chromo", "chromo_meanSizeLog10"),],
+                   by=c("datasetName", "chromo"),
+                   all=TRUE
+                   )
+
+stopifnot(nrow(all_dt_chr) == nrow(all_dt_chr_size))
+stopifnot(nrow(all_dt_chr) == nrow(merged_dt))
+
+totDS <- length(unique(merged_dt$datasetName))
+
+x_var <- "chromo_nbrTADs"
+y_var <- "chromo_meanSizeLog10"
+
+myx <- merged_dt[,paste0(x_var)]
+myy <- merged_dt[,paste0(y_var)]
+
+outFile <- file.path(outFolder, paste0(y_var, "_vs_", x_var, "_all_hicds_densplot", ".", plotType))
+do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+densplot(
+  x=myx,
+  y=myy,
+  xlab = paste0(x_var),
+  ylab = paste0(y_var),
+  main = paste0(gsub("chromo_", "", y_var), " vs. ", gsub("chromo_", "", x_var))
+)
+mtext(side=3, text = paste0("all hicds - n=", totDS))
+addCorr(x = myx, y = myy, bty="n")
+foo <- dev.off()
+cat(paste0("... written: ", outFile, "\n"))
+
+
 ####################################################################################################################################### >>> collect # of pipeline genes & pipeline regions
 
-####################################################################################################################################### >>> collect # of TADs and TAD size
 all_dt_pipeline <- foreach(hicds = all_hicds, .combine='rbind') %dopar% {
   
-  exprds_dt <- foreach(hicds = all_hicds, .combine='rbind') %dopar% {
+  exprds_dt <- foreach(exprds = all_exprds[[paste0(hicds)]], .combine='rbind') %dopar% {
     
     gene_file <- file.path(pipFolder, hicds, exprds, script0_name, "pipeline_geneList.Rdata")
     stopifnot(file.exists(gene_file))  
@@ -148,7 +300,7 @@ cat(paste0("... written: ", outFile, "\n"))
 all_dt_pipeline$dataset <- paste0(all_dt_pipeline$hicds, "\n", all_dt_pipeline$exprds)
 
 p_var <-  ggplot(all_dt_pipeline, aes(x = dataset, y = nPipelineGenes)) + 
-  geom_boxplot()+
+  geom_bar(position="dodge", stat="identity") +
   coord_cartesian(expand = FALSE) +
   ggtitle("")+
   scale_x_discrete(name="")+
@@ -180,7 +332,7 @@ p_var <-  ggplot(all_dt_pipeline, aes(x = dataset, y = nPipelineGenes)) +
     legend.title = element_text(face="bold")
   )
 
-outFile <- file.path(outFolder, paste0("boxplot_nPipelineGenes_boxplot.", plotType))
+outFile <- file.path(outFolder, paste0("nPipelineGenes_barplot.", plotType))
 ggsave(plot = p_var, filename = outFile, height=myHeightGG, width = myWidthGG)
 cat(paste0("... written: ", outFile, "\n"))
 

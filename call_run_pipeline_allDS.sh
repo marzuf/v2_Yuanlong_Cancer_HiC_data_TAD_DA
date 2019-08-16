@@ -4,32 +4,32 @@
 # usual datasets
 ######
 #>>> kidney
-./run_pipeline.sh ENCSR079VIJ_G401_40kb TCGAkich_norm_kich  # 5,6,7 - el
+./run_pipeline.sh ENCSR079VIJ_G401_40kb TCGAkich_norm_kich  # 5,6,7 - el ok
 
 #>>> skin
-./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_40kb TCGAskcm_lowInf_highInf  # 5,6,7 - el
-./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_40kb TCGAskcm_wt_mutBRAF  # 5,6,7 - pos
-./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_40kb TCGAskcm_wt_mutCTNNB1  # 5,6,7 - pos
+./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_40kb TCGAskcm_lowInf_highInf  # 5,6,7 - el ok
+./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_40kb TCGAskcm_wt_mutBRAF  # 5,6,7 - pos ok
+./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_40kb TCGAskcm_wt_mutCTNNB1  # 5,6,7 - pos ok
 
-./run_pipeline_56.sh ENCSR862OGI_RPMI-7951_40kb TCGAskcm_lowInf_highInf  # neutrino - pip1 5,6
-./run_pipeline_56.sh ENCSR862OGI_RPMI-7951_40kb TCGAskcm_wt_mutBRAF   # neutrino - pip2 5,6
-./run_pipeline.sh ENCSR862OGI_RPMI-7951_40kb TCGAskcm_wt_mutCTNNB1  
+./run_pipeline_56.sh ENCSR862OGI_RPMI-7951_40kb TCGAskcm_lowInf_highInf  # neutrino - pip1 5,6 ok
+./run_pipeline_56.sh ENCSR862OGI_RPMI-7951_40kb TCGAskcm_wt_mutBRAF   # neutrino - pip2 5,6 ok
+./run_pipeline.sh ENCSR862OGI_RPMI-7951_40kb TCGAskcm_wt_mutCTNNB1   # neutrino - pip1 
 
 
 # prostate
-./run_pipeline.sh ENCSR346DCU_LNCaP_40kb TCGAprad_norm_prad  
+./run_pipeline.sh ENCSR346DCU_LNCaP_40kb TCGAprad_norm_prad   # neutrino - pip1 
 
-./run_pipeline.sh GSE118514_RWPE1_40kb TCGAprad_norm_prad  
+./run_pipeline.sh GSE118514_RWPE1_40kb TCGAprad_norm_prad  # el 
 
 #./run_pipeline.sh GSE73782_PC3_40kb TCGAprad_norm_prad  # discard low quality
 
 #>>> kidney
-./run_pipeline.sh ENCSR401TBQ_Caki2_40kb TCGAkich_norm_kich  
+./run_pipeline.sh ENCSR401TBQ_Caki2_40kb TCGAkich_norm_kich  # pos - ok
 
 #>>> lung
-./run_pipeline.sh ENCSR444WCZ_A549_40kb TCGAluad_mutKRAS_mutEGFR  
-./run_pipeline.sh ENCSR444WCZ_A549_40kb TCGAluad_nonsmoker_smoker  
-./run_pipeline.sh ENCSR444WCZ_A549_40kb TCGAluad_norm_luad  
+./run_pipeline.sh ENCSR444WCZ_A549_40kb TCGAluad_mutKRAS_mutEGFR  # pos - ok
+./run_pipeline.sh ENCSR444WCZ_A549_40kb TCGAluad_nonsmoker_smoker  # el
+./run_pipeline.sh ENCSR444WCZ_A549_40kb TCGAluad_norm_luad  # pos                   # => from datasets below, run with 5fastSavePermut and 6fastSave
 ./run_pipeline.sh ENCSR444WCZ_A549_40kb TCGAluad_wt_mutKRAS  
 ./run_pipeline.sh ENCSR444WCZ_A549_40kb TCGAlusc_norm_lusc  
 ./run_pipeline.sh ENCSR489OCU_NCI-H460_40kb TCGAluad_mutKRAS_mutEGFR  

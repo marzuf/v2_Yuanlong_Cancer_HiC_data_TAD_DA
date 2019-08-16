@@ -123,7 +123,10 @@ step2=1    # run the pipeline
 #TAD_DE_pipSteps=( "11" "11sameNbr" )
 #TAD_DE_pipSteps=( "0cleanInputTCGAminCount" )
 
-TAD_DE_pipSteps=( "5" "6" )
+#TAD_DE_pipSteps=( "5" "6" )
+# use fast save version
+TAD_DE_pipSteps=( "5fastSave" "6fastSave" )
+
 
 # ./run_pipeline.sh GSE105381_HepG2_40kb TCGAlihc_norm_lihc   # 
 
