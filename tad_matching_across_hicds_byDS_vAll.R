@@ -15,8 +15,6 @@ require(ggplot2)
 require(RColorBrewer)
 registerDoMC(4)
 
-require(data.table)
-
 source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 
 buildTable <- FALSE
@@ -26,8 +24,8 @@ myHeight <- ifelse(plotType=="png", 400, 7)
 myWidth <- myHeight
 axisCex <- 1.4
 
-myWidthGG <- 25
-myHeightGG <- 25
+myWidthGG <- 12
+myHeightGG <- 12
 
 
 hm.palette <- colorRampPalette(brewer.pal(9, 'YlOrRd'), space='Lab')
@@ -53,7 +51,8 @@ stopifnot(dir.exists(file.path(mainFolder, all_hicds)))
 all_exprds <- lapply(all_hicds, function(x) list.files(file.path(pipFolder, x)))
 names(all_exprds) <- all_hicds
 
-outFolder <- "TAD_MATCHING_ACROSS_HICDS"
+inFolder <- file.path("TAD_MATCHING_ACROSS_HICDS")
+outFolder <- file.path("TAD_MATCHING_ACROSS_HICDS_vALL", "BY_DS")
 dir.create(outFolder, recursive = TRUE)
 
 all_datasets <- unlist(lapply(1:length(all_exprds), function(x) file.path(names(all_exprds)[x], all_exprds[[x]])))
@@ -285,12 +284,10 @@ if(buildTable) {
   cat(paste0("... written: ", outFile, "\n"))
   
 } else {
-  outFile <- file.path(outFolder, "all_matching_dt.Rdata")
+  outFile <- file.path(inFolder, "all_matching_dt.Rdata")
   cat("... load data\n")
   all_matching_dt <- get(load(outFile))
 }
-
-cat(paste0(length(unique(all_matching_dt$ref_dataset))), "\n")
 
 colnames(all_matching_dt)[colnames(all_matching_dt) == "overlapBP"] <- "overlapBp"
 
@@ -303,22 +300,18 @@ nTotDS2 <- length(unique(all_matching_dt$matching_dataset))
 
 stopifnot(nTotDS == nTotDS2)
 
-cat(paste0(length(unique(all_matching_dt$ref_dataset))), "\n")
-
  # when there was no match -> NA was set; set 0
 all_matching_dt$overlapBp_ratio[is.na(all_matching_dt$overlapBp_ratio)] <- 0
 all_matching_dt$nOverlapGenes_ratio[is.na(all_matching_dt$nOverlapGenes_ratio)] <- 0
 
 stopifnot(all_matching_dt$overlapBp_ratio >= 0 & all_matching_dt$overlapBp_ratio <= 1)
 stopifnot(all_matching_dt$nOverlapGenes_ratio >= 0 & all_matching_dt$nOverlapGenes_ratio <= 1)
-
-cat(paste0(length(unique(all_matching_dt$ref_dataset))), "\n")
 # 
 outFile <- file.path(outFolder, paste0("ratio_matching_density.", plotType))
 do.call(plotType, list(outFile, height=myHeight, width=myWidth))
 plot_multiDens(list(
   overlapBp_ratio = all_matching_dt$overlapBp_ratio,
-  nOverlapGenes_ratio = all_matching_dt$nOverlapGenes_ratio
+  overlapGenes_ratio = all_matching_dt$nOverlapGenes_ratio
   ),
   plotTit = paste0("ratio overlap across datasets")
 )
@@ -327,249 +320,161 @@ foo <- dev.off()
 cat(paste0("... written: ", outFile, "\n"))
 
 overlapType <- "overlapBp"
-overlapType <- "nOverlapGenes"
+
 all_overlapTypes <- c("overlapBp", "nOverlapGenes")
 
 
-all_levels <- sort(as.character(unique(all_matching_dt$ref_dataset)))
+all_datasets <- as.character(unique(all_matching_dt$ref_dataset))
 
-# all_matching_dt <- all_matching_dt[all_matching_dt$ref_dataset == all_matching_dt$ref_dataset[1],]
+all_levels <- all_datasets
+curr_ds=all_datasets[1]
 
-myxlab <- "ref_dataset_label"
-myylab <- "matching_dataset"
-
-
-for(overlapType in all_overlapTypes){
+FOO <- foreach(curr_ds = all_datasets) %dopar% {
   
-  # select the best match for each TAD
-  cat("... select best for each TAD\n")
+  curr_ds_name <- gsub("/", "-", curr_ds)
   
-  cat(paste0(Sys.time(), " - "))
+  sub_all_matching_dt <- all_matching_dt[as.character(all_matching_dt$ref_dataset) == curr_ds,]
+  stopifnot(nrow(sub_all_matching_dt) > 0)
+  
+  nTADs <- length(unique(paste0(sub_all_matching_dt$ref_dataset, sub_all_matching_dt$refID)))
   
   
-  all_matching_dt_nbr <- all_matching_dt[,c("ref_dataset", "refID")]
-  all_matching_dt_nbr <- unique(all_matching_dt_nbr)
-  nds_dt <- aggregate(refID ~ ref_dataset, data = all_matching_dt_nbr, FUN=length)
-  colnames(nds_dt)[colnames(nds_dt) == "refID"] <- "nTADs"
-  
-  
-  all_matching_dt_pairAgg <- aggregate(as.formula(paste0(overlapType, "_ratio ~ ref_dataset + matching_dataset")),
-                                       FUN = mean, data = all_matching_dt)
-  
-  newcolname <- paste0(overlapType, "_ratio_avg")
-  colnames(all_matching_dt_pairAgg)[colnames(all_matching_dt_pairAgg) == paste0(overlapType, "_ratio")] <- newcolname
-  
-  plot_dt <- merge(all_matching_dt_pairAgg, nds_dt, all.x=TRUE, by ="ref_dataset")
-  stopifnot(nrow(plot_dt) == nrow(all_matching_dt_pairAgg))
-  
-  plot_dt$ref_dataset <- factor(plot_dt$ref_dataset, levels = all_levels)
-  plot_dt$matching_dataset <- factor(plot_dt$matching_dataset, levels = all_levels)
-  
-  plot_dt <- plot_dt[order(as.numeric(plot_dt$ref_dataset)),]
-  
-  plot_dt$ref_dataset_label <- paste0(as.character(plot_dt$ref_dataset), "\n", plot_dt$nTADs)
-  plot_dt$ref_dataset_label <- factor(plot_dt$ref_dataset_label, levels=unique(as.character(plot_dt$ref_dataset_label)))
-  
-  plot_var <- newcolname
-  
-  plot_dt[,paste0(plot_var)] <- round(plot_dt[,paste0(plot_var)], 2)
-  
-  agg_matching_plot <- ggplot(plot_dt, 
-                             aes_string(x="ref_dataset_label", y="matching_dataset", fill = paste0(plot_var)))+
-    geom_tile(color = "white")+
-    geom_text(aes_string(label = paste0(plot_var)), color = "black", size = 3, fontface="bold")+
-    scale_fill_gradientn(colours = hm.palette(100))+
-    guides(fill = FALSE)+ 
-    labs(title = paste0(overlapType, " - ", plot_var),
-         subtitle = paste0("nDS = ", nTotDS),
-         x = paste0(myxlab),
-         y = paste0(myylab)
-    )+
-    theme(
-      axis.text.x = element_text(size=12, angle=90, hjust = 1, vjust=0.5),
-      axis.text.y = element_text(size=12),
-      axis.title = element_text(size=14, face="bold"),
-      plot.title = element_text(size=18, face="bold", hjust=0.5),
-      plot.subtitle = element_text(size=16, face="italic", hjust=0.5),
-      panel.grid.major = element_blank(),
-      panel.border = element_blank(),
-      # panel.background = element_blank()
-      panel.background=element_rect(fill="grey50", colour="grey50")
-    )
-  # coord_equal() # make the x and y at the same scale => same as coord_fixed(ratio = 1)
-  outFile <- file.path(outFolder, paste0( "allMatchingMean", "_", overlapType, "_ratio_heatmap.", plotType))
-  ggsave(agg_matching_plot, filename = outFile, height = myHeightGG, width = myWidthGG)
-  cat(paste0("... written: ", outFile, "\n"))  
-
-  
-
-
-  
-  
-  # too slow... 
-  # try with data.table; see other version in _v2 and _v3 version
-  # the v3 version will yield similar results, but will discard the NA rows directly
-  
-  all_matching_dt <- all_matching_dt[order(all_matching_dt[,paste0(overlapType)], decreasing=TRUE),]
-  
-  cat(paste0(length(unique(all_matching_dt$ref_dataset))), "\n")
-  
-  all_matching_dt_DT <- data.table(all_matching_dt)
-
-  
-  cat(paste0(Sys.time(), " - "))
-  
-
-  all_matching_onlyBest_dt <- all_matching_dt_DT[, lapply(.SD, head, n = 1L), by = list(ref_dataset, refID)] # NB: much faster than aggregate!
-  
-  cat(paste0(length(unique(all_matching_onlyBest_dt$ref_dataset))), "\n")
-  
-  
-  # as they are sorted -> take the 1st
-  # NB: ties are not handled
-  all_matching_onlyBest_dt <- data.frame(all_matching_onlyBest_dt)
-  
-  cat(paste0(Sys.time(), "\n"))
-  cat(paste0(length(unique(all_matching_onlyBest_dt$ref_dataset))), "\n")
-  
-  rownames(all_matching_onlyBest_dt) <- NULL
-  all_matching_onlyBest_dt <- all_matching_onlyBest_dt[order(all_matching_onlyBest_dt$ref_dataset, all_matching_onlyBest_dt$refID),]
-  all_matching_onlyBest_dt <- data.frame(all_matching_onlyBest_dt)
-  cat(paste0(Sys.time(), "\n"))
-  
-  cat(paste0(length(unique(all_matching_onlyBest_dt$ref_dataset))), "\n")
-  
-  rownames(all_matching_onlyBest_dt) <- NULL
-  all_matching_onlyBest_dt <- all_matching_onlyBest_dt[order(all_matching_onlyBest_dt$ref_dataset, all_matching_onlyBest_dt$refID),]
-  
-  cat(paste0(length(unique(all_matching_onlyBest_dt$ref_dataset))), "\n")
-  
-  
-  outFile <- file.path(outFolder, paste0(overlapType, "_all_matching_onlyBest_dt.Rdata"))
-  save(all_matching_onlyBest_dt, file = outFile)
-  cat(paste0("... written: ", outFile, "\n"))
-  
-
-  stopifnot(!(duplicated(paste0(all_matching_onlyBest_dt[, c("ref_dataset")], all_matching_onlyBest_dt[, c("refID")] ))))
-  
-  all_matching_onlyBest_dt_onlyRef <- all_matching_onlyBest_dt[,c("ref_dataset", "refID")]
-  all_matching_onlyBest_dt_onlyRef <- unique(all_matching_onlyBest_dt_onlyRef)
-  nds_dt <- aggregate(refID ~ ref_dataset, data = all_matching_onlyBest_dt_onlyRef, FUN=length)
-  colnames(nds_dt)[colnames(nds_dt) == "refID"] <- "nTADs"
-  
-  cat(paste0(length(unique(all_matching_onlyBest_dt_onlyRef$ref_dataset))), "\n")
-  
-  cat("... aggregation nbr\n")
+  for(overlapType in all_overlapTypes){
     
-  # agg_matching_nbr_dt <- aggregate( as.formula(paste0(overlapType, "_ratio ~ ref_dataset + matching_dataset")) , 
-  #                                  data=all_matching_onlyBest_dt, FUN=length)
-  # do not take the row where this is 0 -> because the 1st line was taken
-  # if a TAD had no match at all -> will penalize the first dataset that pop up
-  
-  cat(paste0(length(unique(all_matching_onlyBest_dt$ref_dataset))), "\n")
-  
-  
-  noMatch_dt <- all_matching_onlyBest_dt[all_matching_onlyBest_dt[paste0(overlapType, "_ratio")] == 0,]
-  outFile <- file.path(outFolder, "noMatch_dt.txt")
-  write.table(noMatch_dt, file = outFile, col.names=T, row.names=F, quote=F, append=F, sep="\t")
-  cat(paste0("... written: ", outFile, "\n"))
-  
-  cat(paste0("... TADs with no match at all: ", sum(all_matching_onlyBest_dt[paste0(overlapType, "_ratio")] == 0), "\n"))
-  
-  agg_matching_nbr_dt <- aggregate( as.formula(paste0(overlapType, "_ratio ~ ref_dataset + matching_dataset")) , 
-                                    data=all_matching_onlyBest_dt[all_matching_onlyBest_dt[paste0(overlapType, "_ratio")] > 0,], 
-                                    FUN=length)
-  
-  colnames(agg_matching_nbr_dt)[colnames(agg_matching_nbr_dt) == paste0(overlapType, "_ratio")] <- "nBestMatchs"
-  
-  cat(paste0(length(unique(agg_matching_nbr_dt$ref_dataset))), "\n")
-  
-  
-  cat("... aggregation ratio\n")
-  # agg_matching_avgRatio_dt <- aggregate(as.formula(paste0(overlapType, "_ratio ~ ref_dataset + matching_dataset")) , 
-  #                                       data=all_matching_onlyBest_dt, 
-  #                                       FUN=mean)
-  agg_matching_avgRatio_dt <- aggregate(as.formula(paste0(overlapType, "_ratio ~ ref_dataset + matching_dataset")) , 
+    cat(paste0("... ", curr_ds, " - ", overlapType, "\n"))
+    
+    # select the best match for each TAD
+    
+    
+    
+    
+    
+    cat("...... select best for each TAD\n")
+    
+    all_matching_onlyBest_dt <- do.call(rbind, lapply(split(sub_all_matching_dt, 
+                                                            list(sub_all_matching_dt$ref_dataset, sub_all_matching_dt$refID)),
+                                                      function(tmpDT){
+                                                        stopifnot(is.numeric(tmpDT[,paste0(overlapType)]))
+                                                        best_match <- which.max(tmpDT[,paste0(overlapType)])
+                                                        tmpDT[best_match,]
+                                                      }))
+    # vAll
+    
+    all_matching_onlyBest_dt <- do.call(rbind, lapply(split(sub_all_matching_dt, 
+                                                            list(sub_all_matching_dt$ref_dataset, sub_all_matching_dt$refID)),
+                                                      function(tmpDT){
+                                                        stopifnot(is.numeric(tmpDT[,paste0(overlapType)]))
+                                                        best_match <- which.max(tmpDT[,paste0(overlapType)])
+                                                        tmpDT[tmpDT[,paste0(overlapType)] == best_match,]
+                                                      }))
+    
+    rownames(all_matching_onlyBest_dt) <- NULL
+    
+    # not TRUE FOR vALL
+    # stopifnot(!(duplicated(paste0(all_matching_onlyBest_dt[, c("ref_dataset")], all_matching_onlyBest_dt[, c("refID")] ))))
+    
+    all_matching_onlyBest_dt_onlyRef <- all_matching_onlyBest_dt[,c("ref_dataset", "refID")]
+    all_matching_onlyBest_dt_onlyRef <- unique(all_matching_onlyBest_dt_onlyRef)
+    nds_dt <- aggregate(refID ~ ref_dataset, data = all_matching_onlyBest_dt_onlyRef, FUN=length)
+    colnames(nds_dt)[colnames(nds_dt) == "refID"] <- "nTADs"
+    
+    cat("...... aggregation nbr\n")
+    
+    # => discard if 0 to not penalize the "random" dataset that was retained if all 0
+    cat(paste0("... TADs with no match at all: ", sum(all_matching_onlyBest_dt[paste0(overlapType, "_ratio")] == 0), "\n"))
+    
+    noMatch_dt <- all_matching_onlyBest_dt[all_matching_onlyBest_dt[paste0(overlapType, "_ratio")] == 0,]
+    outFile <- file.path(outFolder, paste0(curr_ds_name, "_noMatch_dt.txt"))
+    write.table(noMatch_dt, file = outFile, col.names=T, row.names=F, quote=F, append=F, sep="\t")
+    cat(paste0("... written: ", outFile, "\n"))
+    
+    nMissing <- nrow(noMatch_dt)
+    
+    
+    agg_matching_nbr_dt <- aggregate( as.formula(paste0(overlapType, "_ratio ~ ref_dataset + matching_dataset")) , 
+                                      # data=all_matching_onlyBest_dt, FUN=length)
                                         data=all_matching_onlyBest_dt[all_matching_onlyBest_dt[paste0(overlapType, "_ratio")] > 0,], 
-                                        FUN=mean)
-  colnames(agg_matching_avgRatio_dt)[colnames(agg_matching_avgRatio_dt) == paste0(overlapType, "_ratio")] <- "meanBestRatio"
-  
-  
-  cat(paste0(length(unique(agg_matching_avgRatio_dt$ref_dataset))), "\n")
-  
-  agg_matching_nbr_ratio_dt <- merge(agg_matching_nbr_dt, nds_dt, by="ref_dataset", all =TRUE)
-  stopifnot(nrow(agg_matching_nbr_ratio_dt) == nrow(agg_matching_nbr_dt))
-  agg_matching_nbr_ratio_dt$nBestMatchs_ratio <- agg_matching_nbr_ratio_dt$nBestMatchs/agg_matching_nbr_ratio_dt$nTADs
-  
-  stopifnot( agg_matching_nbr_ratio_dt$nBestMatchs_ratio >= 0)
-  stopifnot( agg_matching_nbr_ratio_dt$nBestMatchs_ratio <= 1)
-  
-  cat(paste0(length(unique(agg_matching_nbr_ratio_dt$ref_dataset))), "\n")
-  
-  # agg_matching_dt <- aggregate(matchingID_maxOverlapBp ~ ref_dataset + matching_dataset, data=all_matching_onlyBest_dt, FUN=length)
-  # 
-  # tot_matching_dt <- data.frame(ref_dataset = as.character(names(table(all_matching_onlyBest_dt$ref_dataset))), 
-  #                               totTADs = as.numeric(table(all_matching_onlyBest_dt$ref_dataset)), stringsAsFactors = FALSE)
-  # 
-  # agg_dt <- merge(agg_matching_dt, tot_matching_dt, by="ref_dataset")
-  # 
-  # agg_dt <- agg_dt[order(agg_dt$ref_dataset),]
-  
-  agg_matching_nbr_ratio_dt$ref_dataset <- factor(agg_matching_nbr_ratio_dt$ref_dataset, levels = all_levels)
-  agg_matching_nbr_ratio_dt$matching_dataset <- factor(agg_matching_nbr_ratio_dt$matching_dataset, levels = all_levels)
-  
-  stopifnot(!is.na(agg_matching_nbr_ratio_dt$ref_dataset))
-  stopifnot(!is.na(agg_matching_nbr_ratio_dt$matching_dataset))
-  
-  
-  agg_matching_nbr_ratio_dt <- agg_matching_nbr_ratio_dt[order(as.numeric(agg_matching_nbr_ratio_dt$ref_dataset)),]
-  
-  agg_matching_nbr_ratio_dt$ref_dataset_label <- paste0(as.character(agg_matching_nbr_ratio_dt$ref_dataset), "\n", 
-                                                        agg_matching_nbr_ratio_dt$nTADs)
-  
-  agg_matching_nbr_ratio_dt$ref_dataset_label <- factor(agg_matching_nbr_ratio_dt$ref_dataset_label, 
-                                                  levels = unique(as.character(agg_matching_nbr_ratio_dt$ref_dataset_label)))
-  
-  plot_var <- "nBestMatchs"
-  plot_vars <- c("nBestMatchs", "nBestMatchs_ratio")
-  for(plot_var in plot_vars) {
+                                        FUN=length)
+    colnames(agg_matching_nbr_dt)[colnames(agg_matching_nbr_dt) == paste0(overlapType, "_ratio")] <- "nBestMatchs"
     
-    agg_matching_nbr_ratio_dt[,paste0(plot_var)] <- round(agg_matching_nbr_ratio_dt[,paste0(plot_var)], 2)
+    cat("...... aggregation ratio\n")
+    
+    agg_matching_avgRatio_dt <- aggregate(as.formula(paste0(overlapType, "_ratio ~ ref_dataset + matching_dataset")) , 
+                                          # data=all_matching_onlyBest_dt, FUN=mean)
+                                          data=all_matching_onlyBest_dt[all_matching_onlyBest_dt[paste0(overlapType, "_ratio")] > 0,], 
+                                          FUN=mean)
+    colnames(agg_matching_avgRatio_dt)[colnames(agg_matching_avgRatio_dt) == paste0(overlapType, "_ratio")] <- "meanBestRatio"
     
     
-    ds_matching_plot <- ggplot(agg_matching_nbr_ratio_dt, 
-                      aes_string(x="ref_dataset_label", y="matching_dataset", fill = paste0(plot_var)))+
-      geom_tile(color = "white")+
-      geom_text(aes_string(label = paste0(plot_var)), color = "black", size = 3, fontface="bold")+
-      scale_fill_gradientn(colours = hm.palette(100))+
-      guides(fill = FALSE)+ 
-      labs(title = paste0(overlapType, " - ", plot_var),
-           subtitle = paste0("nDS = ", nTotDS),
-           x = paste0(myxlab),
-           y = paste0(myylab)
-      )+
-      theme(
-        axis.text.x = element_text(size=12, angle=90, hjust = 1, vjust=0.5),
-        axis.text.y = element_text(size=12),
-        axis.title = element_text(size=14, face="bold"),
-        plot.title = element_text(size=18, face="bold", hjust=0.5),
-        plot.subtitle = element_text(size=16, face="italic", hjust=0.5),
-        panel.grid.major = element_blank(),
-        panel.border = element_blank(),
-        # panel.background = element_blank()
-        panel.background=element_rect(fill="grey50", colour="grey50")
-      )
-    # coord_equal() # make the x and y at the same scale => same as coord_fixed(ratio = 1)
-    outFile <- file.path(outFolder, paste0( "bestMatching", "_", plot_var, "_", overlapType, "_heatmap.", plotType))
-    ggsave(ds_matching_plot, filename = outFile, height = myHeightGG, width = myWidthGG)
-    cat(paste0("... written: ", outFile, "\n"))  
-  } # end-for iterating over plot_vars
+    agg_matching_nbr_ratio_dt <- merge(agg_matching_nbr_dt, nds_dt, by="ref_dataset", all =TRUE)
+    stopifnot(nrow(agg_matching_nbr_ratio_dt) == nrow(agg_matching_nbr_dt))
+    agg_matching_nbr_ratio_dt$nBestMatchs_ratio <- agg_matching_nbr_ratio_dt$nBestMatchs/agg_matching_nbr_ratio_dt$nTADs
+    
+    stopifnot( agg_matching_nbr_ratio_dt$nBestMatchs_ratio >= 0)
+    stopifnot( agg_matching_nbr_ratio_dt$nBestMatchs_ratio <= 1)
+    
+    
+    # agg_matching_dt <- aggregate(matchingID_maxOverlapBp ~ ref_dataset + matching_dataset, data=all_matching_onlyBest_dt, FUN=length)
+    # 
+    # tot_matching_dt <- data.frame(ref_dataset = as.character(names(table(all_matching_onlyBest_dt$ref_dataset))), 
+    #                               totTADs = as.numeric(table(all_matching_onlyBest_dt$ref_dataset)), stringsAsFactors = FALSE)
+    # 
+    # agg_dt <- merge(agg_matching_dt, tot_matching_dt, by="ref_dataset")
+    # 
+    # agg_dt <- agg_dt[order(agg_dt$ref_dataset),]
+    
+    agg_matching_nbr_ratio_dt$ref_dataset <- factor(agg_matching_nbr_ratio_dt$ref_dataset, levels = all_levels)
+    agg_matching_nbr_ratio_dt$matching_dataset <- factor(agg_matching_nbr_ratio_dt$matching_dataset, levels = all_levels)
+    
+    stopifnot(!is.na(agg_matching_nbr_ratio_dt$ref_dataset))
+    stopifnot(!is.na(agg_matching_nbr_ratio_dt$matching_dataset))
+    
+    
+    plot_var <- "nBestMatchs"
+    plot_vars <- c("nBestMatchs", "nBestMatchs_ratio")
+    for(plot_var in plot_vars) {
+      myxlab <- paste0("nDS = ", nTotDS, " - nTADs = ", nTADs, " - nMissing = ", nMissing)
+      myylab <- "matching_dataset"
+      
+      agg_matching_nbr_ratio_dt <- agg_matching_nbr_ratio_dt[order(agg_matching_nbr_ratio_dt[,paste0(plot_var)]), ]
+      agg_matching_nbr_ratio_dt$matching_dataset <- factor(agg_matching_nbr_ratio_dt$matching_dataset,
+                                                           levels=agg_matching_nbr_ratio_dt$matching_dataset)
+      
+      
+      agg_matching_nbr_ratio_dt[,paste0(plot_var)] <- round(agg_matching_nbr_ratio_dt[,paste0(plot_var)], 2)
+      
+      ds_matching_plot <- ggplot(agg_matching_nbr_ratio_dt, 
+                                 aes_string(x="ref_dataset", y="matching_dataset", fill = paste0(plot_var)))+
+        geom_tile(color = "white")+
+        geom_text(aes_string(label = paste0(plot_var)), color = "black", size = 6, fontface="bold")+
+        scale_fill_gradientn(colours = hm.palette(100))+
+        guides(fill = FALSE)+ 
+        labs(title = paste0(overlapType, " - ", plot_var),
+             subtitle = paste0(curr_ds),
+             x = paste0(myxlab),
+             y = paste0(myylab)
+        )+
+        theme(
+          axis.text.x = element_blank(),
+          axis.text.y = element_text(size=12),
+          axis.title.y =  element_text(size=14, face="bold"),
+          axis.title.x =  element_text(size=14, face="italic"),
+          plot.title = element_text(size=18, face="bold", hjust=0.5),
+          plot.subtitle = element_text(size=16, face="italic", hjust=0.5),
+          panel.grid.major = element_blank(),
+          panel.border = element_blank(),
+          # panel.background = element_blank()
+          panel.background=element_rect(fill="grey50", colour="grey50")
+        )
+      # coord_equal() # make the x and y at the same scale => same as coord_fixed(ratio = 1)
+      outFile <- file.path(outFolder, paste0( curr_ds_name, "_bestMatching", "_", plot_var, "_", overlapType, "_heatmap.", plotType))
+      ggsave(ds_matching_plot, filename = outFile, height = myHeightGG, width = myWidthGG)
+      cat(paste0("... written: ", outFile, "\n"))  
+    } # end-for iterating over plot_vars
+    
+  } # end-for iterating over overlap types
   
-  
-  
-  
-
-} # end-for iterating over overlap types
+} # end-foreach iterating over all datasets
 
 
 

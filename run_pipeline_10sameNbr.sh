@@ -129,7 +129,7 @@ step2=1    # run the pipeline
 #TAD_DE_pipSteps=( "8cOnlyRatioDownFastSave" ) ### !!! USE FAST SAVE FOR STEP 8 !!! 
 # use fast save and permut version
 #TAD_DE_pipSteps=( "5fastSavePermut" "6fastSave")
-TAD_DE_pipSteps=( "6fastSave")
+TAD_DE_pipSteps=( "10sameNbr")
 
 # STEP 9; STEP10sameNbr; STEP11sameNbr
 

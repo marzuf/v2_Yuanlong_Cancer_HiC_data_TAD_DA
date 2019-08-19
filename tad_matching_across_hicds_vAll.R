@@ -1,8 +1,8 @@
 options(scipen=100)
 
-# Rscript tad_matching_across_hicds.R
+# Rscript tad_matching_across_hicds_vAll.R
 
-script_name <- "tad_matching_across_hicds.R"
+script_name <- "tad_matching_across_hicds_vAll.R"
 
 startTime <- Sys.time()
 
@@ -26,8 +26,8 @@ myHeight <- ifelse(plotType=="png", 400, 7)
 myWidth <- myHeight
 axisCex <- 1.4
 
-myWidthGG <- 25
-myHeightGG <- 25
+myWidthGG <- 20
+myHeightGG <- 20
 
 
 hm.palette <- colorRampPalette(brewer.pal(9, 'YlOrRd'), space='Lab')
@@ -53,7 +53,8 @@ stopifnot(dir.exists(file.path(mainFolder, all_hicds)))
 all_exprds <- lapply(all_hicds, function(x) list.files(file.path(pipFolder, x)))
 names(all_exprds) <- all_hicds
 
-outFolder <- "TAD_MATCHING_ACROSS_HICDS"
+inFolder <- "TAD_MATCHING_ACROSS_HICDS"
+outFolder <- "TAD_MATCHING_ACROSS_HICDS_vAll"
 dir.create(outFolder, recursive = TRUE)
 
 all_datasets <- unlist(lapply(1:length(all_exprds), function(x) file.path(names(all_exprds)[x], all_exprds[[x]])))
@@ -285,7 +286,7 @@ if(buildTable) {
   cat(paste0("... written: ", outFile, "\n"))
   
 } else {
-  outFile <- file.path(outFolder, "all_matching_dt.Rdata")
+  outFile <- file.path(inFolder, "all_matching_dt.Rdata")
   cat("... load data\n")
   all_matching_dt <- get(load(outFile))
 }
@@ -341,10 +342,11 @@ myylab <- "matching_dataset"
 
 for(overlapType in all_overlapTypes){
   
-  # select the best match for each TAD
-  cat("... select best for each TAD\n")
   
-  cat(paste0(Sys.time(), " - "))
+  
+  
+  
+  
   
   
   all_matching_dt_nbr <- all_matching_dt[,c("ref_dataset", "refID")]
@@ -375,7 +377,7 @@ for(overlapType in all_overlapTypes){
   plot_dt[,paste0(plot_var)] <- round(plot_dt[,paste0(plot_var)], 2)
   
   agg_matching_plot <- ggplot(plot_dt, 
-                             aes_string(x="ref_dataset_label", y="matching_dataset", fill = paste0(plot_var)))+
+                              aes_string(x="ref_dataset_label", y="matching_dataset", fill = paste0(plot_var)))+
     geom_tile(color = "white")+
     geom_text(aes_string(label = paste0(plot_var)), color = "black", size = 3, fontface="bold")+
     scale_fill_gradientn(colours = hm.palette(100))+
@@ -400,12 +402,29 @@ for(overlapType in all_overlapTypes){
   outFile <- file.path(outFolder, paste0( "allMatchingMean", "_", overlapType, "_ratio_heatmap.", plotType))
   ggsave(agg_matching_plot, filename = outFile, height = myHeightGG, width = myWidthGG)
   cat(paste0("... written: ", outFile, "\n"))  
-
-  
-
-
   
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  # select the best match for each TAD
+  cat("... select best for each TAD\n")
+  
+  cat(paste0(Sys.time(), " - "))
   # too slow... 
   # try with data.table; see other version in _v2 and _v3 version
   # the v3 version will yield similar results, but will discard the NA rows directly
@@ -420,7 +439,9 @@ for(overlapType in all_overlapTypes){
   cat(paste0(Sys.time(), " - "))
   
 
-  all_matching_onlyBest_dt <- all_matching_dt_DT[, lapply(.SD, head, n = 1L), by = list(ref_dataset, refID)] # NB: much faster than aggregate!
+  # all_matching_onlyBest_dt <- all_matching_dt_DT[, lapply(.SD, head, n = 1L), by = list(ref_dataset, refID)] # NB: much faster than aggregate!
+  all_matching_onlyBest_dt <- all_matching_dt_DT[, lapply(.SD, function(x) {x[get(overlapType) == max(get(overlapType), na.rm=T)]}), 
+                     by = list(ref_dataset, refID)] # NB: much faster than aggregate!
   
   cat(paste0(length(unique(all_matching_onlyBest_dt$ref_dataset))), "\n")
   
@@ -449,8 +470,8 @@ for(overlapType in all_overlapTypes){
   save(all_matching_onlyBest_dt, file = outFile)
   cat(paste0("... written: ", outFile, "\n"))
   
-
-  stopifnot(!(duplicated(paste0(all_matching_onlyBest_dt[, c("ref_dataset")], all_matching_onlyBest_dt[, c("refID")] ))))
+  # not true for the vall version
+  # stopifnot(!(duplicated(paste0(all_matching_onlyBest_dt[, c("ref_dataset")], all_matching_onlyBest_dt[, c("refID")] ))))
   
   all_matching_onlyBest_dt_onlyRef <- all_matching_onlyBest_dt[,c("ref_dataset", "refID")]
   all_matching_onlyBest_dt_onlyRef <- unique(all_matching_onlyBest_dt_onlyRef)
@@ -537,6 +558,7 @@ for(overlapType in all_overlapTypes){
     agg_matching_nbr_ratio_dt[,paste0(plot_var)] <- round(agg_matching_nbr_ratio_dt[,paste0(plot_var)], 2)
     
     
+    
     ds_matching_plot <- ggplot(agg_matching_nbr_ratio_dt, 
                       aes_string(x="ref_dataset_label", y="matching_dataset", fill = paste0(plot_var)))+
       geom_tile(color = "white")+
@@ -560,17 +582,14 @@ for(overlapType in all_overlapTypes){
         panel.background=element_rect(fill="grey50", colour="grey50")
       )
     # coord_equal() # make the x and y at the same scale => same as coord_fixed(ratio = 1)
-    outFile <- file.path(outFolder, paste0( "bestMatching", "_", plot_var, "_", overlapType, "_heatmap.", plotType))
+    outFile <- file.path(outFolder, paste0( "bestMatching", "_", plot_var, "_", overlapType, "_heatmap_vAll.", plotType))
     ggsave(ds_matching_plot, filename = outFile, height = myHeightGG, width = myWidthGG)
     cat(paste0("... written: ", outFile, "\n"))  
   } # end-for iterating over plot_vars
-  
-  
-  
-  
 
 } # end-for iterating over overlap types
 
+warnings()
 
 
 #######################################################################################################################################

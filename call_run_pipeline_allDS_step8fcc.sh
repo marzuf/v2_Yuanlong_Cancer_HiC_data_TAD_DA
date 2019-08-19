@@ -1,7 +1,7 @@
 #!/usr/bin/bash
 
 ######
-# usual datasets => run on electron
+# usual datasets => run on electron ok
 ######
 #>>> kidney
 ./run_pipeline_8fcc.sh ENCSR079VIJ_G401_40kb TCGAkich_norm_kich  # 
@@ -75,7 +75,7 @@
 
 
 ######
-# additional datasets (already run 0-4)
+# additional datasets (already run 0-4) => run on pip1
 ######
 
 #>>> lung
