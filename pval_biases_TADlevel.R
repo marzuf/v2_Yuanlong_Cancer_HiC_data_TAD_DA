@@ -1,8 +1,8 @@
-# Rscript pval_biases.R
+# Rscript pval_biases_TADlevel.R
 
 buildTable <- TRUE
 
-script_name <- "pval_biases.R"
+script_name <- "pval_biases_TADlevel.R"
 
 cat("> START: ", script_name, "\n")
 
@@ -25,7 +25,7 @@ cexAxis <- 1.2
 cexLab <- 1.2
 plotCex <- 1.2
 
-
+pipFolder <- "."
 settingFolder <- file.path("PIPELINE", "INPUT_FILES")
 pipOutFolder <- file.path("PIPELINE", "OUTPUT_FOLDER")
 stopifnot(dir.exists(settingFolder))
@@ -38,6 +38,8 @@ script0_name <- "0_prepGeneData"
 script3_name <- "3_runMeanTADLogFC"
 script4_name <- "4_runMeanTADCorr"
 script9_name <- "9_runEmpPvalMeanTADLogFC"
+script8cRatioDown_name <- "8cOnlyRatioDownFastSave_runAllDown"
+script8cFCC_name <- "8cOnlyFCC_runAllDown" 
 script10sameNbr_name <- "10sameNbr_runEmpPvalMeanTADCorr"
 script11same_name <- "11sameNbr_runEmpPvalCombined"
 
@@ -54,18 +56,20 @@ if(length(args) == 0) {
   all_exprds <- setNames(exprds, hicds)
 }
 
-outFolder <- file.path("PVAL_BIASES")
+outFolder <- file.path("PVAL_BIASES_TADLEVEL")
 dir.create(outFolder, recursive = TRUE)
 
 plotType <- "png"
 myHeight <- ifelse(plotType == "png", 400, 7)
 myWidth <- ifelse(plotType == "png", 400, 7)
 
-varFile <- file.path("EXPR_VARIANCE/LOG2FPKM/all_ds_geneVarDT.Rdata")
+
+"/LOG2FPKM/"
+
+varFile <- file.path("EXPR_VARIANCE_BYTAD/LOG2FPKM/all_ds_geneVarDT.Rdata")
 stopifnot(file.exists(varFile))
 varData <- get(load(varFile))
-var_variable <- "meanMostVar"
-stopifnot(var_variable %in% colnames(varData))
+var_variable <- "tadMeanVar"
 
 if(buildTable) {
   
@@ -86,11 +90,23 @@ if(buildTable) {
       stopifnot(file.exists(geneListFile))
       pipeline_geneList <- eval(parse(text = load(geneListFile))) # not adjusted
       
+      
+      g2tFile <- file.path(pipFolder, hicds, "genes2tad", "all_genes_positions.txt")
+      stopifnot(file.exists(g2tFile))
+      g2t_DT <- read.delim(g2tFile, header=F, col.names = c("entrezID",  "chromo", "start", "end", "region"), stringsAsFactors = FALSE)
+      g2t_DT$entrezID <- as.character(g2t_DT$entrezID)
+      stopifnot(pipeline_geneList %in% g2t_DT$entrezID)
+      g2t_DT <- g2t_DT[ g2t_DT$entrezID %in% pipeline_geneList,]
+      gt <- table(g2t_DT$region)
+      tad_genes <- setNames(as.numeric(gt), names(gt))
+      
+      
+      
+      
       fc_file <-  file.path(pipOutFolder, hicds, exprds, script3_name, "all_meanLogFC_TAD.Rdata")
       stopifnot(file.exists(fc_file))
       tad_fc <- eval(parse(text = load(fc_file)))
       all_regs <- names(tad_fc)
-      
       
       corr_file <- file.path(pipOutFolder, hicds, exprds, script4_name, "all_meanCorr_TAD.Rdata")
       stopifnot(file.exists(corr_file))  
@@ -124,6 +140,24 @@ if(buildTable) {
       tad_adjCombPval <- p.adjust(comb_empPval, method="BH")
       stopifnot(names(tad_adjCombPval) == all_regs)
       
+      
+      rd_file <-  file.path(pipOutFolder, hicds, exprds, script8cRatioDown_name, "all_obs_ratioDown.Rdata")
+      stopifnot(file.exists(rd_file))
+      tad_rd <- eval(parse(text = load(rd_file)))
+      stopifnot(names(tad_rd) == all_regs)
+      
+      
+      fcc_file <-  file.path(pipOutFolder, hicds, exprds, script8cRatioDown_name, "all_obs_prodSignedRatio.Rdata")
+      stopifnot(file.exists(fcc_file))
+      tad_fcc <- eval(parse(text = load(fcc_file)))
+      stopifnot(names(tad_fcc) == all_regs)
+      
+      stopifnot(paste0(hicds, "_", exprds) %in% names(varData))
+      curr_varData <- varData[[paste0(hicds, "_", exprds)]]
+      stopifnot(var_variable %in% names(curr_varData))
+      tad_var <- curr_varData[[paste0(var_variable)]]
+      stopifnot(names(tad_var) == all_regs)
+      
       # PIPELINE/INPUT_FILES/Panc1_rep12_40kb/run_settings_TCGApaad_wt_mutKRAS.R
       settingFile <- file.path(settingFolder, hicds, paste0("run_settings_", exprds, ".R"))
       stopifnot(file.exists(settingFile))
@@ -138,8 +172,8 @@ if(buildTable) {
       stopifnot(hicds %in% varData$hicds)
       stopifnot(exprds %in% varData$exprds)
       
-      meanMostVar <- varData[varData$hicds==hicds&varData$exprds==exprds,paste0(var_variable)]
-      stopifnot(length(meanMostVar) == 1)
+      
+      stopifnot(names(tad_genes) == all_regs)
       
       data.frame(
         hicds=hicds,
@@ -148,8 +182,8 @@ if(buildTable) {
         hicds_cancer = as.numeric(cl_cancer_annot[paste0(hicds)]),
         exprds_type = as.character(all_cmps[paste0(exprds)]),
         
-        nGenes = length(pipeline_geneList),
-        nTADs = length(all_regs),
+        
+        nGenes = tad_genes[all_regs],
         
         # nSamp1 = length(samp1),
         # nSamp2 = length(samp2),
@@ -158,16 +192,19 @@ if(buildTable) {
         
         ratioSamp = length(samp1)/length(samp2),
         
-        meanFC = mean(tad_fc),
-        medianFC = median(tad_fc),
-        meanCorr = mean(tad_corr),
-        medianCorr = median(tad_corr),
         
-        nSignif_meanCorrEmpPval = sum(tad_adjCorrPval <= pvalThresh),
-        nSignif_meanFCempPval = sum(tad_adjFCpval <= pvalThresh),
-        nSignif_combEmpPval = sum(tad_adjCombPval <= pvalThresh),
+        logFC = as.numeric(tad_fc[all_regs]),
         
-        meanMostVar = meanMostVar,
+        meanCorr = as.numeric(tad_corr[all_regs]),
+        
+        
+        meanVar = as.numeric(tad_var[all_regs]),
+        
+        adj_empPval_meanCorr = as.numeric(tad_adjCorrPval[all_regs]),
+        adj_empPval_meanFC = as.numeric(tad_adjFCpval[all_regs]),
+        adj_combEmpPval = as.numeric(tad_adjCombPval[all_regs]),
+        
+        
         
         stringsAsFactors = FALSE
       )
@@ -189,30 +226,40 @@ if(buildTable) {
   all_result_dt <- eval(parse(text = load(outFile)))
 }  
   
-all_x <- c("totSamp", "ratioSamp", "nGenes", "nTADs", "meanMostVar")
-stopifnot(all_x %in% colnames(all_result_dt))
 
-all_y <- colnames(all_result_dt)[grepl("mean|median|nSignif", colnames(all_result_dt))]
-stopifnot(length(all_y) > 0)
+all_vars <- colnames(all_result_dt)[! colnames(all_result_dt) %in% c( "hicds", "exprds", "hicds_cancer", "exprds_type")]
 
-all_result_dt$exprds_type_col <- all_cols[all_result_dt$exprds_type]
-all_result_dt$hicds_cancer_col <- ifelse(all_result_dt$hicds_cancer == 1, "red", 
-                                         ifelse(all_result_dt$hicds_cancer == 0, "black", NA))
-stopifnot(!is.na(all_result_dt$hicds_cancer_col))
-stopifnot(!is.na(all_result_dt$exprds_type_col))
+all_cmbs <- combn(all_vars, 2)
 
-all_result_dt$dataset <- paste0(all_result_dt$hicds, "\n", all_result_dt$exprds)
-
-x_var=all_x[1]
-y_var=all_y[1]
-
-foo <- foreach(y_var = all_y) %dopar% {
+for(i in ncol(all_cmbs)){
   
-  myy <- all_result_dt[,paste0(y_var)]
-  
-  for(x_var in all_x) {
+  x_var <- all_cmbs[1,i]
+  y_var <- all_cmbs[2,i]
+
+
+# all_y <- colnames(all_result_dt)[grepl("adj_", colnames(all_result_dt))]
+# stopifnot(length(all_y) > 0)
+# 
+# all_x <- colnames(all_result_dt)[! colnames(all_result_dt) %in% c(all_y, "hicds", "exprds", "hicds_cancer", "exprds_type")]
+# 
+# all_result_dt$exprds_type_col <- all_cols[all_result_dt$exprds_type]
+# all_result_dt$hicds_cancer_col <- ifelse(all_result_dt$hicds_cancer == 1, "red", 
+#                                          ifelse(all_result_dt$hicds_cancer == 0, "black", NA))
+# stopifnot(!is.na(all_result_dt$hicds_cancer_col))
+# stopifnot(!is.na(all_result_dt$exprds_type_col))
+# 
+# all_result_dt$dataset <- paste0(all_result_dt$hicds, "\n", all_result_dt$exprds)
+# 
+# x_var=all_x[1]
+# y_var=all_y[1]
+
+# foo <- foreach(y_var = all_y) %dopar% {
+#   
+#   
+#   for(x_var in all_x) {
+#     
+    myy <- all_result_dt[,paste0(y_var)]
     
-  
     myx <- all_result_dt[,paste0(x_var)]  
 
     outFile <- file.path(outFolder, paste0(y_var, "_vs_", x_var, "_colByExprds_and_colByHicds.", plotType))
@@ -260,8 +307,7 @@ foo <- foreach(y_var = all_y) %dopar% {
     foo <- dev.off()
     cat(paste0("... written: ", outFile, "\n"))
     
-  } # end-for iterating all_x
-} # end-foreach iterating all_y
+}
 
 
 

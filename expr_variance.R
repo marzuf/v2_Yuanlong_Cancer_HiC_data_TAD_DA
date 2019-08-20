@@ -1,7 +1,10 @@
 # Rscript expr_variance.R log2fpkm
 
 
-buildTable <- FALSE
+options(save.defaults = list(version = 2))
+
+
+buildTable <- TRUE
 
 cat("> START: expr_variance.R\n")
 
@@ -85,8 +88,9 @@ all_setting_files <- all_setting_files[grepl("^run_settings_.+\\.R$", basename(a
 
 stopifnot(length(all_setting_files) > 0)
 
-auc_coexprdist_fold <- file.path("AUC_COEXPRDIST_WITHFAM_SORTNODUP")
-stopifnot(dir.exists(auc_coexprdist_fold))
+
+#auc_coexprdist_fold <- file.path("AUC_COEXPRDIST_WITHFAM_SORTNODUP") #>>>>>>>>>>>>>><<<<< to uncomment when will be done !!! 20.08.19
+#stopifnot(dir.exists(auc_coexprdist_fold))
 
 outFold <- file.path(paste0("EXPR_VARIANCE"), toupper(exprType))
 dir.create(outFold, recursive = TRUE)
@@ -279,7 +283,7 @@ if(buildTable) {
   all_ds_geneVarDT <- eval(parse(text = load(outFile)))
 }
 
-# stop("--ok")
+stop("--ok")
 # load("GENE_VARIANCE/LOG2FPKM/all_ds_geneVarDT.Rdata")
 
 ########################################################################################## RETRIEVE FCC AND COEXPRDIST
