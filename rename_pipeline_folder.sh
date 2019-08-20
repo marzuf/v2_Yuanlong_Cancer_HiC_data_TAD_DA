@@ -5,8 +5,8 @@
 pipFolder="PIPELINE/OUTPUT_FOLDER"
 
 
-oldName="0_prepGeneData_TEMP"
-newName="0_prepGeneData"
+oldName="7_runPermutationsMeanTADCorr"
+newName="7fastSave_runPermutationsMeanTADCorr"
 
 
 all_folders=( $(realpath $pipFolder/*/*/$oldName) )

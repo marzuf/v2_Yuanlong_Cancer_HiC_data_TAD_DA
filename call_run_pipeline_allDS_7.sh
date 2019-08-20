@@ -40,39 +40,39 @@
 ./run_pipeline_7.sh ENCSR489OCU_NCI-H460_40kb TCGAlusc_norm_lusc  #el
 
 #>>> breast
-./run_pipeline_7.sh ENCSR549MGQ_T47D_40kb TCGAbrca_lum_bas  #
+./run_pipeline_7.sh ENCSR549MGQ_T47D_40kb TCGAbrca_lum_bas  # pip1
 
 #./run_pipeline_7.sh GSE75070_MCF-7_shNS_40kb TCGAbrca_lum_bas  # update name
-./run_pipeline_7.sh Barutcu_MCF-7_40kb TCGAbrca_lum_bas
+./run_pipeline_7.sh Barutcu_MCF-7_40kb TCGAbrca_lum_bas # pip1
 
 #>>> cerebellum and spinal cord
 
-./run_pipeline_7.sh GSE105194_cerebellum_40kb TCGAgbm_classical_mesenchymal  #
-./run_pipeline_7.sh GSE105194_cerebellum_40kb TCGAgbm_classical_neural # 
-./run_pipeline_7.sh GSE105194_cerebellum_40kb TCGAgbm_classical_proneural  #
-./run_pipeline_7.sh GSE105194_cerebellum_40kb TCGAlgg_IDHwt_IDHmutnc  # 
-./run_pipeline_7.sh GSE105194_spinal_cord_40kb TCGAgbm_classical_mesenchymal  # 
-./run_pipeline_7.sh GSE105194_spinal_cord_40kb TCGAgbm_classical_neural  # 
-./run_pipeline_7.sh GSE105194_spinal_cord_40kb TCGAgbm_classical_proneural  # 
-./run_pipeline_7.sh GSE105194_spinal_cord_40kb TCGAlgg_IDHwt_IDHmutnc  # 
+./run_pipeline_7.sh GSE105194_cerebellum_40kb TCGAgbm_classical_mesenchymal  ## pip1
+./run_pipeline_7.sh GSE105194_cerebellum_40kb TCGAgbm_classical_neural # # pip1
+./run_pipeline_7.sh GSE105194_cerebellum_40kb TCGAgbm_classical_proneural  ## pip1
+./run_pipeline_7.sh GSE105194_cerebellum_40kb TCGAlgg_IDHwt_IDHmutnc  # # pip1
+./run_pipeline_7.sh GSE105194_spinal_cord_40kb TCGAgbm_classical_mesenchymal  # # pip1
+./run_pipeline_7.sh GSE105194_spinal_cord_40kb TCGAgbm_classical_neural  # # pip1
+./run_pipeline_7.sh GSE105194_spinal_cord_40kb TCGAgbm_classical_proneural  # # pip1
+./run_pipeline_7.sh GSE105194_spinal_cord_40kb TCGAlgg_IDHwt_IDHmutnc  # # pip1
 
 #>>> colon
-./run_pipeline_7.sh GSE105318_DLD1_40kb TCGAcoad_msi_mss 
+./run_pipeline_7.sh GSE105318_DLD1_40kb TCGAcoad_msi_mss # pip2
 
 #>>> liver
-./run_pipeline_7.sh GSE105381_HepG2_40kb TCGAlihc_norm_lihc  -
-./run_pipeline_7.sh GSE105381_HepG2_40kb TCGAlihc_wt_mutCTNNB1  -
+./run_pipeline_7.sh GSE105381_HepG2_40kb TCGAlihc_norm_lihc  # pip2-
+./run_pipeline_7.sh GSE105381_HepG2_40kb TCGAlihc_wt_mutCTNNB1  # pip2-
 #./run_pipeline_7.sh GSE58752_liver_40kb TCGAlihc_norm_lihc    # update name
 #./run_pipeline_7.sh GSE58752_liver_40kb TCGAlihc_wt_mutCTNNB1   # update name  
-./run_pipeline_7.sh LI_40kb TCGAlihc_norm_lihc  #
-./run_pipeline_7.sh LI_40kb TCGAlihc_wt_mutCTNNB1  #
+./run_pipeline_7.sh LI_40kb TCGAlihc_norm_lihc  ## pip2
+./run_pipeline_7.sh LI_40kb TCGAlihc_wt_mutCTNNB1  ## pip2
 
 
 #>>> leukemia
-./run_pipeline_7.sh K562_40kb TCGAlaml_wt_mutFLT3  pip2
+./run_pipeline_7.sh K562_40kb TCGAlaml_wt_mutFLT3  # pip2
 
 #>>> pancreas
-./run_pipeline_7.sh Panc1_rep12_40kb TCGApaad_wt_mutKRAS # neu #
+./run_pipeline_7.sh Panc1_rep12_40kb TCGApaad_wt_mutKRAS ## pip2
 
 
 ######
@@ -80,31 +80,29 @@
 ######
 
 #>>> lung
-./run_pipeline_7.sh LG1_40kb TCGAluad_mutKRAS_mutEGFR 
-./run_pipeline_7.sh LG1_40kb TCGAluad_nonsmoker_smoker  # 
-./run_pipeline_7.sh LG1_40kb TCGAluad_norm_luad    # 
-./run_pipeline_7.sh LG1_40kb TCGAluad_wt_mutKRAS    # 
-./run_pipeline_7.sh LG1_40kb TCGAlusc_norm_lusc    # 
+./run_pipeline_7.sh LG1_40kb TCGAluad_mutKRAS_mutEGFR # el 
+./run_pipeline_7.sh LG1_40kb TCGAluad_nonsmoker_smoker  # el
+./run_pipeline_7.sh LG1_40kb TCGAluad_norm_luad    # el 
+./run_pipeline_7.sh LG1_40kb TCGAluad_wt_mutKRAS    # el 
+./run_pipeline_7.sh LG1_40kb TCGAlusc_norm_lusc    # el
 
-./run_pipeline_7.sh LG2_40kb TCGAluad_mutKRAS_mutEGFR 
-./run_pipeline_7.sh LG2_40kb TCGAluad_nonsmoker_smoker   # 
-./run_pipeline_7.sh LG2_40kb TCGAluad_norm_luad   # 
-./run_pipeline_7.sh LG2_40kb TCGAluad_wt_mutKRAS    # 
-./run_pipeline_7.sh LG2_40kb TCGAlusc_norm_lusc   # 
+./run_pipeline_7.sh LG2_40kb TCGAluad_mutKRAS_mutEGFR # pos1
+./run_pipeline_7.sh LG2_40kb TCGAluad_nonsmoker_smoker   # pos1
+./run_pipeline_7.sh LG2_40kb TCGAluad_norm_luad   # pos1
+./run_pipeline_7.sh LG2_40kb TCGAluad_wt_mutKRAS    # pos1
+./run_pipeline_7.sh LG2_40kb TCGAlusc_norm_lusc   # pos1
  
 #>>> pancreas
-./run_pipeline_7.sh PA2_40kb TCGApaad_wt_mutKRAS # 
-
-./run_pipeline_7.sh PA3_40kb TCGApaad_wt_mutKRAS # 
-
-./run_pipeline_7.sh GSE118588_Panc_beta_40kb TCGApaad_wt_mutKRAS # 
+./run_pipeline_7.sh PA2_40kb TCGApaad_wt_mutKRAS # pos2
+./run_pipeline_7.sh PA3_40kb TCGApaad_wt_mutKRAS # pos2
+./run_pipeline_7.sh GSE118588_Panc_beta_40kb TCGApaad_wt_mutKRAS # pos2
 
 
 #>>> breast
-./run_pipeline_7.sh Barutcu_MCF-10A_40kb TCGAbrca_lum_bas # 
-./run_pipeline_7.sh HMEC_40kb TCGAbrca_lum_bas  # 
-./run_pipeline_7.sh GSE109229_BT474_40kb TCGAbrca_lum_bas  #  
-./run_pipeline_7.sh GSE109229_SKBR3_40kb TCGAbrca_lum_bas  # 
+./run_pipeline_7.sh Barutcu_MCF-10A_40kb TCGAbrca_lum_bas # el2
+./run_pipeline_7.sh HMEC_40kb TCGAbrca_lum_bas  # el2
+./run_pipeline_7.sh GSE109229_BT474_40kb TCGAbrca_lum_bas  #  el2
+./run_pipeline_7.sh GSE109229_SKBR3_40kb TCGAbrca_lum_bas  # el2
 
 
 
