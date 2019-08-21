@@ -107,16 +107,16 @@
 
 
 #>>> colon
-./run_pipeline_7.sh Rao_HCT-116_2017_40kb TCGAcoad_msi_mss # 
+./run_pipeline_7.sh Rao_HCT-116_2017_40kb TCGAcoad_msi_mss # ops1
 
-./run_pipeline_7.sh ENCSR504OTV_transverse_colon_40kb TCGAcoad_msi_mss #
+./run_pipeline_7.sh ENCSR504OTV_transverse_colon_40kb TCGAcoad_msi_mss # pos2
 
 
 #>>> kidney
-./run_pipeline_7.sh GSE99051_786_O_40kb TCGAkich_norm_kich # 
+./run_pipeline_7.sh GSE99051_786_O_40kb TCGAkich_norm_kich # el1
 
 #>>> prostate 
-./run_pipeline_7.sh GSE118514_22Rv1_40kb TCGAprad_norm_prad # 
+./run_pipeline_7.sh GSE118514_22Rv1_40kb TCGAprad_norm_prad # el2
 
 
 

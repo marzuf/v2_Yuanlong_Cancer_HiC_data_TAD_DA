@@ -117,7 +117,7 @@ fcc_DT <- foreach(fcc_file = all_fcc_files, .combine = 'rbind') %dopar% {
   data.frame(
     dataset = dataset,
     region = names(tad_fcc),
-    ratioDown = as.numeric(tad_fcc),
+    FCC = as.numeric(tad_fcc),
     stringsAsFactors = FALSE
   )
 }

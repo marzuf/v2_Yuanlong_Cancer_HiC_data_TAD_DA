@@ -253,7 +253,7 @@ foo <- foreach(y_var = all_y) %dopar% {
       col=all_result_dt$hicds_cancer_col
     )
     addCorr(x=myx, y=myy, bty="n")
-    text(x=myx, y=myy, cex=0.5, labels=all_result_dt$dataset, col=all_result_dt$hicds_cancer_coll)
+    text(x=myx, y=myy, cex=0.5, labels=all_result_dt$dataset, col=all_result_dt$hicds_cancer_col)
     legend("bottomleft", c("cancer", "not cancer"), 
            pch=16, col=c("red", "black"), bty="n")
     

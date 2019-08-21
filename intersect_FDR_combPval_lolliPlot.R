@@ -3,10 +3,14 @@ options(scipen=100)
 setDir=""
 
 # Rscript intersect_FDR_combPval_lolliPlot.R K562_40kb TCGAlaml_wt_mutFLT3
+# Rscript intersect_FDR_combPval_lolliPlot.R ENCSR079VIJ_G401_40kb TCGAkich_norm_kich
 # Rscript intersect_FDR_combPval_lolliPlot.R   # to run all datasets in one shot
 
 hicds="K562_40kb"
 exprds="TCGAlaml_wt_mutFLT3"
+hicds="ENCSR079VIJ_G401_40kb"
+exprds="TCGAkich_norm_kich"
+
 
 script_name <- "intersect_FDR_combPval_lolliPlot.R"
 

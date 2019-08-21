@@ -26,6 +26,9 @@ script19sameNbr_name <- "19sameNbr_SAM_emp_measurement"
 outFolder <- "BOXPLOT_FDRTHRESH_NBRSIGNIF"
 dir.create(outFolder, recursive = TRUE)
 
+inFolder <- "MEANCORR_MEANFC_FDR"
+stopifnot(dir.exists(inFolder))
+
 plotType <- "png"
 myHeightGG  <- 7
 myWidthGG <- 12
@@ -45,6 +48,7 @@ if(length(args) == 0) {
   all_exprds <- setNames(exprds, hicds)
 }
 
+ 
 
 hicds = all_hicds[1]
 all_dt <- foreach(hicds = all_hicds, .combine='rbind') %do% {
@@ -57,54 +61,16 @@ all_dt <- foreach(hicds = all_hicds, .combine='rbind') %do% {
     
     cat("... start building DT for :", hicds, " - ", exprds, "\n")
     
-
-    # RETRIEVE FDR DATA FOR LOGFC
-    # for each of the FDR threshold -> get FC cut-off and meanCorr cut-off => signif TADs those with abs(logFC) >= cut-off & meanCorr >= cut-off
-    logFC_FDR_file <- file.path(pipOutFolder, hicds, exprds, script19_name, "empFDR_list.Rdata")
-    stopifnot(file.exists(logFC_FDR_file))
-    all_FDR <- eval(parse(text = load(logFC_FDR_file)))
-    logFC_FDR <- all_FDR[["empFDR_logFC"]]  # the names is the FC threshold, the value is the FDR
-    logFC_nSignif <- all_FDR[["nbrSignif_logFC"]]  
-    stopifnot(length(logFC_FDR) > 0)
-    stopifnot(length(logFC_nSignif) > 0)
-    stopifnot(names(logFC_FDR) == names(logFC_nSignif))
     
-    fc_dt <- data.frame(
-      hicds = hicds,
-      exprds = exprds,
-      fc_cut_off = as.numeric(logFC_FDR),
-      FDR_cut_off = as.numeric(names(logFC_FDR)),
-      fc_nSignif = as.numeric(logFC_nSignif),
-      stringsAsFactors = FALSE
-    )
+    inDT <- get(load(file.path(inFolder, hicds, exprds, "signifTADs_FC_and_Corr.Rdata")))
+    fdr_DT <- do.call(rbind,lapply(inDT, data.frame))
+    fdr_DT$FDR_cut_off <- rownames(fdr_DT)
+    rownames(fdr_DT) <- NULL
+    fdr_DT$hicds <- hicds
+    fdr_DT$exprds <- exprds
     
-    melt_fc_dt <- melt(fc_dt, id = c("hicds", "exprds", "FDR_cut_off"))
+    fdr_DT
     
-    
-    
-    
-    # RETRIEVE FDR DATA FOR MEAN CORR
-    # the same for meanCorr
-    meanCorr_FDR_file <-  file.path(pipOutFolder, hicds, exprds, script19sameNbr_name, "meanCorr_empFDR.Rdata")
-    stopifnot(file.exists(meanCorr_FDR_file))
-    all_corr_FDR <- eval(parse(text = load(meanCorr_FDR_file)))
-    meanCorr_FDR <- all_corr_FDR[["empFDR"]]  # the names is the meanCorr threshold, the value is the FDR
-    stopifnot(length(meanCorr_FDR) > 0)
-    meanCorr_nSignif <- all_corr_FDR[["nbrSignif"]]
-    stopifnot(length(meanCorr_nSignif) > 0)
-    stopifnot(names(meanCorr_FDR) == names(meanCorr_nSignif))
-    
-    corr_dt <- data.frame(
-      hicds = hicds,
-      exprds = exprds,
-      corr_cut_off = as.numeric(meanCorr_FDR),
-      FDR_cut_off = as.numeric(names(meanCorr_FDR)),
-      corr_nSignif = as.numeric(meanCorr_nSignif),
-      stringsAsFactors = FALSE
-    )
-    melt_corr_dt <- melt(corr_dt, id = c("hicds", "exprds", "FDR_cut_off"))
-    
-    rbind(melt_fc_dt, melt_corr_dt)
     
   } # end-foreach iterating over exprds
   
@@ -115,17 +81,15 @@ all_dt <- foreach(hicds = all_hicds, .combine='rbind') %do% {
 outFile <- file.path(outFolder, paste0("all_dt.Rdata"))
 save(all_dt, file = outFile)
 cat(paste0("... written: ", outFile, "\n"))
-# plot_all_dt <- melt(all_dt, id = c("hicds", "exprds", "FDR_cut_off"))
+plot_all_dt <- melt(all_dt, id = c("hicds", "exprds", "FDR_cut_off"))
 
 cat("... start plotting\n")
-
-plot_all_dt <- all_dt
 
 plot_all_dt$variable <- as.character(plot_all_dt$variable)
 plot_all_dt$value <- as.numeric(as.character(plot_all_dt$value))
 # stopifnot(!is.na(plot_all_dt$value))
 
-all_vars <- c("nSignif", "fc_cut_off", "corr_cut_off")
+all_vars <- c("nTADs_signif", "fc_cut_off", "corr_cut_off")
 
 all_vars_tit <- setNames(c("# signif. TADs", "logFC cutoff", "meanCorr cutoff"), all_vars)
 

@@ -147,7 +147,7 @@ if(buildTable) {
       stopifnot(names(tad_rd) == all_regs)
       
       
-      fcc_file <-  file.path(pipOutFolder, hicds, exprds, script8cRatioDown_name, "all_obs_prodSignedRatio.Rdata")
+      fcc_file <-  file.path(pipOutFolder, hicds, exprds, script8cFCC_name, "all_obs_prodSignedRatio.Rdata")
       stopifnot(file.exists(fcc_file))
       tad_fcc <- eval(parse(text = load(fcc_file)))
       stopifnot(names(tad_fcc) == all_regs)
@@ -156,7 +156,7 @@ if(buildTable) {
       curr_varData <- varData[[paste0(hicds, "_", exprds)]]
       stopifnot(var_variable %in% names(curr_varData))
       tad_var <- curr_varData[[paste0(var_variable)]]
-      stopifnot(names(tad_var) == all_regs)
+      stopifnot(setequal(names(tad_var), all_regs))
       
       # PIPELINE/INPUT_FILES/Panc1_rep12_40kb/run_settings_TCGApaad_wt_mutKRAS.R
       settingFile <- file.path(settingFolder, hicds, paste0("run_settings_", exprds, ".R"))
@@ -168,11 +168,7 @@ if(buildTable) {
       cat("... load samp2\n")
       samp2 <- eval(parse(text = load(file.path(setDir, sample2_file))))
       
-      # exprvariance
-      stopifnot(hicds %in% varData$hicds)
-      stopifnot(exprds %in% varData$exprds)
-      
-      
+
       stopifnot(names(tad_genes) == all_regs)
       
       data.frame(
@@ -231,7 +227,7 @@ all_vars <- colnames(all_result_dt)[! colnames(all_result_dt) %in% c( "hicds", "
 
 all_cmbs <- combn(all_vars, 2)
 
-for(i in ncol(all_cmbs)){
+for(i in 1:ncol(all_cmbs)){
   
   x_var <- all_cmbs[1,i]
   y_var <- all_cmbs[2,i]
@@ -242,9 +238,9 @@ for(i in ncol(all_cmbs)){
 # 
 # all_x <- colnames(all_result_dt)[! colnames(all_result_dt) %in% c(all_y, "hicds", "exprds", "hicds_cancer", "exprds_type")]
 # 
-# all_result_dt$exprds_type_col <- all_cols[all_result_dt$exprds_type]
-# all_result_dt$hicds_cancer_col <- ifelse(all_result_dt$hicds_cancer == 1, "red", 
-#                                          ifelse(all_result_dt$hicds_cancer == 0, "black", NA))
+all_result_dt$exprds_type_col <- all_cols[all_result_dt$exprds_type]
+all_result_dt$hicds_cancer_col <- ifelse(all_result_dt$hicds_cancer == 1, "red",
+                                         ifelse(all_result_dt$hicds_cancer == 0, "black", NA))
 # stopifnot(!is.na(all_result_dt$hicds_cancer_col))
 # stopifnot(!is.na(all_result_dt$exprds_type_col))
 # 
@@ -300,7 +296,7 @@ for(i in ncol(all_cmbs)){
       col=all_result_dt$hicds_cancer_col
     )
     addCorr(x=myx, y=myy, bty="n")
-    text(x=myx, y=myy, cex=0.5, labels=all_result_dt$dataset, col=all_result_dt$hicds_cancer_coll)
+    text(x=myx, y=myy, cex=0.5, labels=all_result_dt$dataset, col=all_result_dt$hicds_cancer_col)
     legend("bottomleft", c("cancer", "not cancer"), 
            pch=16, col=c("red", "black"), bty="n")
     
