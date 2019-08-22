@@ -1,6 +1,6 @@
 # Rscript pval_biases_TADlevel.R
 
-buildTable <- TRUE
+buildTable <- FALSE
 
 script_name <- "pval_biases_TADlevel.R"
 
@@ -223,6 +223,73 @@ if(buildTable) {
 }  
   
 
+
+
+
+
+all_result_dt$meanVar_log10 <- log10(all_result_dt$meanVar)
+x_var <- "meanCorr"
+y_var <- "meanVar_log10"
+ 
+all_result_dt$exprds_type_col <- all_cols[all_result_dt$exprds_type]
+all_result_dt$hicds_cancer_col <- ifelse(all_result_dt$hicds_cancer == 1, "red",
+                                         ifelse(all_result_dt$hicds_cancer == 0, "black", NA))
+myy <- all_result_dt[,paste0(y_var)]
+myx <- all_result_dt[,paste0(x_var)]  
+
+outFile <- file.path(outFolder, paste0(y_var, "_vs_", x_var, "_colByExprds_log10.", plotType))
+do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+plot(
+  x=myx,
+  y=myy,
+  xlab=paste0(x_var, "[log10]"),
+  ylab=paste0(y_var, "[log10]"),
+  main=paste0(y_var, " vs. ", x_var),
+  pch = 16,
+  cex=0.7,
+  cex.lab=plotCex,
+  cex.axis=plotCex,
+  col=all_result_dt$exprds_type_col
+)
+text(x=myx, y=myy, cex=0.5, labels=all_result_dt$dataset, col=all_result_dt$exprds_type_col)
+addCorr(x=myx, y=myy, bty="n")
+addSubtypeLeg(bty="n", pch=16)
+foo <- dev.off()
+cat(paste0("... written: ", outFile, "\n"))
+stop("-ok")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 all_vars <- colnames(all_result_dt)[! colnames(all_result_dt) %in% c( "hicds", "exprds", "hicds_cancer", "exprds_type")]
 
 all_cmbs <- combn(all_vars, 2)
@@ -304,6 +371,23 @@ all_result_dt$hicds_cancer_col <- ifelse(all_result_dt$hicds_cancer == 1, "red",
     cat(paste0("... written: ", outFile, "\n"))
     
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -23,9 +23,29 @@ script19_name <- "19onlyFC_SAM_emp_measurement" #
 script19sameNbr_name <- "19sameNbr_SAM_emp_measurement"
 script8c_name <- "8cOnlyRatioDownFastSave_runAllDown" # -> 
 
+source("../Yuanlong_Cancer_HiC_data_TAD_DA/subtype_cols.R")
+
+
 require(foreach)
 require(doMC)
 registerDoMC(40)
+require(ggplot2)
+require(reshape2)
+
+pval_col <- "dodgerblue3"
+fdr1_col <- "goldenrod"
+fdr2_col <- "darkolivegreen"
+
+
+
+plotType <- "png"
+myHeight <- ifelse(plotType=="png", 400, 7)
+myWidth <- myHeight
+axisCex <- 1.4
+
+myWidthGG <- 12
+myHeightGG <- 8
+
 
 pipFolder<- file.path(".")
 stopifnot(dir.exists(pipFolder))
@@ -51,7 +71,7 @@ stopifnot(!duplicated(entrez2symb_dt$entrezID))
 fdr_thresh1 <- 0.1
 fdr_thresh2 <- 0.2
 
-buildTable <- TRUE
+buildTable <- FALSE
 
 
 if(length(args) == 0) {
@@ -248,16 +268,180 @@ if(buildTable) {
 } else {
   outFile <- file.path(outFolder, "all_result_dt.Rdata")
   all_result_dt <- eval(parse(text = load(outFile)))
-  
-  
-
-  
-  
-  
 }
 
+############################################################################################# PLOT N SIGNIF
+
+pvalThresh <- 0.05
+
+idvars <- c("hicds", "exprds", "dataset")
+
+all_result_dt$dataset <- paste0(all_result_dt$hicds, "\n", all_result_dt$exprds)
+
+nSignif_empPval <- aggregate(adjPvalComb ~ dataset+hicds+exprds, FUN=function(x) sum(x<=pvalThresh), data=all_result_dt)
+nSignif_fdr01 <-  aggregate(signifFDR_0.1 ~ dataset+hicds+exprds, data=all_result_dt,  sum)
+nSignif_fdr02 <-  aggregate(signifFDR_0.2 ~ dataset+hicds+exprds, data=all_result_dt,  sum)
+
+nSignif_dt <- merge(nSignif_empPval, merge(nSignif_fdr02, nSignif_fdr01, by=idvars, all=TRUE), by =idvars, all=TRUE)
+nSignif_dt <- nSignif_dt[order(nSignif_dt$adjPvalComb, decreasing = TRUE),]
+ds_levels <- as.character(nSignif_dt$dataset)
+
+all_dt <- melt(nSignif_dt, id=idvars)
+
+all_dt$dataset <- factor(all_dt$dataset, levels=ds_levels)
+all_dt <- all_dt[order(as.numeric(all_dt$dataset)),]
+all_dt$exprds_type_col <- all_cols[all_cmps[all_dt$exprds]]
+mycols <- all_dt$exprds_type_col[as.character(all_dt$variable) == "adjPvalComb"]
+
+pval_col <- "dodgerblue3"
+fdr1_col <- "goldenrod"
+fdr2_col <- "darkolivegreen"
+
+all_dt$variable <- factor(all_dt$variable, levels=c("adjPvalComb", "signifFDR_0.1", "signifFDR_0.2"))
 
 
+p_var <-  ggplot(all_dt, aes(x = dataset, y = value, fill = variable)) + 
+  geom_bar(position="dodge", stat="identity") +
+  coord_cartesian(expand = FALSE) +
+  ggtitle("# signif. TADs", subtitle = "(adj. emp. p-val. sorted)")+
+  scale_x_discrete(name="")+
+  labs(fill="")+
+  scale_fill_manual(values=c(adjPvalComb=pval_col, signifFDR_0.1=fdr1_col, signifFDR_0.2=fdr2_col), 
+                    labels=c("signif. adjPvalComb", "signif. FDR=0.1", "signif. FDR=0.2"))+
+  scale_y_continuous(name=paste0("# signif. TADs"),
+                     breaks = scales::pretty_breaks(n = 10))+
+  theme( # Increase size of axis lines
+    strip.text = element_text(size = 12),
+    # top, right, bottom and left
+    # plot.margin = unit(c(1, 1, 4.5, 1), "lines"),
+    plot.title = element_text(hjust = 0.5, face = "bold", size=16),
+    plot.subtitle = element_text(hjust = 0.5, face = "italic", size = 14),
+    panel.grid = element_blank(),
+    panel.grid.major.y = element_line(colour = "grey"),
+    panel.grid.minor.y = element_line(colour = "grey"),
+    strip.text.x = element_text(size = 10),
+    axis.line.x = element_line(size = .2, color = "black"),
+    axis.line.y = element_line(size = .3, color = "black"),
+    axis.text.y = element_text(color="black", hjust=1,vjust = 0.5),
+    axis.text.x = element_text(color=mycols, hjust=1,vjust = 0.5, size=7, angle=90),
+    axis.ticks.x = element_blank(),
+    axis.title.y = element_text(color="black", size=12),
+    axis.title.x = element_text(color="black", size=12),
+    panel.border = element_blank(),
+    panel.background = element_rect(fill = "transparent"),
+    legend.background =  element_rect(),
+    legend.key = element_blank(),
+    legend.title = element_text(face="bold")
+  )
+
+outFile <- file.path(outFolder, paste0("all_ds_nSignif_empPval_sorted.", plotType))
+ggsave(plot = p_var, filename = outFile, height=myHeightGG, width = myWidthGG)
+cat(paste0("... written: ", outFile, "\n"))
+
+
+### => FDR 0.2 sorted
+nSignif_dt <- nSignif_dt[order(nSignif_dt$signifFDR_0.2, decreasing = TRUE),]
+ds_levels_fdr <- as.character(nSignif_dt$dataset)
+
+all_dt$dataset <- factor(all_dt$dataset, levels=ds_levels_fdr)
+all_dt <- all_dt[order(as.numeric(all_dt$dataset)),]
+all_dt$exprds_type_col <- all_cols[all_cmps[all_dt$exprds]]
+mycols <- all_dt$exprds_type_col[as.character(all_dt$variable) == "signifFDR_0.2"]
+
+pval_col <- "dodgerblue3"
+fdr1_col <- "goldenrod"
+fdr2_col <- "darkolivegreen"
+
+p_var <-  ggplot(all_dt[all_dt$variable != "adjPvalComb",], aes(x = dataset, y = value, fill = variable)) + 
+  geom_bar(position="dodge", stat="identity") +
+  coord_cartesian(expand = FALSE) +
+  ggtitle("# signif. TADs", subtitle = "(FDR 0.2 sorted)")+
+  scale_x_discrete(name="")+
+  labs(fill="")+
+  scale_fill_manual(values=c(signifFDR_0.1=fdr1_col, signifFDR_0.2=fdr2_col), 
+                    labels=c("signif. FDR=0.1", "signif. FDR=0.2"))+
+  scale_y_continuous(name=paste0("# signif. TADs"),
+                     breaks = scales::pretty_breaks(n = 10))+
+  theme( # Increase size of axis lines
+    strip.text = element_text(size = 12),
+    # top, right, bottom and left
+    # plot.margin = unit(c(1, 1, 4.5, 1), "lines"),
+    plot.title = element_text(hjust = 0.5, face = "bold", size=16),
+    plot.subtitle = element_text(hjust = 0.5, face = "italic", size = 14),
+    panel.grid = element_blank(),
+    panel.grid.major.y = element_line(colour = "grey"),
+    panel.grid.minor.y = element_line(colour = "grey"),
+    strip.text.x = element_text(size = 10),
+    axis.line.x = element_line(size = .2, color = "black"),
+    axis.line.y = element_line(size = .3, color = "black"),
+    axis.text.y = element_text(color="black", hjust=1,vjust = 0.5),
+    axis.text.x = element_text(color=mycols, hjust=1,vjust = 0.5, size=7, angle=90),
+    axis.ticks.x = element_blank(),
+    axis.title.y = element_text(color="black", size=12),
+    axis.title.x = element_text(color="black", size=12),
+    panel.border = element_blank(),
+    panel.background = element_rect(fill = "transparent"),
+    legend.background =  element_rect(),
+    legend.key = element_blank(),
+    legend.title = element_text(face="bold")
+  )
+
+outFile <- file.path(outFolder, paste0("all_ds_nSignif_fdr0.2_sorted.", plotType))
+ggsave(plot = p_var, filename = outFile, height=myHeightGG, width = myWidthGG)
+cat(paste0("... written: ", outFile, "\n"))
+
+
+### => FDR 0.1 sorted
+nSignif_dt <- nSignif_dt[order(nSignif_dt$signifFDR_0.1, decreasing = TRUE),]
+ds_levels_fdr <- as.character(nSignif_dt$dataset)
+
+all_dt$dataset <- factor(all_dt$dataset, levels=ds_levels_fdr)
+all_dt <- all_dt[order(as.numeric(all_dt$dataset)),]
+all_dt$exprds_type_col <- all_cols[all_cmps[all_dt$exprds]]
+mycols <- all_dt$exprds_type_col[as.character(all_dt$variable) == "signifFDR_0.1"]
+
+
+p_var <-  ggplot(all_dt[all_dt$variable != "adjPvalComb",], aes(x = dataset, y = value, fill = variable)) + 
+  geom_bar(position="dodge", stat="identity") +
+  coord_cartesian(expand = FALSE) +
+  ggtitle("# signif. TADs", subtitle = "(FDR 0.1 sorted)")+
+  scale_x_discrete(name="")+
+  labs(fill="")+
+  scale_fill_manual(values=c(signifFDR_0.1=fdr1_col, signifFDR_0.2=fdr2_col), 
+                    labels=c("signif. FDR=0.1", "signif. FDR=0.2"))+
+  scale_y_continuous(name=paste0("# signif. TADs"),
+                     breaks = scales::pretty_breaks(n = 10))+
+  theme( # Increase size of axis lines
+    strip.text = element_text(size = 12),
+    # top, right, bottom and left
+    # plot.margin = unit(c(1, 1, 4.5, 1), "lines"),
+    plot.title = element_text(hjust = 0.5, face = "bold", size=16),
+    plot.subtitle = element_text(hjust = 0.5, face = "italic", size = 14),
+    panel.grid = element_blank(),
+    panel.grid.major.y = element_line(colour = "grey"),
+    panel.grid.minor.y = element_line(colour = "grey"),
+    strip.text.x = element_text(size = 10),
+    axis.line.x = element_line(size = .2, color = "black"),
+    axis.line.y = element_line(size = .3, color = "black"),
+    axis.text.y = element_text(color="black", hjust=1,vjust = 0.5),
+    axis.text.x = element_text(color=mycols, hjust=1,vjust = 0.5, size=7, angle=90),
+    axis.ticks.x = element_blank(),
+    axis.title.y = element_text(color="black", size=12),
+    axis.title.x = element_text(color="black", size=12),
+    panel.border = element_blank(),
+    panel.background = element_rect(fill = "transparent"),
+    legend.background =  element_rect(),
+    legend.key = element_blank(),
+    legend.title = element_text(face="bold")
+  )
+
+outFile <- file.path(outFolder, paste0("all_ds_nSignif_fdr0.1_sorted.", plotType))
+ggsave(plot = p_var, filename = outFile, height=myHeightGG, width = myWidthGG)
+cat(paste0("... written: ", outFile, "\n"))
+
+
+
+#############################################################################################################################
 #############################################################################################################################
 #############################################################################################################################
 
