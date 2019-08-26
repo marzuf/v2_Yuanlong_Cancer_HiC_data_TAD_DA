@@ -33,8 +33,10 @@ all_result_dt$signifAdjPvalComb <- all_result_dt$adjPvalComb <= pvalThresh
 
 nDS <- length(unique(paste0(all_result_dt$hicds, all_result_dt$exprds)))
 
+all_result_dt$signifAdjPvalComb001_FDR02 <- all_result_dt$signifAdjPvalComb & all_result_dt$signifFDR_0.2
 
-all_vars <- c("signifAdjPvalComb", "signifFDR_0.1", "signifFDR_0.2")
+
+all_vars <- c("signifAdjPvalComb", "signifFDR_0.1", "signifFDR_0.2", "signifAdjPvalComb001_FDR02")
 
 nTop <- 20
 
@@ -64,8 +66,8 @@ for(signif_var in all_vars){
   foo <- dev.off()
   cat(paste0("... written: ", outFile, "\n"))
   
-  mostConservedNames <- names(conserv_signif[order(conserv_signif, decreasing=TRUE)])[1:20]
-  mostConservedPct <- round(conserv_signif[order(conserv_signif, decreasing=TRUE)]*100, 2)[1:20]
+  mostConservedNames <- names(conserv_signif[order(conserv_signif, decreasing=TRUE)])[1:nTop]
+  mostConservedPct <- round(conserv_signif[order(conserv_signif, decreasing=TRUE)]*100, 2)[1:nTop]
   
   sink(logFile, append=TRUE)
   cat(paste0("> ", signif_var, " - all_cmps\n"))
@@ -120,8 +122,8 @@ for(cmp_type in cmp_types) {
     foo <- dev.off()
     cat(paste0("... written: ", outFile, "\n"))
     
-    mostConservedNames <- names(conserv_signif[order(conserv_signif, decreasing=TRUE)])[1:20]
-    mostConservedPct <- round(conserv_signif[order(conserv_signif, decreasing=TRUE)]*100, 2)[1:20]
+    mostConservedNames <- names(conserv_signif[order(conserv_signif, decreasing=TRUE)])[1:nTop]
+    mostConservedPct <- round(conserv_signif[order(conserv_signif, decreasing=TRUE)]*100, 2)[1:nTop]
     
     sink(logFile, append=TRUE)
     cat(paste0("> ", signif_var, " - ", cmp_type, "\n"))
