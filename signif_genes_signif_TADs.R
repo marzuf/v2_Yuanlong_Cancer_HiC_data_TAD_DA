@@ -36,7 +36,6 @@ myHeight <- ifelse(plotType=="png", 500, 7)
 myWidth <- myHeight
 plotCex <- 1.2
 
-
 myWidthGG <- 12
 myHeightGG <- 8
 
@@ -47,7 +46,6 @@ args <- commandArgs(trailingOnly = TRUE)
 stopifnot(length(args) == 2 | length(args) == 0)
 hicds <- args[1]
 exprds <- args[2]
-
 
 if(length(args) == 0) {
   all_hicds <- list.files(pipOutFolder)
@@ -74,15 +72,11 @@ stopifnot(file.exists(final_table_file))
 final_table_DT <- get(load(final_table_file))
 
 if(buildTable) {
-  
   all_signif_dt <- foreach(hicds = all_hicds, .combine='rbind') %dopar% {
-    
-    
     g2tFile <- file.path( hicds, "genes2tad", "all_genes_positions.txt")
     stopifnot(file.exists(g2tFile))
     g2t_DT <- read.delim(g2tFile, header=F, col.names = c("entrezID",  "chromo", "start", "end", "region"), stringsAsFactors = FALSE)
     g2t_DT$entrezID <- as.character(g2t_DT$entrezID)
-    
     exprds_dt <- foreach(exprds = all_exprds[[paste0(hicds)]], .combine='rbind') %do% {
       
       geneList_file <- file.path(pipOutFolder, hicds, exprds, script0_name, "pipeline_geneList.Rdata")
@@ -109,7 +103,6 @@ if(buildTable) {
       stopifnot(!is.na(topTable_DT$entrezID))
       stopifnot(!duplicated(topTable_DT$entrezID))
       
-      
       topTable_DT[, paste0("gene_signifAdjPval_", pvalGenes001)] <- topTable_DT$adj.P.Val <= pvalGenes001
       topTable_DT[, paste0("gene_signifAdjPval_", pvalGenes005)] <- topTable_DT$adj.P.Val <= pvalGenes005
       
@@ -122,13 +115,9 @@ if(buildTable) {
       out_dt$hicds <- hicds
       out_dt$exprds <- exprds
       out_dt
-      
-      
     }
     exprds_dt
   }
-  
-  
   outFile <- file.path(outFolder, "all_signif_dt.Rdata")
   save(all_signif_dt, file = outFile, version=2)
   cat(paste0("... written: ", outFile, "\n"))
@@ -170,15 +159,9 @@ var_tad = all_signif_tads[1]
 nDS <- nrow(nSignif_dt2)
 
 for(var_gene in all_signif_genes) {
-  
   myx <- nSignif_dt2[,paste0(var_gene)]
-  
   for(var_tad in all_signif_tads) {
-    
-    
     myy <- nSignif_dt2[,paste0(var_tad)]
-    
-    
     outFile <- file.path(outFolder, paste0("all_ds_nSignif", "_", var_tad, "_vs_", var_gene, "_",  "densplot.", plotType))
     do.call(plotType, list(outFile, height=myHeight, width=myWidth))
     plot(
@@ -196,43 +179,24 @@ for(var_gene in all_signif_genes) {
     text(x = myx, y=myy, col=mycols, labels = rownames(nSignif_dt2))
     foo <- dev.off()
     cat(paste0("... written: ", outFile, "\n"))
-    
-    
-    
-    
   }
-  
 }
 
 
 geneThresh=0.01
 for(geneThresh in c(pvalGenes001, pvalGenes005)) {
-  
   for(signif_var in all_vars) {
-    
-    
     ratio_signifGenes_dt <- aggregate(as.formula(paste0("gene_signifAdjPval_", geneThresh,  " ~ ", paste0(idvars, collapse="+") )), data=all_signif_dt, mean)
     colnames(ratio_signifGenes_dt)[colnames(ratio_signifGenes_dt) == paste0("gene_signifAdjPval_", geneThresh)] <- "ratioSignifGenes"
-    
-    
     curr_dt <- all_signif_dt[, c(idvars, signif_var)]  
     curr_dt$dataset <- paste0(curr_dt$hicds, "\n", curr_dt$exprds)
     curr_dt <- merge(curr_dt, ratio_signifGenes_dt, by=idvars)
     
-    
-    
-    
     mean_dt <- aggregate(ratioSignifGenes ~ dataset, data=curr_dt, mean)
     mean_dt <- mean_dt[order(mean_dt$ratioSignifGenes, decreasing=T),]
     ds_levels <- as.character(mean_dt$dataset)
-    
-    
     curr_dt$dataset <- factor(curr_dt$dataset, levels=ds_levels)
     stopifnot(!is.na(curr_dt$dataset))
-    
-    
-    
-    
     
     curr_dt <- curr_dt[order(as.numeric(curr_dt$dataset)),]
     curr_dt$exprds_type_col <- all_cols[all_cmps[curr_dt$exprds]]
@@ -241,8 +205,6 @@ for(geneThresh in c(pvalGenes001, pvalGenes005)) {
     stopifnot(curr_dt$ratioSignifGenes <= 1)
     stopifnot(curr_dt$ratioSignifGenes >= 0)
     
-    
-    
     p_var <-  ggplot(curr_dt, aes_string(x = "dataset", y = paste0("ratioSignifGenes"), fill = paste0(signif_var))) + 
       geom_boxplot() +
       # coord_cartesian(expand = FALSE) +
@@ -250,7 +212,6 @@ for(geneThresh in c(pvalGenes001, pvalGenes005)) {
       scale_x_discrete(name="")+
       # labs(fill="")+
       scale_fill_manual(values=c(col1,col2))+
-                        
       scale_y_continuous(name=paste0("ratio signif. genes by TAD"),
                          breaks = scales::pretty_breaks(n = 10))+
       theme( # Increase size of axis lines
@@ -276,18 +237,9 @@ for(geneThresh in c(pvalGenes001, pvalGenes005)) {
         legend.key = element_blank(),
         legend.title = element_text(face="bold")
       )
-    
     outFile <- file.path(outFolder, paste0("all_ds_", signif_var, "_geneSignif", geneThresh, ".", plotType))
     ggsave(plot = p_var, filename = outFile, height=myHeightGG, width = myWidthGG)
     cat(paste0("... written: ", outFile, "\n"))
-    
-    
-    
-    
-    
-    
-    
-    
   } 
 }
 
