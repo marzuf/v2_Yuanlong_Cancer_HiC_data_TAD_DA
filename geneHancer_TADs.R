@@ -41,6 +41,9 @@ plotCex <- 1.2
 myWidthGG <- 12
 myHeightGG <- 8
 
+col1 <- "dodgerblue3"
+col2 <- "darkorange3"
+
 pipOutFolder <- file.path( "PIPELINE", "OUTPUT_FOLDER")
 stopifnot(dir.exists(pipOutFolder))
 
@@ -111,13 +114,19 @@ if(buildTable) {
     enhancer2tad_dt <- foreach(i=1:nrow(enhancerDT), .combine='rbind') %dopar% {
       cat(paste0("...... enhancer2tad: ", i, "/", nrow(enhancerDT),"\n"))
       enhancer_id <- gsub("genehancer_id=(.+);", "\\1", unlist(str_extract_all(string=enhancerDT$attributes[i], pattern = "genehancer_id=(.+?);" )))
-      tad_match <- tad_DT$region[(tad_DT$chromo == enhancerDT$chrom[i] & tad_DT$start <= enhancerDT$start[i] & tad_DT$end >= enhancerDT$end[i])]
-      stopifnot(length(tad_match) == 0 | length(tad_match) == 1 )
-      if(length(tad_match) == 0) return(NULL)
+      idx_match <- which(tad_DT$chromo == enhancerDT$chrom[i] & tad_DT$start <= enhancerDT$start[i] & tad_DT$end >= enhancerDT$end[i])
+      if(length(idx_match) == 0) return(NULL)
+      tad_match <- tad_DT$region[idx_match]
+      stopifnot( length(tad_match) == 1 )
+      
       data.frame(
         hicds=hicds,
         enhancer_id = enhancer_id,
+        enhancer_start = enhancerDT$start[i],
+        enhancer_end = enhancerDT$end[i],
         enhancer_tad = tad_match,
+        tad_start = tad_DT$start[idx_match],
+        tad_end = tad_DT$end[idx_match],
         stringsAsFactors = FALSE
       )
     } # end-foreach iterating over enhancers
@@ -169,15 +178,14 @@ all_signif_dt <- foreach(hicds = all_hicds, .combine='rbind') %dopar% {
   curr_e2t_dt <- nEnhancers2tad_dt[nEnhancers2tad_dt$hicds == hicds,]
   stopifnot(nrow(curr_e2t_dt) > 0) 
   stopifnot(!duplicated(curr_e2t_dt$enhancer_tad))
-  all_nEnhancers <- setNames(curr_e2t_dt$nenhancers, curr_e2t_dt$enhancer_tad)
+  all_nEnhancers <- setNames(curr_e2t_dt$nEnhancers, curr_e2t_dt$enhancer_tad)
   
   exprds_dt <- foreach(exprds = all_exprds[[paste0(hicds)]], .combine='rbind') %do% {
     
-    comb_empPval_file <- file.path(pipFolder, hicds, exprds, script11same_name, "emp_pval_combined.Rdata" )
+    comb_empPval_file <- file.path(pipOutFolder, hicds, exprds, script11same_name, "emp_pval_combined.Rdata" )
     stopifnot(file.exists(comb_empPval_file))
     comb_empPval <- eval(parse(text = load(paste0(comb_empPval_file))))
-    stopifnot(setequal(all_regs, names(comb_empPval)))
-    comb_empPval <- comb_empPval[all_regs]
+    
     # ADJUST THE PVAL
     adj_empPval_comb <- p.adjust(comb_empPval, method="BH")
     
@@ -209,16 +217,49 @@ y_var <- "nEnhancers"
 myx <- all_signif_dt[,paste0(x_var)]
 myy <- all_signif_dt[,paste0(y_var)]
 
-nDS <- length(unique(all_signif_dt$hicds, all_signif_dt$exprds))
+nDS <- length(unique(paste0(all_signif_dt$hicds, all_signif_dt$exprds)))
+
+outFile <- file.path(outFolder, paste0(y_var, "_log10_vs_", x_var, "_log10_densplot.", plotType))
+do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+densplot(
+  x=-log10(myx),
+  y=log10(myy),
+  xlab = paste0(x_var, " [-log10]"),
+  ylab = paste0(y_var, " [log10]"),
+  main = paste0(y_var, " (log10) vs. ", x_var, "(log10)"),
+  cex.lab=plotCex,
+  cex.axis = plotCex
+)
+addCorr(x = myx, y = myy, bty="n")
+mtext(side=3, text = paste0("nDS = ", nDS))
+foo <- dev.off()
+cat(paste0("... written: ", outFile, "\n"))
+
 
 outFile <- file.path(outFolder, paste0(y_var, "_vs_", x_var, "_log10_densplot.", plotType))
 do.call(plotType, list(outFile, height=myHeight, width=myWidth))
 densplot(
   x=-log10(myx),
-  y=myy,
-  xlab = paste0(x_var, "[-log10]"),
-  ylab = paste0(y_var),
-  main = paste0(y_var, " vs. ", x_var),
+  y=(myy),
+  xlab = paste0(x_var, " [-log10]"),
+  ylab = paste0(y_var, ""),
+  main = paste0(y_var, " vs. ", x_var, "(log10)"),
+  cex.lab=plotCex,
+  cex.axis = plotCex
+)
+addCorr(x = myx, y = myy, bty="n")
+mtext(side=3, text = paste0("nDS = ", nDS))
+foo <- dev.off()
+cat(paste0("... written: ", outFile, "\n"))
+
+outFile <- file.path(outFolder, paste0(y_var, "_vs_", x_var, "_densplot.", plotType))
+do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+densplot(
+  x=(myx),
+  y=(myy),
+  xlab = paste0(x_var, ""),
+  ylab = paste0(y_var, ""),
+  main = paste0(y_var, " vs. ", x_var, ""),
   cex.lab=plotCex,
   cex.axis = plotCex
 )
@@ -243,17 +284,21 @@ meanDT <- aggregate(nEnhancers ~ dataset, FUN=mean,data = boxplot_dt)
 meanDT <- meanDT[order(meanDT$nEnhancers, decreasing = TRUE),]
 ds_levels <- meanDT$dataset
 
-mycols <- all_cols[all_cmps[paste0(ds_levels)]]
+mycols <- all_cols[all_cmps[paste0(gsub(".+\n(.+)", "\\1", ds_levels))]]
 stopifnot(!is.na(mycols))
 
 boxplot_dt$dataset <- factor(boxplot_dt$dataset, levels = ds_levels)
 
 signif_vars <- colnames(boxplot_dt)[grepl("signif", colnames(boxplot_dt))]
 
+signif_var = signif_vars[1]
+
+boxplot_dt$nEnhancers_log10 <- log10(boxplot_dt$nEnhancers)
+
 for(signif_var in signif_vars){
   
   
-  p_var <-  ggplot(boxplot_dt, aes_string(x = "dataset", y = paste0("# enhancers"), fill = paste0(signif_var))) + 
+  p_var <-  ggplot(boxplot_dt, aes_string(x = "dataset", y = paste0("nEnhancers"), fill = paste0(signif_var))) + 
     geom_boxplot() +
     # coord_cartesian(expand = FALSE) +
     ggtitle("# enhancers in TADs", subtitle = paste0(signif_var))+
@@ -288,6 +333,46 @@ for(signif_var in signif_vars){
   outFile <- file.path(outFolder, paste0("all_ds_", signif_var, ".", plotType))
   ggsave(plot = p_var, filename = outFile, height=myHeightGG, width = myWidthGG)
   cat(paste0("... written: ", outFile, "\n"))
+  
+  
+  
+  p_var <-  ggplot(boxplot_dt, aes_string(x = "dataset", y = paste0("nEnhancers_log10"), fill = paste0(signif_var))) + 
+    geom_boxplot() +
+    # coord_cartesian(expand = FALSE) +
+    ggtitle("# enhancers in TADs (log10)", subtitle = paste0(signif_var))+
+    scale_x_discrete(name="")+
+    # labs(fill="")+
+    scale_fill_manual(values=c(col1,col2))+
+    scale_y_continuous(name=paste0("# enhancers by TAD [log10]"),
+                       breaks = scales::pretty_breaks(n = 10))+
+    theme( # Increase size of axis lines
+      strip.text = element_text(size = 12),
+      # top, right, bottom and left
+      # plot.margin = unit(c(1, 1, 4.5, 1), "lines"),
+      plot.title = element_text(hjust = 0.5, face = "bold", size=16),
+      plot.subtitle = element_text(hjust = 0.5, face = "italic", size = 14),
+      panel.grid = element_blank(),
+      panel.grid.major.y = element_line(colour = "grey"),
+      panel.grid.minor.y = element_line(colour = "grey"),
+      strip.text.x = element_text(size = 10),
+      axis.line.x = element_line(size = .2, color = "black"),
+      axis.line.y = element_line(size = .3, color = "black"),
+      axis.text.y = element_text(color="black", hjust=1,vjust = 0.5),
+      axis.text.x = element_text(color=mycols, hjust=1,vjust = 0.5, size=7, angle=90),
+      axis.ticks.x = element_blank(),
+      axis.title.y = element_text(color="black", size=12),
+      axis.title.x = element_text(color="black", size=12),
+      panel.border = element_blank(),
+      panel.background = element_rect(fill = "transparent"),
+      legend.background =  element_rect(),
+      legend.key = element_blank(),
+      legend.title = element_text(face="bold")
+    )
+  outFile <- file.path(outFolder, paste0("all_ds_", signif_var, "_log10.", plotType))
+  ggsave(plot = p_var, filename = outFile, height=myHeightGG, width = myWidthGG)
+  cat(paste0("... written: ", outFile, "\n"))
+  
+  
   
   
 }
