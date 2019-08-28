@@ -18,7 +18,7 @@ pipOutDir =  file.path(pipelineDir, "OUTPUT_FOLDER")
 pipScriptDir = paste0(setDir, "/mnt/ed4/marie/scripts/TAD_DE_pipeline_v2")
 mainSettingsFile = file.path(paste0(pipScriptDir, "_",  "TopDom"), "main_settings.R")
 
-plot_lolliTAD_ds <- function(exprds, hicds, all_TADs, orderByLolli = "startPos", titTADonly=TRUE){
+plot_lolliTAD_ds <- function(exprds, hicds, all_TADs, orderByLolli = "startPos", titTADonly=TRUE, mytitle=NULL){
                           # mainDir = file.path(setDir, "/mnt/etemp/marie/Cancer_HiC_data_TAD_DA"),
                           # pipelineDir = file.path(mainDir, "PIPELINE"),
                           # settingDir = file.path(pipelineDir, "INPUT_FILES"),
@@ -173,7 +173,7 @@ plot_lolliTAD_ds <- function(exprds, hicds, all_TADs, orderByLolli = "startPos",
                                          geneList = geneList,
                                          textLeft =  meanTADlogFC[tad_to_plot] > 0,
                                          orderBy = orderByLolli,
-                                         cond1=plot_cond1, cond2=plot_cond2)
+                                         cond1=plot_cond1, cond2=plot_cond2, mytitle=mytitle)
   }
   if(titTADonly) {
     myTit <- ""
