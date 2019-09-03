@@ -72,7 +72,7 @@ stopifnot(!duplicated(entrez2symb_dt$entrezID))
 fdr_thresh1 <- 0.1
 fdr_thresh2 <- 0.2
 
-buildTable <- FALSE
+buildTable <- TRUE
 
 
 if(length(args) == 0) {
@@ -104,6 +104,14 @@ if(buildTable) {
       g2t_DT <- read.delim(g2tFile, header=F, col.names = c("entrezID",  "chromo", "start", "end", "region"), stringsAsFactors = FALSE)
       g2t_DT$entrezID <- as.character(g2t_DT$entrezID)
       
+
+      ### RETRIEVE THE TAD ASSIGNMENT
+      tadFile <- file.path(pipFolder, hicds, "genes2tad", "all_assigned_regions.txt")
+      stopifnot(file.exists(tadFile))
+      tad_DT <- read.delim(tadFile, header=F, col.names = c("chromo","region", "start", "end"), stringsAsFactors = FALSE)
+      tad_DT <- tad_DT[grepl("_TAD", tad_DT$region),]
+      stopifnot(nrow(tad_DT) > 0)
+
       ### RETRIEVE THE GENES USED IN THE PIPELINE - script0
       script0_name <- "0_prepGeneData"
       stopifnot(dir.exists(file.path(pipOutFolder, hicds, exprds, script0_name)))
@@ -130,8 +138,9 @@ if(buildTable) {
       all_regs <- names(tad_fc)
 
       stopifnot(all_regs %in% g2t_DT$region)
-      all_regs_start <- setNames(g2t_DT$start, g2t_DT$region)
-      all_regs_end <- setNames(g2t_DT$end, g2t_DT$region)
+      stopifnot(all_regs %in% tad_DT$region)
+      all_regs_start <- setNames(tad_DT$start, tad_DT$region)
+      all_regs_end <- setNames(tad_DT$end, tad_DT$region)
 
       
       corr_file <- file.path(pipOutFolder, hicds, exprds, script4_name, "all_meanCorr_TAD.Rdata")
