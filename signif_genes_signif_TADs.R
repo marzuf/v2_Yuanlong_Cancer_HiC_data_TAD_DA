@@ -2,7 +2,7 @@ options(scipen=100)
 
 setDir = ""
 
-buildTable <- TRUE
+buildTable <- FALSE
 
 # Rscript signif_genes_signif_TADs.R   # 
 
@@ -18,6 +18,7 @@ cat("> START ", script_name, "\n")
 SSHFS <- FALSE
 
 require(ggplot2)
+require(reshape2)
 require(foreach)
 require(doMC)
 registerDoMC(ifelse(SSHFS, 2, 40))
@@ -125,6 +126,96 @@ if(buildTable) {
   outFile <- file.path(outFolder, "all_signif_dt.Rdata")
   all_signif_dt <- get(load(outFile))
 }
+
+# nSignifFDR01 <- aggregate(signifFDR_0.1 ~ region, data=all_signif_dt, FUN=sum)
+# nSignifFDR02 <- aggregate(signifFDR_0.2 ~ region, data=all_signif_dt, FUN=sum)
+# nSignifAdjPvalComb001 <- aggregate(signifAdjPvalComb_0.01 ~ region, data=all_signif_dt, FUN=sum)
+# nSignifAdjPvalComb005 <- aggregate(signifAdjPvalComb_0.05 ~ region, data=all_signif_dt, FUN=sum)
+# 
+
+signif_gene_vars <- c("gene_signifAdjPval_0.05", "gene_signifAdjPval_0.01")
+signif_tad_vars <- colnames(all_signif_dt)[! colnames(all_signif_dt) %in% c("hicds", "exprds", "region", "entrezID", signif_gene_vars)]
+
+signif_gene=signif_gene_vars[1]
+signif_tad=signif_tad_vars[1]
+
+signif_gene =  "gene_signifAdjPval_0.05"
+signif_tad =  "signifAdjPvalComb_0.01_signifFDR_0.2"
+
+for(signif_gene in signif_gene_vars) {
+  
+  for(signif_tad in signif_tad_vars) {
+    
+    cat(" signif_gene = ", signif_gene, "\n" )
+    cat(" signif_tad = ", signif_tad, "\n" )
+    
+    
+    all_signif_dt[,paste0(signif_tad, "_AND_", signif_gene)] <- all_signif_dt[,paste0(signif_gene)] & all_signif_dt[,paste0(signif_tad)]
+    
+    
+    nSignifGenes_tad <- aggregate( as.formula(paste0(signif_tad, " ~ hicds + exprds")), FUN=sum, data=all_signif_dt)
+    colnames(nSignifGenes_tad)[3] <- paste0(signif_tad)
+    nSignifGenes_tadLimma <- aggregate( as.formula(paste0(paste0(signif_tad, "_AND_", signif_gene), " ~ hicds + exprds")), FUN=sum, data=all_signif_dt)
+    colnames(nSignifGenes_tadLimma)[3] <- paste0(signif_tad, "_AND_", signif_gene)
+    
+    nSignif_dt <- merge(nSignifGenes_tad, nSignifGenes_tadLimma, by=c("hicds", "exprds"))
+    nSignif_dt$dataset <- paste0(nSignif_dt$hicds, "\n", nSignif_dt$exprds)
+    nSignif_dt <- nSignif_dt[order(nSignif_dt[,paste0(signif_tad)], decreasing = TRUE),]
+    ds_levels <- nSignif_dt$dataset
+    
+    nSignif_dt_m <- melt(nSignif_dt, by=c("hicds", "exprds", "dataset"))
+    
+    nSignif_dt_m$dataset <- factor(nSignif_dt_m$dataset, levels=ds_levels)
+    nSignif_dt_m <- nSignif_dt_m[order(as.numeric(nSignif_dt_m$dataset)),]
+    nSignif_dt_m$exprds_type_col <- all_cols[all_cmps[nSignif_dt_m$exprds]]
+    mycols <- nSignif_dt_m$exprds_type_col[as.character(nSignif_dt_m$variable) == signif_tad] 
+    
+    nSignif_dt_m$variable <- gsub("_AND_", "_AND\n", nSignif_dt_m$variable)
+    
+    
+    p_var <-  ggplot(nSignif_dt_m, aes(x = dataset, y = value, fill = variable)) + 
+      geom_bar(position="dodge", stat="identity") +
+      coord_cartesian(expand = FALSE) +
+      ggtitle("# signif. genes", subtitle = paste0(signif_tad, " + ", signif_gene))+
+      scale_x_discrete(name="")+
+      labs(fill="")+
+      scale_fill_manual(values=c(col1,col2))+
+      scale_y_continuous(name=paste0("# signif. genes"),
+                         breaks = scales::pretty_breaks(n = 10))+
+      theme( # Increase size of axis lines
+        strip.text = element_text(size = 12),
+        # top, right, bottom and left
+        # plot.margin = unit(c(1, 1, 4.5, 1), "lines"),
+        plot.title = element_text(hjust = 0.5, face = "bold", size=16),
+        plot.subtitle = element_text(hjust = 0.5, face = "italic", size = 14),
+        panel.grid = element_blank(),
+        panel.grid.major.y = element_line(colour = "grey"),
+        panel.grid.minor.y = element_line(colour = "grey"),
+        strip.text.x = element_text(size = 10),
+        axis.line.x = element_line(size = .2, color = "black"),
+        axis.line.y = element_line(size = .3, color = "black"),
+        axis.text.y = element_text(color="black", hjust=1,vjust = 0.5),
+        axis.text.x = element_text(color=mycols, hjust=1,vjust = 0.5, size=7, angle=90),
+        axis.ticks.x = element_blank(),
+        axis.title.y = element_text(color="black", size=12),
+        axis.title.x = element_text(color="black", size=12),
+        panel.border = element_blank(),
+        panel.background = element_rect(fill = "transparent"),
+        legend.background =  element_rect(),
+        legend.key = element_blank(),
+        legend.title = element_text(face="bold")
+      )
+    
+    outFile <- file.path(outFolder, paste0("nSignif_genes_", signif_tad, "_and_", signif_gene, ".", plotType))
+    ggsave(plot = p_var, filename = outFile, height=myHeightGG, width = myWidthGG)
+    cat(paste0("... written: ", outFile, "\n"))
+  }
+}
+
+stop("--ok\n")
+
+
+
 
     
 idvars <- c("hicds", "exprds", "region")
