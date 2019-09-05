@@ -1,5 +1,8 @@
 options(scipen=100)
 
+require(reshape2)
+
+
 # Rscript tad_matching_across_hicds_allMatch.R
 
 script_name <- "tad_matching_signif_across_hicds_allMatch.R"
@@ -29,6 +32,9 @@ myHeightGG <- 12
 
 
 hm.palette <- colorRampPalette(brewer.pal(9, 'YlOrRd'), space='Lab')
+
+
+source("../Yuanlong_Cancer_HiC_data_TAD_DA/subtype_cols.R")
 
 
 script0_name <- "0_prepGeneData"
@@ -196,7 +202,7 @@ if(buildTable) {
       
       IDoverlap_hits_all <- findOverlaps(query=query_GR,
                                          subject=query_GR)
-      IDoverlap_hits <- IDoverlap_hits_all[queryHits(IDoverlap_hits_all) != subjectHits(IDoverlap_hits_all)] 
+      IDoverlap_hits <- IDoverlap_hits_all[queryHits(IDoverlap_hits_all) != subjectHits(IDoverlap_hits_all)]
       
       refID <- names(ref_GR[subjectHits(overlap_GR)])
       queryID <- names(query_GR[queryHits(overlap_GR)])
@@ -215,12 +221,12 @@ if(buildTable) {
       i=1
       i=2
       overlapDT_genes <- foreach(i=1:nmat, .combine='rbind') %do% {
-        ref_genes <- final_dt$region_genes[final_dt$hicds == dirname(ref_dataset) & 
-                                             final_dt$exprds == basename(ref_dataset) & 
+        ref_genes <- final_dt$region_genes[final_dt$hicds == dirname(ref_dataset) &
+                                             final_dt$exprds == basename(ref_dataset) &
                                              final_dt$region == refID[i]]
         ref_genes_ul <- unlist(strsplit(ref_genes, split=","))
-        query_genes <- final_dt$region_genes[final_dt$hicds == dirname(query_dataset) & 
-                                               final_dt$exprds == basename(query_dataset) & 
+        query_genes <- final_dt$region_genes[final_dt$hicds == dirname(query_dataset) &
+                                               final_dt$exprds == basename(query_dataset) &
                                                final_dt$region == queryID[i]]
         query_genes_ul <- unlist(strsplit(query_genes, split=","))
         common_genes <- intersect(ref_genes_ul, query_genes_ul)
@@ -229,7 +235,7 @@ if(buildTable) {
           queryID = queryID[i],
           overlapGenes = paste0(common_genes, collapse=","),
           nOverlapGenes = length(common_genes),
-        stringsAsFactors=FALSE
+          stringsAsFactors=FALSE
         )
       }
       
@@ -304,10 +310,10 @@ if(buildTable) {
       #   c(names(query_tad_genes)[which.max(query_matches)], nMatch, paste0(intersect_symbols, collapse=","))
       # }
       # names(all_gene_overlap_list) <- names(ref_tad_genes)
-      # 
+      #
       # gene_overlap_list <- Filter(function(x) x[1] != "-Inf", all_gene_overlap_list)
       # stopifnot(lengths(gene_overlap_list) == 3)
-      # 
+      #
       # maxGenes_overlapDT <- data.frame(do.call(rbind, gene_overlap_list))
       # maxGenes_overlapDT$refID <- rownames(maxGenes_overlapDT)
       # colnames(maxGenes_overlapDT)[1] <- "queryID"
@@ -317,20 +323,20 @@ if(buildTable) {
       # stopifnot(maxGenes_overlapDT$refID %in% ref_g2t_dt$region)
       # stopifnot(maxGenes_overlapDT$queryID %in% query_g2t_dt$region)
       # stopifnot(!is.na(maxGenes_overlapDT$nOverlapGenes))  
-      # 
+      #
       # colnames(maxBp_overlapDT)[colnames(maxBp_overlapDT) == "queryID"] <- "matchingID_maxOverlapBp"
       # colnames(maxGenes_overlapDT)[colnames(maxGenes_overlapDT) == "queryID"] <-  "matchingID_maxOverlapGenes"
-      # 
-      # 
+      #
+      #
       # stopifnot(maxBp_overlapDT$refID %in% ref_tadpos_dt_info$refID)
       # stopifnot(maxGenes_overlapDT$refID %in% ref_tadpos_dt_info$refID)
-      # 
-      # 
+      #
+      #
       # tmp_dt <- merge(maxBp_overlapDT, maxGenes_overlapDT, by ="refID", all = TRUE)
-      # 
+      #
       # all_match_dt <- merge(tmp_dt, ref_tadpos_dt_info[,c("refID", "ref_totBp", "ref_nGenes"), drop=FALSE], by="refID", all=TRUE)
       # stopifnot(nrow(all_match_dt) == nrow(ref_tadpos_dt_info))
-      # 
+      #
       # first_cols <- colnames(all_match_dt)[grepl("^ref",colnames(all_match_dt))]
       # last_cols <- colnames(all_match_dt)[!grepl("^ref",colnames(all_match_dt))]
       # all_match_dt <- all_match_dt[,c(first_cols, last_cols)]
@@ -360,8 +366,8 @@ if(buildTable) {
 # length(unique(paste0(all_signif_matching_dt$query_dataset, all_signif_matching_dt$queryID))) # 1303
 
 
-all_signif_matching_dt$refID_full <- paste0(all_signif_matching_dt$ref_dataset, "-", all_signif_matching_dt$refID)
-all_signif_matching_dt$queryID_full <- paste0(all_signif_matching_dt$query_dataset, "-", all_signif_matching_dt$queryID)
+all_signif_matching_dt$refID_full <- file.path(all_signif_matching_dt$ref_dataset, all_signif_matching_dt$refID)
+all_signif_matching_dt$queryID_full <- file.path(all_signif_matching_dt$query_dataset, all_signif_matching_dt$queryID)
 
 
 # get the number of matches, to have an idea of multiple matching
@@ -369,7 +375,7 @@ nMatchByTad <- aggregate(overlapBp ~ refID + ref_dataset, FUN=length, data = all
 range(nMatchByTad$overlapBp) # 1 - 55
 
 all_signif_tads_with_match <- unique(all_signif_matching_dt$refID_full)
-length(all_signif_tads_with_match) # 1303 # cmp with 
+length(all_signif_tads_with_match) # 1303 # cmp with
 sum(final_dt[,paste0(signifcol)]) # 1453 3 -> 150 match with no other
 
 tad=all_signif_tads_with_match[1]
@@ -381,14 +387,97 @@ tad=all_signif_tads_with_match[1]
 # })
 
 
-set_of_tads2 <- foreach(tad = all_signif_tads_with_match) %dopar% {
+set_of_tads <- foreach(tad = all_signif_tads_with_match) %dopar% {
+  # all_signif_matching_dt[all_signif_matching_dt$refID_full == tad,]
   matching_tads <- all_signif_matching_dt$queryID_full[all_signif_matching_dt$refID_full == tad]
-  c(tad, matching_tads)
+  sort(c(tad, matching_tads))
 }
-names(set_of_tads2) <- all_signif_tads_with_match
+names(set_of_tads) <- all_signif_tads_with_match
+length(set_of_tads) # 1303
+set_of_tads <- unique(set_of_tads)
+length(set_of_tads) # 368 !
+
+# check how many times each TAD is present -> to see if a TAD is involved in multiple conserved region
+tad_occurence <- table(unlist(set_of_tads))
+range(tad_occurence)
+# GSE109229_SKBR3_40kb/TCGAbrca_lum_bas-chr6_TAD125
+tmpx = "GSE109229_SKBR3_40kb/TCGAbrca_lum_bas/chr6_TAD125"
+tmpx = names(head(sort(-tad_occurence),1))
+Filter(function(x) any(grepl(tmpx, x)), set_of_tads)
+
+names(set_of_tads) <- paste0("conserved_region_", seq_along(set_of_tads))
+
+all_datasets <- unique(all_signif_matching_dt$ref_dataset)
+
+dataset_dt <- data.frame(
+  dataset = all_datasets,
+  hicds = dirname(all_datasets),
+  exprds = basename(all_datasets),
+  stringsAsFactors = FALSE
+)
+dataset_dt$cmpType <- all_cmps[paste0(dataset_dt$exprds)]
+dataset_dt$subtype_col <- all_cols[paste0(dataset_dt$cmpType)]
+stopifnot(!is.na(dataset_dt$subtype_col))
+
+dataset_dt <- dataset_dt[order(dataset_dt$cmpType, dataset_dt$hicds, dataset_dt$exprds),]
+dataset_dt$dataset_label <- gsub("/", "\n", dataset_dt$dataset)
+ds_label_levels <- dataset_dt$dataset_label
+ds_levels <- dataset_dt$dataset
+
+cons_region = set_of_tads[[15]]
+
+matching_dt <- foreach(cons_region = set_of_tads, .combine='cbind') %dopar% {
+  all_matching_ds <- dirname(cons_region)
+  matching_ds <- as.numeric(ds_levels %in% all_matching_ds )
+  # stopifnot(sum(matching_ds) == length(all_matching_ds)) # not TRUE -> 1 TAD can match to multiple TAD in the query
+  stopifnot(sum(matching_ds) <= length(all_matching_ds)) # not TRUE -> 1 TAD can match to multiple TAD in the query
+  matching_ds
+}
+stopifnot(!duplicated(ds_levels))
+rownames(matching_dt) <- ds_levels
+colnames(matching_dt) <- names(set_of_tads)
+
+tmp <- colSums(matching_dt)
+region_levels <- names(sort(-tmp))
+
+plot_dt <- melt(matching_dt)
+save(plot_dt, file ="plot_dt.Rdata", version=2)
+
+
+colnames(plot_dt) <- c("dataset", "region", "signif") 
+
+matching_dt <- matching_dt[,region_levels]
+image(matching_dt)
+
+plot_dt$dataset_label <- gsub("/", "\n", plot_dt$dataset)
+plot_dt$dataset_label <- factor(plot_dt$dataset_label, levels=ds_label_levels)
+stopifnot(!is.na(plot_dt$dataset_label))
+
+plot_dt$region <- factor(plot_dt$region, levels=region_levels)
+stopifnot(!is.na(plot_dt$region))
+
+
+plot_dt$signif <- factor(plot_dt$signif, levels = c(1,0))
+
+g_match <- ggplot(plot_dt, aes(x = region, y = dataset_label, fill = signif, color=signif)) +
+  geom_point() + 
+  scale_fill_manual(values = c("black", "white"))+
+  scale_colour_manual(values = c("black", "white"))
+
+require(gplots)
+heatmap.2(matching_dt[,rev(colnames(matching_dt))], col=c("black", "white"),
+          dendrogram = "none",
+          trace = "none",
+          row_names_side="left",
+          key=F,
+          Rowv=FALSE,
+          Colv=FALSE)
+
+
 
 #######################################################################################################################################
 #######################################################################################################################################
 #######################################################################################################################################
 cat("***** DONE: ", script_name, "\n")
 cat(paste0(startTime, "\n", Sys.time(), "\n"))
+
