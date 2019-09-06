@@ -1,7 +1,6 @@
 options(scipen=100)
 
-require(reshape2)
-
+SSHFS=F
 
 # Rscript tad_matching_across_hicds_allMatch.R
 
@@ -16,26 +15,29 @@ require(doMC)
 require(GenomicRanges)
 require(ggplot2)
 require(RColorBrewer)
+require(reshape2)
+# require(gplots)
 registerDoMC(4)
 
 source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
+source("plot_lolliTAD_funct.R")
+source(my_heatmap.2.R)
 
-buildTable <- TRUE
+buildTable <- FALSE
 
 plotType <- "png"
 myHeight <- ifelse(plotType=="png", 400, 7)
 myWidth <- myHeight
 axisCex <- 1.4
 
+myHeightHeat <- myHeight * 1.8
+myWidthHeat <- myWidth * 1.8
+
 myWidthGG <- 12
 myHeightGG <- 12
 
 
-hm.palette <- colorRampPalette(brewer.pal(9, 'YlOrRd'), space='Lab')
-
-
 source("../Yuanlong_Cancer_HiC_data_TAD_DA/subtype_cols.R")
-
 
 script0_name <- "0_prepGeneData"
 
@@ -44,7 +46,8 @@ setDir <- ""
 entrezDT_file <- paste0(setDir, "/mnt/ed4/marie/entrez2synonym/entrez/ENTREZ_POS/gff_entrez_position_GRCh37p13_nodup.txt")
 gff_dt <- read.delim(entrezDT_file, header = TRUE, stringsAsFactors = FALSE)
 gff_dt$entrezID <- as.character(gff_dt$entrezID)
-
+stopifnot(!duplicated(gff_dt$entrezID))
+entrez2symb <- setNames(gff_dt$symbol, gff_dt$entrezID)
 
 mainFolder <- file.path(".")
 stopifnot(dir.exists(mainFolder))
@@ -73,17 +76,23 @@ stopifnot(file.exists(final_dt_file))
 final_dt <- get(load(final_dt_file))
 
 signif_column <- "adjPvalComb"
-
 signifThresh <- 0.01
-
 signifcol <- paste0(signif_column, "_", signifThresh)
 
 final_dt[, paste0(signifcol)] <- final_dt[, paste0(signif_column)] <= signifThresh
 
+minOverlapBpRatio <- 0.8
+minIntersectGenes <- 3
+
+nRegionLolli <- 10
+
+cat(paste0("> signif_column\t=\t", signif_column, "\n"))
+cat(paste0("> signifThresh\t=\t", signifThresh, "\n"))
+cat(paste0("> minOverlapBpRatio\t=\t", minOverlapBpRatio, "\n"))
+cat(paste0("> minIntersectGenes\t=\t", minIntersectGenes, "\n"))
+cat(paste0("> nRegionLolli\t=\t", nRegionLolli, "\n"))
 
 ####################################################################################################################################### >>> prepare the data
-
-
 if(buildTable) {
   cat("... start preparing data before matching \n")
   
@@ -150,8 +159,6 @@ if(buildTable) {
   stopifnot(length(all_data_list) == length(all_datasets))
   save(all_data_list, file = file.path(outFolder, "all_data_list.Rdata"), version=2)
   ####################################################################################################################################### >>> collect # of TADs and TAD size
-  
-  
   cat("... start matching\n")
   
   ref_dataset = all_datasets[1]
@@ -165,6 +172,8 @@ if(buildTable) {
     
     stopifnot(setequal(ref_g2t_dt$region, ref_tadpos_dt$region))
     ref_tads <- as.character(ref_tadpos_dt$region)
+    
+    ref_tad_size <- setNames(c(ref_tadpos_dt$end-ref_tadpos_dt$start+1), ref_tadpos_dt$region)
     
     size_dt <- ref_tadpos_dt
     size_dt$ref_totBp <- size_dt$end - size_dt$start + 1
@@ -182,7 +191,7 @@ if(buildTable) {
     query_datasets <- all_datasets[all_datasets != ref_dataset]
     stopifnot(length(query_datasets)+1 == length(all_datasets))
     query_dataset=query_datasets[15]
-    
+    query_dataset=query_datasets[1]
     ref_dt <- foreach(query_dataset = query_datasets, .combine='rbind') %do% {
       cat("> Start ", ref_dataset, " vs. ", query_dataset, "\n")  
       
@@ -207,17 +216,21 @@ if(buildTable) {
       refID <- names(ref_GR[subjectHits(overlap_GR)])
       queryID <- names(query_GR[queryHits(overlap_GR)])
       
+      stopifnot(refID %in% names(ref_tad_size))
+      
       overlapDT_bp <- data.frame(
         refID = refID,
         queryID = queryID,
         overlapBp = width(pintersect(ref_GR[refID], query_GR[queryID])),
+        overlapBpRatio = width(pintersect(ref_GR[refID], query_GR[queryID]))/ref_tad_size[refID],
         stringsAsFactors = FALSE)
       stopifnot(overlapDT_bp$refID %in% ref_tadpos_dt$region)
       stopifnot(overlapDT_bp$queryID %in% query_tadpos_dt$region)
-      
+      stopifnot(!is.na(overlapDT_bp))
+      stopifnot(overlapDT_bp$overlapBpRatio >= 0)
+      stopifnot(overlapDT_bp$overlapBpRatio <= 1)
       nmat <- length(refID)
       stopifnot(nmat == length(queryID))
-      
       i=1
       i=2
       overlapDT_genes <- foreach(i=1:nmat, .combine='rbind') %do% {
@@ -238,115 +251,13 @@ if(buildTable) {
           stringsAsFactors=FALSE
         )
       }
-      
-      
       overlapDT <- merge(overlapDT_bp, overlapDT_genes, by = c("refID", "queryID"), all=TRUE)
-      
       overlapDT <- overlapDT[order(overlapDT$refID, overlapDT$queryID, overlapDT$overlapBp, overlapDT$nOverlapGenes),]
       
       all_cols <- colnames(overlapDT)
-      
       overlapDT$ref_dataset <- ref_dataset
       overlapDT$query_dataset <- query_dataset
-      
       overlapDT[, c("ref_dataset", "query_dataset", all_cols)]
-      
-      # all_match_dt$ref_dataset <- ref_dataset
-      # all_match_dt$matching_dataset <- query_dataset
-      
-      
-      # DO NOT TAKE THE MAX OVERLAP, RETAIN ALL
-      # take the max overlap
-      # maxBp_overlapDT <- do.call(rbind, by(overlapDT, overlapDT$refID, function(subDT){  # WARNING: if exactly same bp overlap -> will take the 1st one...
-      #   subDT[which.max(subDT$overlapBp),]
-      # }))
-      # stopifnot(rownames(maxBp_overlapDT) == maxBp_overlapDT$refID)
-      # rownames(maxBp_overlapDT) <- NULL
-      # stopifnot(setequal(overlapDT$refID, maxBp_overlapDT$refID))
-      
-      
-      ### PREPARE THE GENE OVERLAP
-      # cat("... preparing gene matching overlap\n")
-      # ref_tad_genes <- split(ref_g2t_dt$entrezID, ref_g2t_dt$region)
-      # query_tad_genes <- split(query_g2t_dt$entrezID, query_g2t_dt$region)
-      
-      # all_gene_overlap_list <- lapply(ref_tad_genes, function(tad_genes) { # => FASTER TO PARALLELIZE THIS PART ???
-      #   query_matches <- sapply(query_tad_genes, function(query_genes) {
-      #     nmatch <- sum(unlist(tad_genes) %in% query_genes)
-      #     ifelse(nmatch == 0, NA, nmatch)
-      #   })
-      #   # if there is no match -> vector of length 1: [1] "-Inf"
-      #   # if there is match -> vector of length 2: [1] "chr10_TAD108" "5"
-      #   nMatch <- max(query_matches, na.rm=TRUE)
-      #   if(nMatch == "-Inf") {
-      #     intersect_symbols <- NULL
-      #   }else {
-      #     matching_query_genes <- query_tad_genes[which.max(query_matches)]
-      #     intersect_genes <- intersect(unlist(tad_genes), unlist(matching_query_genes))
-      #     stopifnot(length(intersect_genes) == nMatch)
-      #     stopifnot(intersect_genes %in% gff_dt$entrezID)
-      #     intersect_symbols <- sort(gff_dt$symbol[gff_dt$entrezID %in% intersect_genes])
-      #   }
-      #   c(names(query_tad_genes)[which.max(query_matches)], nMatch, paste0(intersect_symbols, collapse=","))
-      # })
-      # tad_genes=ref_tad_genes[1]
-      # all_gene_overlap_list <- foreach(tad_genes=ref_tad_genes) %dopar% {
-      #   query_matches <- sapply(query_tad_genes, function(query_genes) {
-      #     nmatch <- sum(unlist(tad_genes) %in% query_genes)
-      #     ifelse(nmatch == 0, NA, nmatch)
-      #   })
-      #   # if there is no match -> vector of length 1: [1] "-Inf"
-      #   # if there is match -> vector of length 2: [1] "chr10_TAD108" "5"
-      #   nMatch <- max(query_matches, na.rm=TRUE)
-      #   if(nMatch == "-Inf") {
-      #     intersect_symbols <- NULL
-      #   }else {
-      #     matching_query_genes <- query_tad_genes[which.max(query_matches)]
-      #     intersect_genes <- intersect(unlist(tad_genes), unlist(matching_query_genes))
-      #     stopifnot(length(intersect_genes) == nMatch)
-      #     stopifnot(intersect_genes %in% gff_dt$entrezID)
-      #     intersect_symbols <- sort(gff_dt$symbol[gff_dt$entrezID %in% intersect_genes])
-      #   }
-      #   c(names(query_tad_genes)[which.max(query_matches)], nMatch, paste0(intersect_symbols, collapse=","))
-      # }
-      # names(all_gene_overlap_list) <- names(ref_tad_genes)
-      #
-      # gene_overlap_list <- Filter(function(x) x[1] != "-Inf", all_gene_overlap_list)
-      # stopifnot(lengths(gene_overlap_list) == 3)
-      #
-      # maxGenes_overlapDT <- data.frame(do.call(rbind, gene_overlap_list))
-      # maxGenes_overlapDT$refID <- rownames(maxGenes_overlapDT)
-      # colnames(maxGenes_overlapDT)[1] <- "queryID"
-      # colnames(maxGenes_overlapDT)[2] <- "nOverlapGenes"
-      # colnames(maxGenes_overlapDT)[3] <- "overlapGenes"
-      # maxGenes_overlapDT$nOverlapGenes <- as.numeric(as.character(maxGenes_overlapDT$nOverlapGenes))
-      # stopifnot(maxGenes_overlapDT$refID %in% ref_g2t_dt$region)
-      # stopifnot(maxGenes_overlapDT$queryID %in% query_g2t_dt$region)
-      # stopifnot(!is.na(maxGenes_overlapDT$nOverlapGenes))  
-      #
-      # colnames(maxBp_overlapDT)[colnames(maxBp_overlapDT) == "queryID"] <- "matchingID_maxOverlapBp"
-      # colnames(maxGenes_overlapDT)[colnames(maxGenes_overlapDT) == "queryID"] <-  "matchingID_maxOverlapGenes"
-      #
-      #
-      # stopifnot(maxBp_overlapDT$refID %in% ref_tadpos_dt_info$refID)
-      # stopifnot(maxGenes_overlapDT$refID %in% ref_tadpos_dt_info$refID)
-      #
-      #
-      # tmp_dt <- merge(maxBp_overlapDT, maxGenes_overlapDT, by ="refID", all = TRUE)
-      #
-      # all_match_dt <- merge(tmp_dt, ref_tadpos_dt_info[,c("refID", "ref_totBp", "ref_nGenes"), drop=FALSE], by="refID", all=TRUE)
-      # stopifnot(nrow(all_match_dt) == nrow(ref_tadpos_dt_info))
-      #
-      # first_cols <- colnames(all_match_dt)[grepl("^ref",colnames(all_match_dt))]
-      # last_cols <- colnames(all_match_dt)[!grepl("^ref",colnames(all_match_dt))]
-      # all_match_dt <- all_match_dt[,c(first_cols, last_cols)]
-      # all_cols <- colnames(all_match_dt)
-      
-      # all_match_dt$ref_dataset <- ref_dataset
-      # all_match_dt$matching_dataset <- query_dataset
-      # rownames(all_match_dt) <- NULL
-      # all_match_dt[,c("ref_dataset", "matching_dataset", all_cols)]
-      
     } # end iterating over query_datasets
     ref_dt
   } # end iterating over ref_datasets
@@ -359,16 +270,21 @@ if(buildTable) {
   outFile <- file.path(outFolder, paste0("all_signif_matching_dt_", signifcol, ".Rdata"))
   cat("... load data\n")
   all_signif_matching_dt <- get(load(outFile))
+  
+  all_data_list <- get(load(file.path(outFolder, "all_data_list.Rdata")))
+  
 }
 
 # nrow(all_signif_matching_dt) # 12132
 # length(unique(paste0(all_signif_matching_dt$ref_dataset, all_signif_matching_dt$refID))) # 1303
 # length(unique(paste0(all_signif_matching_dt$query_dataset, all_signif_matching_dt$queryID))) # 1303
 
-
 all_signif_matching_dt$refID_full <- file.path(all_signif_matching_dt$ref_dataset, all_signif_matching_dt$refID)
 all_signif_matching_dt$queryID_full <- file.path(all_signif_matching_dt$query_dataset, all_signif_matching_dt$queryID)
 
+cat(paste0("> FILTER 1 - # of match\t=\t", nrow(all_signif_matching_dt), "\n"))
+all_signif_matching_dt  <- all_signif_matching_dt[all_signif_matching_dt$overlapBpRatio >= minOverlapBpRatio,]
+cat(paste0("> FILTER 1 - # of match with overlap bp >= ", minOverlapBpRatio, "\t=\t", nrow(all_signif_matching_dt), "\n"))
 
 # get the number of matches, to have an idea of multiple matching
 nMatchByTad <- aggregate(overlapBp ~ refID + ref_dataset, FUN=length, data = all_signif_matching_dt)
@@ -407,25 +323,48 @@ Filter(function(x) any(grepl(tmpx, x)), set_of_tads)
 
 names(set_of_tads) <- paste0("conserved_region_", seq_along(set_of_tads))
 
+cr=names(set_of_tads)[1]
+set_of_tads_intersect_genes <- foreach(cr = names(set_of_tads)) %dopar% {
+  all_regions <- set_of_tads[[paste0(cr)]]
+  ds_genes <- sapply(all_regions, function(tad) {
+    dt <- all_data_list[[paste0(dirname(tad))]][["dataset_g2t_dt"]]
+    stopifnot(basename(tad) %in% dt$region)
+    as.character(dt$entrezID[dt$region == basename(tad)])
+  })
+  is_genes <- Reduce(intersect, ds_genes)
+  stopifnot(is_genes %in% gff_dt$entrezID)
+  stopifnot(is_genes %in% names(entrez2symb))
+  setNames(entrez2symb[paste0(is_genes)], is_genes)
+}
+names(set_of_tads_intersect_genes) <- names(set_of_tads)
+
+nIntersectGenesByRegions <- lengths(set_of_tads_intersect_genes)
+
+regionsWithMinGenes <- names(nIntersectGenesByRegions) [nIntersectGenesByRegions >= minIntersectGenes]
+
+cat(paste0("> FILTER 2 - # of conserved regions\t=\t", length(set_of_tads), "\n"))
+stopifnot(regionsWithMinGenes %in% names(set_of_tads))
+all_set_of_tads  <- set_of_tads
+set_of_tads <- set_of_tads[paste0(regionsWithMinGenes)]
+cat(paste0("> FILTER 2 - # of regions with # intersect genes >= ", minIntersectGenes, "\t=\t", length(set_of_tads), "\n"))
+
+#######################################################################################################################################
+######################################################################################################################### PLOTTING - overview conservation
+#######################################################################################################################################                                       
 all_datasets <- unique(all_signif_matching_dt$ref_dataset)
 
-dataset_dt <- data.frame(
-  dataset = all_datasets,
-  hicds = dirname(all_datasets),
-  exprds = basename(all_datasets),
-  stringsAsFactors = FALSE
-)
+# to retrieve the colors
+dataset_dt <- data.frame(dataset = all_datasets, hicds = dirname(all_datasets),exprds = basename(all_datasets),stringsAsFactors = FALSE)
 dataset_dt$cmpType <- all_cmps[paste0(dataset_dt$exprds)]
 dataset_dt$subtype_col <- all_cols[paste0(dataset_dt$cmpType)]
 stopifnot(!is.na(dataset_dt$subtype_col))
-
 dataset_dt <- dataset_dt[order(dataset_dt$cmpType, dataset_dt$hicds, dataset_dt$exprds),]
 dataset_dt$dataset_label <- gsub("/", "\n", dataset_dt$dataset)
 ds_label_levels <- dataset_dt$dataset_label
 ds_levels <- dataset_dt$dataset
 
+# BINARY: 1 if the dataset has a TAD belonging to the conserved region
 cons_region = set_of_tads[[15]]
-
 matching_dt <- foreach(cons_region = set_of_tads, .combine='cbind') %dopar% {
   all_matching_ds <- dirname(cons_region)
   matching_ds <- as.numeric(ds_levels %in% all_matching_ds )
@@ -436,42 +375,218 @@ matching_dt <- foreach(cons_region = set_of_tads, .combine='cbind') %dopar% {
 stopifnot(!duplicated(ds_levels))
 rownames(matching_dt) <- ds_levels
 colnames(matching_dt) <- names(set_of_tads)
-
+# levels to sort the columns by decreasing # of matches
 tmp <- colSums(matching_dt)
 region_levels <- names(sort(-tmp))
 
-plot_dt <- melt(matching_dt)
-save(plot_dt, file ="plot_dt.Rdata", version=2)
+#### heatmap version
+plot_matching_dt <- matching_dt
+# rownames(plot_matching_dt) <- gsub("/", "\n", rownames(plot_matching_dt))
+initmar <- par()$mar
 
+# modifMar <- c(0,-4.1,-4.1,15)
+modifMar <- c(5,5,5,5)
 
-colnames(plot_dt) <- c("dataset", "region", "signif") 
-
-matching_dt <- matching_dt[,region_levels]
-image(matching_dt)
-
-plot_dt$dataset_label <- gsub("/", "\n", plot_dt$dataset)
-plot_dt$dataset_label <- factor(plot_dt$dataset_label, levels=ds_label_levels)
-stopifnot(!is.na(plot_dt$dataset_label))
-
-plot_dt$region <- factor(plot_dt$region, levels=region_levels)
-stopifnot(!is.na(plot_dt$region))
-
-
-plot_dt$signif <- factor(plot_dt$signif, levels = c(1,0))
-
-g_match <- ggplot(plot_dt, aes(x = region, y = dataset_label, fill = signif, color=signif)) +
-  geom_point() + 
-  scale_fill_manual(values = c("black", "white"))+
-  scale_colour_manual(values = c("black", "white"))
-
-require(gplots)
-heatmap.2(matching_dt[,rev(colnames(matching_dt))], col=c("black", "white"),
+outFile <- file.path(outFolder, paste0("heatmap_conservedRegions_rowReorder_signif", signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, ".", plotType))
+do.call(plotType, list(outFile,  height=myHeightHeat, width=myWidthHeat))
+par(mar=(initmar+ modifMar))
+my_heatmap.2(plot_matching_dt[,paste0(region_levels)], col=c("white", "black"),
           dendrogram = "none",
           trace = "none",
-          row_names_side="left",
+          key=FALSE,
+          Rowv=TRUE,
+          Colv=FALSE,
+          labCol = FALSE,
+          # lmat = c(5,3,0,1,4,2),
+          # lwid=c(0.2, 0.2,4),
+          # lhei=c( 1.5,4),
+          colRow = dataset_dt$subtype_col,
+          RowSideColors = dataset_dt$subtype_col,
+          leftmargin = -0.1
+          )
+
+
+# default
+# lmat: 
+#   5 3 0 1 4 2 
+# lhei: 
+#   1.5 4 
+# lwid: 
+#   1.5 0.2 4 
+
+foo <- dev.off()
+cat(paste0("... written: ", outFile, "\n"))
+
+par(mar = initmar)
+
+outFile <- file.path(outFolder, paste0("heatmap_conservedRegions_noReorder_signif", signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, ".", plotType))
+do.call(plotType, list(outFile,  height=myHeightHeat, width=myWidthHeat))
+par(mar=initmar+modifMar)
+my_heatmap.2(plot_matching_dt[,paste0(region_levels)], col=c("white", "black"),
+          dendrogram = "none",
+          trace = "none",
           key=F,
           Rowv=FALSE,
-          Colv=FALSE)
+          Colv=FALSE,
+          labCol = FALSE,
+          cexRow = 0.4,
+          # RowSideColors = dataset_dt$subtype_col,
+          colRow = dataset_dt$subtype_col,
+          leftmargin = -0.1,
+          rowAxis=2
+          )
+foo <- dev.off()
+cat(paste0("... written: ", outFile, "\n"))
+
+stop("ok\n")
+
+#### ggplot version
+# plot_dt <- melt(matching_dt)
+# save(plot_dt, file ="plot_dt.Rdata", version=2)
+# 
+# colnames(plot_dt) <- c("dataset", "region", "signif") 
+# 
+# matching_dt <- matching_dt[,region_levels]
+# image(matching_dt)
+# 
+# plot_dt$dataset_label <- gsub("/", "\n", plot_dt$dataset)
+# plot_dt$dataset_label <- factor(plot_dt$dataset_label, levels=ds_label_levels)
+# stopifnot(!is.na(plot_dt$dataset_label))
+# 
+# plot_dt$region <- factor(plot_dt$region, levels=region_levels)
+# stopifnot(!is.na(plot_dt$region))
+# plot_dt$signif <- factor(plot_dt$signif, levels = c(1,0))
+# 
+# g_match <- ggplot(plot_dt, aes(x = region, y = dataset_label, fill = signif, color=signif)) +
+#   geom_point() + 
+#   scale_fill_manual(values = c("black", "white"))+
+#   scale_colour_manual(values = c("black", "white"))
+
+#######################################################################################################################################
+######################################################################################################################### lolli plot nTop regions all DS
+#######################################################################################################################################                   
+
+nDS <- nrow(matching_dt)
+
+cr= region_levels[1]
+foo <- foreach(i_cr = 1:nRegionLolli) %dopar% {
+  
+  cr <- region_levels[i_cr]
+  
+  stopifnot(cr %in% names(set_of_tads))
+  tads_to_plot <- set_of_tads[[paste0(cr)]]
+  
+  stopifnot(cr %in% colnames(matching_dt))
+  nMatch <- sum(matching_dt[,paste0(cr)])
+  
+  nPlotted <- length(tads_to_plot)
+  
+  outHeightGG <- min(c(7 * nPlotted/2, 49))
+  outHeightGG <- ifelse(nPlotted < 3, outHeightGG*1.5,outHeightGG)
+  outWidthGG <- ifelse(nPlotted == 1, 20/2, 20)
+  
+  plotList <- list()
+  i_tad=1
+  for(i_tad in 1:nPlotted) {
+  
+    hicds <- dirname(dirname(tads_to_plot[i_tad]))
+    exprds <- basename(dirname(tads_to_plot[i_tad]))
+    tad <- basename(tads_to_plot[i_tad])
+      
+    mytit <- paste0( hicds, " - ", exprds, " - ", tad)
+    
+    
+    plotList[[i_tad]] <- plot_lolliTAD_ds(exprds = exprds,
+                                          hicds = hicds,
+                                          all_TADs = tad,
+                                          orderByLolli = "startPos", mytitle=mytit)
+  } # end-for iterating over TADs to plot
+  save(plotList, file="plotList.Rdata")
+  
+  outFile <- file.path(outFolder, paste0("allCmps_conservedRegions", i_cr, "_signif", signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, "_lolli.", plotType))
+  
+  mytit <- paste0("Conserved region ", i_cr, " (all cmps) - ", nMatch, "/", nDS)
+  all_plots <- do.call(grid.arrange, c(plotList,  list(ncol=ifelse(nPlotted == 1, 1, 2), top=textGrob(mytit, gp=gpar(fontsize=20,font=2)))))
+  outHeightGG <- min(c(7 * nPlotted/2, 49))
+  outHeightGG <- ifelse(nPlotted < 3, outHeightGG*1.5,outHeightGG)
+  outWidthGG <- ifelse(nPlotted == 1, 20/2, 20)
+  
+  ggsave(filename = outFile, all_plots, width=outWidthGG, height = outHeightGG)
+  cat("... written: ", outFile, "\n")
+  
+}
+
+
+#######################################################################################################################################
+######################################################################################################################### lolli plot nTop regions by cmp types
+#######################################################################################################################################                   
+
+cmpType = unique(as.character(dataset_dt$cmpType))[1]
+for(cmpType in unique(as.character(dataset_dt$cmpType))) {
+  
+  ds_to_keep <- dataset_dt$dataset[as.character(dataset_dt$cmpType) == cmpType]
+  stopifnot(ds_to_keep %in% rownames(matching_dt))
+  
+  cmp_matching_dt <- matching_dt[paste0(ds_to_keep),]
+  stopifnot(nrow(cmp_matching_dt) == length(ds_to_keep))
+  
+  cmp_region_levels <- names(sort(-colSums(cmp_matching_dt)))
+  
+  nDS_cmp <- nrow(cmp_matching_dt)
+  
+  
+  
+  foo <- foreach(i_cr = 1:nRegionLolli) %dopar% {
+    
+    cr <- region_levels[i_cr]
+    
+    stopifnot(cr %in% names(set_of_tads))
+    tads_to_plot <- set_of_tads[[paste0(cr)]]
+    
+    stopifnot(cr %in% colnames(matching_dt))
+    nMatch <- sum(matching_dt[,paste0(cr)])
+    
+    nMatch_cmp <- sum(cmp_matching_dt[,paste0(cr)])
+    
+    nPlotted <- length(tads_to_plot)
+    
+    outHeightGG <- min(c(7 * nPlotted/2, 49))
+    outHeightGG <- ifelse(nPlotted < 3, outHeightGG*1.5,outHeightGG)
+    outWidthGG <- ifelse(nPlotted == 1, 20/2, 20)
+    
+    plotList <- list()
+    i_tad=1
+    for(i_tad in 1:nPlotted) {
+      
+      hicds <- dirname(dirname(tads_to_plot[i_tad]))
+      exprds <- basename(dirname(tads_to_plot[i_tad]))
+      tad <- basename(tads_to_plot[i_tad])
+      
+      mytit <- paste0( hicds, " - ", exprds, " - ", tad)
+      
+      
+      plotList[[i_tad]] <- plot_lolliTAD_ds(exprds = exprds,
+                                            hicds = hicds,
+                                            all_TADs = tad,
+                                            orderByLolli = "startPos", mytitle=mytit)
+    } # end-for iterating over TADs to plot
+    save(plotList, file="plotList.Rdata")
+    
+    outFile <- file.path(outFolder, paste0(cmpType, "_conservedRegions", i_cr, "_signif", signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, "_lolli.", plotType))
+    
+    mytit <- paste0("Conserved region ", i_cr, " (", cmpType, ") - ", nMatch_cmp, "/", nDS_cmp, " (", nMatch, "/", nDS, ")")
+    all_plots <- do.call(grid.arrange, c(plotList,  list(ncol=ifelse(nPlotted == 1, 1, 2), top=textGrob(mytit, gp=gpar(fontsize=20,font=2)))))
+    outHeightGG <- min(c(7 * nPlotted/2, 49))
+    outHeightGG <- ifelse(nPlotted < 3, outHeightGG*1.5,outHeightGG)
+    outWidthGG <- ifelse(nPlotted == 1, 20/2, 20)
+    
+    ggsave(filename = outFile, all_plots, width=outWidthGG, height = outHeightGG)
+    cat("... written: ", outFile, "\n")
+    
+  }
+  
+  
+}
 
 
 
