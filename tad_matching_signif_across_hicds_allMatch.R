@@ -92,6 +92,18 @@ cat(paste0("> minOverlapBpRatio\t=\t", minOverlapBpRatio, "\n"))
 cat(paste0("> minIntersectGenes\t=\t", minIntersectGenes, "\n"))
 cat(paste0("> nRegionLolli\t=\t", nRegionLolli, "\n"))
 
+
+signif_tads <- file.path(final_dt$hicds[final_dt[, paste0(signifcol)] ],
+                         final_dt$exprds[final_dt[, paste0(signifcol)] ],
+                         final_dt$region[final_dt[, paste0(signifcol)] ])
+
+outFile <- file.path(outFolder, paste0("signif_tads", signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, ".Rdata"))
+save(signif_tads, file=outFile, version=2)
+cat(paste0("... written: ", outFile, "\n"))
+
+
+
+
 ####################################################################################################################################### >>> prepare the data
 if(buildTable) {
   cat("... start preparing data before matching \n")
@@ -347,6 +359,19 @@ stopifnot(regionsWithMinGenes %in% names(set_of_tads))
 all_set_of_tads  <- set_of_tads
 set_of_tads <- set_of_tads[paste0(regionsWithMinGenes)]
 cat(paste0("> FILTER 2 - # of regions with # intersect genes >= ", minIntersectGenes, "\t=\t", length(set_of_tads), "\n"))
+
+
+
+all_signif_matching_dt$refID_full
+
+conserved_signif_tads <- set_of_tads
+
+outFile <- file.path(outFolder, paste0("conserved_signif_tads", signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, ".Rdata"))
+save(conserved_signif_tads, file=outFile, version=2)
+cat(paste0("... written: ", outFile, "\n"))
+
+
+stop("ok\n")
 
 #######################################################################################################################################
 ######################################################################################################################### PLOTTING - overview conservation
