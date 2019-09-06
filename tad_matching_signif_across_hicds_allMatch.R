@@ -21,7 +21,7 @@ registerDoMC(4)
 
 source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 source("plot_lolliTAD_funct.R")
-source(my_heatmap.2.R)
+source("my_heatmap.2.R")
 
 buildTable <- FALSE
 
@@ -385,11 +385,12 @@ plot_matching_dt <- matching_dt
 initmar <- par()$mar
 
 # modifMar <- c(0,-4.1,-4.1,15)
-modifMar <- c(5,5,5,5)
+modifMar <- c(0,0,0,0)
 
 outFile <- file.path(outFolder, paste0("heatmap_conservedRegions_rowReorder_signif", signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, ".", plotType))
 do.call(plotType, list(outFile,  height=myHeightHeat, width=myWidthHeat))
 par(mar=(initmar+ modifMar))
+# dev.off()
 my_heatmap.2(plot_matching_dt[,paste0(region_levels)], col=c("white", "black"),
           dendrogram = "none",
           trace = "none",
@@ -397,12 +398,16 @@ my_heatmap.2(plot_matching_dt[,paste0(region_levels)], col=c("white", "black"),
           Rowv=TRUE,
           Colv=FALSE,
           labCol = FALSE,
-          # lmat = c(5,3,0,1,4,2),
-          # lwid=c(0.2, 0.2,4),
-          # lhei=c( 1.5,4),
+          lmat = rbind(c(5,0,4), c(3,1,2)),
+          # lwid=c(1.5,0.2,4),
+          lwid=c(0.2,0.2,5),
+          lhei=c(0.01,5),
+          margins=c(2,18),
+          adjRow=c(0,0.5),
+          #lwid= c(0.1, 0.1, 5),
           colRow = dataset_dt$subtype_col,
           RowSideColors = dataset_dt$subtype_col,
-          leftmargin = -0.1
+          rowAxis=4
           )
 
 
@@ -417,11 +422,14 @@ my_heatmap.2(plot_matching_dt[,paste0(region_levels)], col=c("white", "black"),
 foo <- dev.off()
 cat(paste0("... written: ", outFile, "\n"))
 
+save(plot_matching_dt, file = file.path(outFolder, "plot_matching_dt.Rdata"), version=2)
+
 par(mar = initmar)
 
 outFile <- file.path(outFolder, paste0("heatmap_conservedRegions_noReorder_signif", signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, ".", plotType))
 do.call(plotType, list(outFile,  height=myHeightHeat, width=myWidthHeat))
 par(mar=initmar+modifMar)
+
 my_heatmap.2(plot_matching_dt[,paste0(region_levels)], col=c("white", "black"),
           dendrogram = "none",
           trace = "none",
@@ -429,11 +437,15 @@ my_heatmap.2(plot_matching_dt[,paste0(region_levels)], col=c("white", "black"),
           Rowv=FALSE,
           Colv=FALSE,
           labCol = FALSE,
-          cexRow = 0.4,
+          # cexRow = 0.4,
+          rowAxis=2,
+          lmat = rbind(c(4,3), c(2,1)),
+           lwid=c(1.5,4),
+           lhei=c(0.01,1),
+           margins=c(5,5),
+          adjRow=c(1,0.5),
           # RowSideColors = dataset_dt$subtype_col,
-          colRow = dataset_dt$subtype_col,
-          leftmargin = -0.1,
-          rowAxis=2
+          colRow = dataset_dt$subtype_col
           )
 foo <- dev.off()
 cat(paste0("... written: ", outFile, "\n"))

@@ -1,5 +1,6 @@
 require(gtools)
 
+
 my_heatmap.2 <- function (x,
 
                        ## dendrogram control
@@ -62,6 +63,9 @@ my_heatmap.2 <- function (x,
                        colRow = NULL,
                        colCol = NULL,
 
+
+rowAxis = 4,
+
                        ## color key + density info
                        key = TRUE,
                        keysize = 1.5,
@@ -85,9 +89,6 @@ my_heatmap.2 <- function (x,
                        lmat = NULL,
                        lhei = NULL,
                        lwid = NULL,
-
-leftmargin =0,
-rowAxis=4,
 
                        ## extras
                        extrafun=NULL,
@@ -363,15 +364,6 @@ rowAxis=4,
   x[x>max.breaks] <- max.breaks
 
 
-cat("lmat:", "\n")
-cat(lmat, "\n")
-cat("lhei:", "\n")
-cat(lhei, "\n")
-cat("lwid:", "\n")
-cat(lwid, "\n")
-
-
-
   ## Calculate the plot layout
   if( missing(lhei) || is.null(lhei) )
     lhei <- c(keysize, 4)
@@ -406,25 +398,10 @@ cat(lwid, "\n")
   if(length(lwid) != ncol(lmat))
     stop("lwid must have length = ncol(lmat) =", ncol(lmat))
 
-
-
-cat("lmat:", "\n")
-cat(lmat, "\n")
-cat("lhei:", "\n")
-cat(lhei, "\n")
-cat("lwid:", "\n")
-cat(lwid, "\n")
-
   ## Graphics `output' -----------------------
 
   op <- par(no.readonly = TRUE)
   on.exit(par(op))
-
-    
-lwid[1] <- lwid[1] + leftmargin
-
-#lwid[1] <- 0.2
-
   layout(lmat, widths = lwid, heights = lhei, respect = FALSE)
 
   plot.index <- 1
@@ -520,6 +497,7 @@ lwid[1] <- lwid[1] + leftmargin
   ## add row labels
   if(is.null(srtRow) && is.null(colRow))
     {
+cat("hello1\n")
       axis(rowAxis,
            iy,
            labels=labRow,
@@ -535,11 +513,16 @@ lwid[1] <- lwid[1] + leftmargin
     {
       if(is.null(srtRow) || is.numeric(srtRow))
         {
+cat("hello2\n")
           xpd.orig <- par("xpd")
           par(xpd=NA)
           ypos <- axis(rowAxis, iy, labels=rep("", nr), las=2, line= -0.5, tick=0)
-#          text(x=par("usr")[2] + (1.0 + offsetRow) * strwidth("M"),
-          text(x=0 - (1.0 + offsetRow) * strwidth("M"),
+
+cat("ypos\n")
+cat(ypos, "\n")
+
+if(rowAxis!=2) {
+          text(x=par("usr")[2] + (1.0 + offsetRow) * strwidth("M"),
                y=ypos,
                labels=labRow,
                adj=adjRow,
@@ -547,6 +530,16 @@ lwid[1] <- lwid[1] + leftmargin
                srt=srtRow,
                col=colRow
                )
+} else if(rowAxis == 2) {
+          text(x=0,#par("usr")[2] + (1.0 + offsetRow) * strwidth("M"),
+               y=ypos,
+               labels=labRow,
+               adj=adjRow,
+               cex=cexRow,
+               srt=srtRow,
+               col=colRow
+               )
+}
           par(xpd=xpd.orig)
         }
       else
@@ -823,13 +816,15 @@ lwid[1] <- lwid[1] + leftmargin
       extrafun()
 
 
-cat("lmat:", "\n")
-cat(lmat, "\n")
-cat("lhei:", "\n")
+cat("lhei:\n")
 cat(lhei, "\n")
-cat("lwid:", "\n")
+
+
+cat("lwid:\n")
 cat(lwid, "\n")
 
+cat("lmat:\n")
+cat(lmat, "\n")
 
   invisible( retval )
 }
