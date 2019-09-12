@@ -254,7 +254,7 @@ for(var_gene in all_signif_genes) {
     plot(
       x=myx,
       y=myy,
-      xlab = paset0("# genes ", var_gene),
+      xlab = paste0("# genes ", var_gene),
       ylab = paste0("# genes ", var_tad),
       main = paste0(var_tad, " vs. ", var_gene),
       cex.lab=plotCex,

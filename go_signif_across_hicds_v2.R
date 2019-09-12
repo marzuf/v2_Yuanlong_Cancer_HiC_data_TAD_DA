@@ -53,6 +53,16 @@ myHeightGG <- 12
 
 
 source("../Yuanlong_Cancer_HiC_data_TAD_DA/subtype_cols.R")
+source("enricher_settings.R")
+# from enricher_settings, load:
+# enricher_ontologyType <- "BP"
+# enricher_pvalueCutoff <- 1
+# enricher_pAdjustMethod <- "BH"
+# enricher_minGSSize <- 1
+# enricher_maxGSSize <- 500
+# enricher_qvalueCutoff <- 1
+# enricher_results_sortGOby <- "p.adjust"
+
 
 script0_name <- "0_prepGeneData"
 
@@ -211,14 +221,6 @@ padjVarGO <- "p.adjust" # p.adjust or qvalue ???
 
 logFile <- file.path(outFolder, "go_signif_across_hicds_logFile.txt")
 if(buildData) file.remove(logFile)
-
-enricher_ontologyType <- "BP"
-enricher_pvalueCutoff <- 1
-enricher_pAdjustMethod <- "BH"
-enricher_minGSSize <- 1
-enricher_maxGSSize <- 500
-enricher_qvalueCutoff <- 1
-enricher_results_sortGOby <- "p.adjust"
 
 barplot_vars <- c("foldEnrichment", "geneRatio", "log10_pval")
 barplot_vars_tit <- setNames(c("Fold enrichment", "Gene ratio", paste0("-log10(", padjVarGO,  ")")), barplot_vars)
