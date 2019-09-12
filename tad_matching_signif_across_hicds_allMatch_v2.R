@@ -1,10 +1,32 @@
 options(scipen=100)
 
+# v2 version
+# -> one single script for all and for cmpType
+# -> if share more than 80% of the genes -> merge conserved regions
+# -> count as conserved in one dataset at the exprds level
+# -> min conserved region
+
 SSHFS=F
 
-# Rscript tad_matching_signif_across_hicds_allMatch.R
+# Rscript tad_matching_signif_across_hicds_allMatch_v2.R
+# Rscript tad_matching_signif_across_hicds_allMatch_v2.R norm_vs_tumor
+# Rscript tad_matching_signif_across_hicds_allMatch_v2.R subtypes
+# Rscript tad_matching_signif_across_hicds_allMatch_v2.R wt_vs_mut
 
-script_name <- "tad_matching_signif_across_hicds_allMatch.R"
+args <- commandArgs(trailingOnly = TRUE)
+if(length(args) == 0) {
+  data_cmpType <- ""
+  file_prefix <- ""
+} else if(length(args) == 1) {
+  data_cmpType <- args[1]  
+  stopifnot(data_cmpType %in% c("norm_vs_tumor", "subtypes", "wt_vs_mut"))
+  file_prefix <- paste0(data_cmpType, "_")
+} else {
+ stop("error\n") 
+}
+
+
+script_name <- "tad_matching_signif_across_hicds_allMatch_v2.R"
 
 startTime <- Sys.time()
 
@@ -23,7 +45,7 @@ source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 source("plot_lolliTAD_funct.R")
 source("my_heatmap.2.R")
 
-buildTable <- FALSE
+buildTable <- TRUE
 
 plotType <- "png"
 myHeight <- ifelse(plotType=="png", 400, 7)
@@ -54,13 +76,12 @@ stopifnot(dir.exists(mainFolder))
 pipFolder <- file.path(mainFolder, "PIPELINE", "OUTPUT_FOLDER")
 stopifnot(dir.exists(pipFolder))
 all_hicds <- list.files(pipFolder)
-file.path(mainFolder, all_hicds)[!dir.exists(file.path(mainFolder, all_hicds))]
 stopifnot(dir.exists(file.path(mainFolder, all_hicds)))
 
 all_exprds <- lapply(all_hicds, function(x) list.files(file.path(pipFolder, x)))
 names(all_exprds) <- all_hicds
 
-outFolder <- file.path("TAD_MATCHING_SIGNIF_ACROSS_HICDS_ALLMATCH")
+outFolder <- file.path("TAD_MATCHING_SIGNIF_ACROSS_HICDS_ALLMATCH_v2", data_cmpType)
 dir.create(outFolder, recursive = TRUE)
 
 logFile <- file.path(outFolder, "tad_matching_signif_across_hicds_logFile.txt")
@@ -86,6 +107,8 @@ final_dt[, paste0(signifcol)] <- final_dt[, paste0(signif_column)] <= signifThre
 
 minOverlapBpRatio <- 0.8
 minIntersectGenes <- 3
+gene_matching_fuse_threshold <- 0.8
+
 
 nRegionLolli <- 10
 
@@ -110,11 +133,20 @@ signif_tads <- file.path(final_dt$hicds[final_dt[, paste0(signifcol)] ],
                          final_dt$exprds[final_dt[, paste0(signifcol)] ],
                          final_dt$region[final_dt[, paste0(signifcol)] ])
 
-outFile <- file.path(outFolder, paste0("signif_tads", signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, ".Rdata"))
+outFile <- file.path(outFolder, paste0(file_prefix, "signif_tads", signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, ".Rdata"))
 save(signif_tads, file=outFile, version=2)
 cat(paste0("... written: ", outFile, "\n"))
 
 
+# to retrieve the colors of cmpType for plotting heatmap
+dataset_dt <- data.frame(dataset = all_datasets, hicds = dirname(all_datasets),exprds = basename(all_datasets),stringsAsFactors = FALSE)
+dataset_dt$cmpType <- all_cmps[paste0(dataset_dt$exprds)]
+dataset_dt$subtype_col <- all_cols[paste0(dataset_dt$cmpType)]
+stopifnot(!is.na(dataset_dt$subtype_col))
+dataset_dt <- dataset_dt[order(dataset_dt$cmpType, dataset_dt$hicds, dataset_dt$exprds),]
+dataset_dt$dataset_label <- gsub("/", "\n", dataset_dt$dataset)
+ds_label_levels <- dataset_dt$dataset_label
+ds_levels <- dataset_dt$dataset
 
 
 ####################################################################################################################################### >>> prepare the data
@@ -287,25 +319,26 @@ if(buildTable) {
     ref_dt
   } # end iterating over ref_datasets
   
-  outFile <- file.path(outFolder, paste0("all_signif_matching_dt_", signifcol, ".Rdata"))
+  outFile <- file.path(outFolder, paste0(file_prefix, "all_signif_matching_dt_", signifcol, ".Rdata"))
   save(all_signif_matching_dt, file=outFile, version=2)  
   cat(paste0("... written: ", outFile, "\n"))
   
 } else {
-  outFile <- file.path(outFolder, paste0("all_signif_matching_dt_", signifcol, ".Rdata"))
+  outFile <- file.path(outFolder, paste0(file_prefix, "all_signif_matching_dt_", signifcol, ".Rdata"))
   cat("... load data\n")
   all_signif_matching_dt <- get(load(outFile))
-  
-  all_data_list <- get(load(file.path(outFolder, "all_data_list.Rdata")))
-  
+  outFile <- file.path(outFolder, "all_data_list.Rdata")
+  all_data_list <- get(load(outFile))
 }
-
-# nrow(all_signif_matching_dt) # 12132
-# length(unique(paste0(all_signif_matching_dt$ref_dataset, all_signif_matching_dt$refID))) # 1303
-# length(unique(paste0(all_signif_matching_dt$query_dataset, all_signif_matching_dt$queryID))) # 1303
-
 all_signif_matching_dt$refID_full <- file.path(all_signif_matching_dt$ref_dataset, all_signif_matching_dt$refID)
 all_signif_matching_dt$queryID_full <- file.path(all_signif_matching_dt$query_dataset, all_signif_matching_dt$queryID)
+
+
+#######################################################################################################
+####################################################################################################### CONSERVED REGIONS REFINEMENT
+#######################################################################################################
+
+### > Filter1: retain only matches with >= *minOverlapBpRatio* (80%) bp overlap
 
 txt <- paste0("> FILTER 1 - # of match\t=\t", nrow(all_signif_matching_dt), "\n")
 cat(txt)
@@ -315,30 +348,20 @@ txt <- paste0("> FILTER 1 - # of match with overlap bp >= ", minOverlapBpRatio, 
 cat(txt)
 cat(txt, file=logFile, append=T)
 
-
-# get the number of matches, to have an idea of multiple matching
-nMatchByTad <- aggregate(overlapBp ~ refID + ref_dataset, FUN=length, data = all_signif_matching_dt)
-range(nMatchByTad$overlapBp) # 1 - 55
-
 all_signif_tads_with_match <- unique(all_signif_matching_dt$refID_full)
-length(all_signif_tads_with_match) # 1303 # cmp with # 1149 with Filter1
-sum(final_dt[,paste0(signifcol)]) # 1453 # -> 150 match with no other #
+length(all_signif_tads_with_match) # 
+sum(final_dt[,paste0(signifcol)]) # 
 
 tad=all_signif_tads_with_match[1]
-
-# set_of_tads <- by(all_signif_matching_dt, all_signif_matching_dt$refID_full, function(x) {
-#   myref <- unique(x$refID_full)
-#   stopifnot(length(myref) == 1)
-#   c(myref, as.character(x$queryID_full))
-# })
-
 set_of_tads <- foreach(tad = all_signif_tads_with_match) %dopar% {
   # all_signif_matching_dt[all_signif_matching_dt$refID_full == tad,]
   matching_tads <- all_signif_matching_dt$queryID_full[all_signif_matching_dt$refID_full == tad]
   sort(c(tad, matching_tads))
 }
 names(set_of_tads) <- all_signif_tads_with_match
-length(set_of_tads) # 1303 # 1149
+
+### Remove duplicated sets
+
 txt <- paste0("... remove duplicated sets:\t", length(set_of_tads) , " -> ")
 cat(txt)
 cat(txt, file=logFile, append=T)
@@ -348,8 +371,7 @@ txt <- paste0(length(set_of_tads) , "\n")
 cat(txt)
 cat(txt, file=logFile, append=T)
 
-names(set_of_tads) <- paste0("conserved_region_", seq_along(set_of_tads))
-
+### Remove nested sets
 not_nested_sets <- unlist(lapply(1:length(set_of_tads), function(i_set_tads) {
   set_tads <- set_of_tads[[i_set_tads]]
  !any(sapply(set_of_tads[-i_set_tads], function(x) all(set_tads %in% x) ))
@@ -362,28 +384,6 @@ stopifnot(setequal(unlist(set_of_tads), unlist(not_nested_set_of_tads)))
 stopifnot(length(set_of_tads) >= length(not_nested_set_of_tads))
 stopifnot(names(not_nested_set_of_tads) %in% names(set_of_tads))
 
-# names(set_of_tads)[! names(set_of_tads) %in% names(not_nested_set_of_tads)][1]
-# set_tads <- set_of_tads[["conserved_region_5"]]
-  # [1] "Barutcu_MCF-10A_40kb/TCGAbrca_lum_bas/chr16_TAD139"
-  # [2] "Barutcu_MCF-7_40kb/TCGAbrca_lum_bas/chr16_TAD156"  
-  # [3] "GSE109229_BT474_40kb/TCGAbrca_lum_bas/chr16_TAD124"
-  # [4] "GSE109229_SKBR3_40kb/TCGAbrca_lum_bas/chr16_TAD119"
-  # [5] "HMEC_40kb/TCGAbrca_lum_bas/chr16_TAD107"           
-# which(sapply(set_of_tads, function(x) all(set_tads %in% x)))
-  # 5 and 249
-# set_of_tads[["conserved_region_249"]]
-  # [1] "Barutcu_MCF-10A_40kb/TCGAbrca_lum_bas/chr16_TAD139"       
-  # [2] "Barutcu_MCF-7_40kb/TCGAbrca_lum_bas/chr16_TAD156"         
-  # [3] "ENCSR489OCU_NCI-H460_40kb/TCGAlusc_norm_lusc/chr16_TAD121"
-  # [4] "ENCSR549MGQ_T47D_40kb/TCGAbrca_lum_bas/chr16_TAD113"      
-  # [5] "GSE105381_HepG2_40kb/TCGAlihc_norm_lihc/chr16_TAD130"     
-  # [6] "GSE109229_BT474_40kb/TCGAbrca_lum_bas/chr16_TAD124"       
-  # [7] "GSE109229_SKBR3_40kb/TCGAbrca_lum_bas/chr16_TAD119"       
-  # [8] "HMEC_40kb/TCGAbrca_lum_bas/chr16_TAD107"                  
-  # [9] "LG2_40kb/TCGAluad_norm_luad/chr16_TAD122"                 
-  # [10] "LG2_40kb/TCGAlusc_norm_lusc/chr16_TAD122"                 
-  # [11] "LI_40kb/TCGAlihc_norm_lihc/chr16_TAD118"                  
-
 txt <- paste0("... remove nested sets:\t", length(set_of_tads) , " -> ")
 cat(txt)
 cat(txt, file=logFile, append=T)
@@ -393,19 +393,13 @@ txt <- paste0(length(set_of_tads) , "\n")
 cat(txt)
 cat(txt, file=logFile, append=T)
 
-names(set_of_tads) <- paste0("conserved_region_", seq_along(set_of_tads))
 
-# check how many times each TAD is present -> to see if a TAD is involved in multiple conserved region
-tad_occurence <- table(unlist(set_of_tads))
-range(tad_occurence)
-# GSE109229_SKBR3_40kb/TCGAbrca_lum_bas-chr6_TAD125
-tmpx = "GSE109229_SKBR3_40kb/TCGAbrca_lum_bas/chr6_TAD125"
-tmpx = "GSE105194_spinal_cord_40kb/TCGAgbm_classical_mesenchymal/chr19_TAD135"
-tmpx = names(head(sort(-tad_occurence),1)) # "GSE105194_spinal_cord_40kb/TCGAgbm_classical_mesenchymal/chr19_TAD135"
-# Filter(function(x) any(grepl(tmpx, x)), set_of_tads)
+### > Filter2: retain only "conserved regions" with >= *minIntersectGenes*(3) genes at the intersect
+txt <- paste0("> FILTER 2 - # of conserved regions\t=\t", length(set_of_tads), "\n")
+cat(txt)
+cat(txt, file=logFile, append=T)
 
 names(set_of_tads) <- paste0("conserved_region_", seq_along(set_of_tads))
-
 cr=names(set_of_tads)[1]
 set_of_tads_intersect_genes <- foreach(cr = names(set_of_tads)) %dopar% {
   all_regions <- set_of_tads[[paste0(cr)]]
@@ -420,86 +414,15 @@ set_of_tads_intersect_genes <- foreach(cr = names(set_of_tads)) %dopar% {
   setNames(entrez2symb[paste0(is_genes)], is_genes)
 }
 names(set_of_tads_intersect_genes) <- names(set_of_tads)
-
 nIntersectGenesByRegions <- lengths(set_of_tads_intersect_genes)
-
 regionsWithMinGenes <- names(nIntersectGenesByRegions) [nIntersectGenesByRegions >= minIntersectGenes]
-
-txt <- paste0("> FILTER 2 - # of conserved regions\t=\t", length(set_of_tads), "\n")
-cat(txt)
-cat(txt, file=logFile, append=T)
 stopifnot(regionsWithMinGenes %in% names(set_of_tads))
 all_set_of_tads  <- set_of_tads
 set_of_tads <- set_of_tads[paste0(regionsWithMinGenes)]
-txt <- paste0("> FILTER 2 - # of regions with # intersect genes >= ", minIntersectGenes, "\t=\t", length(set_of_tads), "\n")
-cat(txt)
-cat(txt, file=logFile, append=T)
+stopifnot(setequal(regionsWithMinGenes, names(set_of_tads)))
 
-all_signif_matching_dt$refID_full
-
-conserved_signif_tads <- set_of_tads
-
-outFile <- file.path(outFolder, paste0("conserved_signif_tads", signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, ".Rdata"))
-save(conserved_signif_tads, file=outFile, version=2)
-cat(paste0("... written: ", outFile, "\n"))
-
-# 
-# stop("ok\n")
-
-all_tad_vect <- as.character(unlist(set_of_tads))
-tad_occurences <- setNames(as.numeric(table(all_tad_vect)), names(table(all_tad_vect)))
-
-outfile <- file.path(outFolder, paste0("tad_occurences_in_conserved_signif_tads", signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, ".",plotType))
-do.call(plotType, list(outfile, height=myHeight, width=myHeight*1.2))
-plot(density(tad_occurences))
-ffo <- dev.off()
-cat(paste0("... written: ", outFile, "\n"))
-tail(sort(tad_occurences))
-txt <- paste0("> summary(tad_occurences):\n")
-cat(txt)
-cat(txt, file=logFile, append=T)
-txt <- paste0(names(summary(tad_occurences)))
-cat(txt)
-cat(txt, file=logFile, append=T)
-txt <- paste0(summary(tad_occurences), "\n")
-cat(txt)
-cat(txt, file=logFile, append=T)
-
-
-# stop("ok\n")
-
-#######################################################################################################################################
-######################################################################################################################### PLOTTING - overview conservation
-#######################################################################################################################################                                       
-all_datasets <- unique(all_signif_matching_dt$ref_dataset)
-
-# to retrieve the colors
-dataset_dt <- data.frame(dataset = all_datasets, hicds = dirname(all_datasets),exprds = basename(all_datasets),stringsAsFactors = FALSE)
-dataset_dt$cmpType <- all_cmps[paste0(dataset_dt$exprds)]
-dataset_dt$subtype_col <- all_cols[paste0(dataset_dt$cmpType)]
-stopifnot(!is.na(dataset_dt$subtype_col))
-dataset_dt <- dataset_dt[order(dataset_dt$cmpType, dataset_dt$hicds, dataset_dt$exprds),]
-dataset_dt$dataset_label <- gsub("/", "\n", dataset_dt$dataset)
-ds_label_levels <- dataset_dt$dataset_label
-ds_levels <- dataset_dt$dataset
-
-# BINARY: 1 if the dataset has a TAD belonging to the conserved region
-cons_region = set_of_tads[[15]]
-matching_dt <- foreach(cons_region = set_of_tads, .combine='cbind') %dopar% {
-  all_matching_ds <- dirname(cons_region)
-  matching_ds <- as.numeric(ds_levels %in% all_matching_ds )
-  # stopifnot(sum(matching_ds) == length(all_matching_ds)) # not TRUE -> 1 TAD can match to multiple TAD in the query
-  stopifnot(sum(matching_ds) <= length(all_matching_ds)) # not TRUE -> 1 TAD can match to multiple TAD in the query
-  matching_ds
-}
-stopifnot(!duplicated(ds_levels))
-rownames(matching_dt) <- ds_levels
-colnames(matching_dt) <- names(set_of_tads)
-# levels to sort the columns by decreasing # of matches
-tmp <- colSums(matching_dt)
-region_levels <- names(sort(-tmp))
-
-
+### !!! >>> v2 update here 
+### Merge conserved regions that have >= *gene_matching_fuse_threshold* % (80%) gene overlap
 set_of_tads_intersect_genes <- foreach(cr = names(set_of_tads)) %dopar% {
   all_regions <- set_of_tads[[paste0(cr)]]
   ds_genes <- sapply(all_regions, function(tad) {
@@ -514,6 +437,163 @@ set_of_tads_intersect_genes <- foreach(cr = names(set_of_tads)) %dopar% {
 }
 names(set_of_tads_intersect_genes) <- names(set_of_tads)
 
+cr = names(set_of_tads_intersect_genes)[1]
+set_of_tads_matching_ratio <- foreach(cr = names(set_of_tads_intersect_genes)) %dopar% {
+  region_genes <- set_of_tads_intersect_genes[[paste0(cr)]]
+  matching_ratio_other_regions <- unlist(lapply(set_of_tads_intersect_genes, function(x) sum(region_genes %in% x)/length(region_genes)))
+  tofuse <- names(matching_ratio_other_regions)[matching_ratio_other_regions >= gene_matching_fuse_threshold]
+  tofuse
+}
+names(set_of_tads_matching_ratio) <- names(set_of_tads_intersect_genes)
+list_to_fuse <- Filter(function(x) length(x) > 1, set_of_tads_matching_ratio)  
+names(list_to_fuse) <- NULL
+list_to_fuse <- unique(list_to_fuse)
+
+# list_to_fuse <- list(
+#   cr1 = c("cr1", "cr2", "cr3"),
+#   cr2 = c("cr2", "cr4"),
+#   cr5=c("cr5", "cr6"),
+#   cr6=c("cr6", "cr5", "cr7")
+# )
+# unique(sapply(list_to_fuse, function(x) 
+#   unique(unlist(list_to_fuse[sapply(list_to_fuse, function(y) 
+#     any(x %in% y))])), simplify=FALSE))
+regions_to_fuse <- unique(sapply(list_to_fuse, function(x) 
+  unique(unlist(list_to_fuse[sapply(list_to_fuse, function(y) 
+    any(x %in% y))])), simplify=FALSE))
+
+stopifnot(!duplicated(unlist(regions_to_fuse)))
+
+length_before_merging <- length(set_of_tads)
+stopifnot(length_before_merging == length(set_of_tads_intersect_genes))
+set_of_tads_before_merging <- set_of_tads
+set_of_tads_intersect_genes_before_merging <- set_of_tads_intersect_genes
+
+txt <- paste0("... # of merging to perform:\t", length(regions_to_fuse) , "\n")
+cat(txt)
+cat(txt, file=logFile, append=T)
+
+i=1
+for(i in seq_along(regions_to_fuse)) {
+  tomerge <- regions_to_fuse[[i]]
+  txt <- paste0("... merging ", i, "- ", paste0(tomerge, collapse=","), "\n")
+  cat(txt)
+  cat(txt, file=logFile, append=T)
+  foo <- sapply(unname(set_of_tads_intersect_genes[names(set_of_tads_intersect_genes) %in% tomerge]), function(x) { 
+    txt <- paste0(as.character(x), "\n")
+    cat(txt)
+    cat(txt, file=logFile, append=T)
+  })
+  
+  new_region <- paste0(tomerge, collapse="_")
+  new_entry_genes <- unique(unlist(set_of_tads_intersect_genes[names(set_of_tads_intersect_genes) %in% tomerge]))
+  new_entry <- sort(unique(unlist(set_of_tads[names(set_of_tads) %in% tomerge])))
+  
+  
+  set_of_tads <- set_of_tads[! names(set_of_tads) %in% tomerge]
+  set_of_tads[[paste0(new_region)]] <- new_entry
+  
+  set_of_tads_intersect_genes <- set_of_tads_intersect_genes[! names(set_of_tads_intersect_genes) %in% tomerge]
+  set_of_tads_intersect_genes[[paste0(new_region)]] <- new_entry_genes
+  
+}
+stopifnot(length(set_of_tads) == (length_before_merging - length(unlist(regions_to_fuse)) + length(regions_to_fuse)))
+stopifnot(length(set_of_tads) == length(set_of_tads_intersect_genes))
+stopifnot(setequal(names(set_of_tads), names(set_of_tads_intersect_genes)))
+stopifnot(setequal(unlist(set_of_tads_before_merging), unlist(set_of_tads)))
+stopifnot(setequal(unlist(set_of_tads_intersect_genes_before_merging), unlist(set_of_tads_intersect_genes)))
+
+txt <- paste0("... merge overlapping sets:\t", length(set_of_tads_before_merging) , " -> ",  length(set_of_tads), "\n")
+cat(txt)
+cat(txt, file=logFile, append=T)
+
+
+names(set_of_tads) <- paste0("conserved_region_", seq_along(set_of_tads))
+set_of_tads_intersect_genes <- foreach(cr = names(set_of_tads)) %dopar% {
+  all_regions <- set_of_tads[[paste0(cr)]]
+  ds_genes <- sapply(all_regions, function(tad) {
+    dt <- all_data_list[[paste0(dirname(tad))]][["dataset_g2t_dt"]]
+    stopifnot(basename(tad) %in% dt$region)
+    as.character(dt$entrezID[dt$region == basename(tad)])
+  })
+  is_genes <- Reduce(intersect, ds_genes)
+  stopifnot(is_genes %in% gff_dt$entrezID)
+  stopifnot(is_genes %in% names(entrez2symb))
+  setNames(entrez2symb[paste0(is_genes)], is_genes)
+}
+names(set_of_tads_intersect_genes) <- names(set_of_tads)
+
+# just ensure: "conserved region" has at least 1 match
+stopifnot(lengths(set_of_tads) >= 2)
+
+# => for the GO analysis, save conserved regions
+conserved_signif_tads <- set_of_tads
+outFile <- file.path(outFolder, paste0(file_prefix, "conserved_signif_tads", signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, ".Rdata"))
+save(conserved_signif_tads, file=outFile, version=2)
+cat(paste0("... written: ", outFile, "\n"))
+
+# => final set of conserved regions here !
+
+#######################################################################################################################################
+######################################################################################################################### PLOT - TAD occurence
+#######################################################################################################################################                                       
+
+all_tad_vect <- as.character(unlist(set_of_tads))
+tad_occurences <- setNames(as.numeric(table(all_tad_vect)), names(table(all_tad_vect)))
+outfile <- file.path(outFolder, paste0(file_prefix, "tad_occurences_in_conserved_signif_tads", signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, ".",plotType))
+do.call(plotType, list(outfile, height=myHeight, width=myHeight*1.2))
+plot(density(tad_occurences), main=paste0(data_cmpType))
+mtext(side=3, text="TAD occurence")
+foo <- dev.off()
+cat(paste0("... written: ", outFile, "\n"))
+tail(sort(tad_occurences))
+txt <- paste0("> summary(tad_occurences):\n")
+cat(txt)
+cat(txt, file=logFile, append=T)
+txt <- paste0(names(summary(tad_occurences)))
+cat(txt)
+cat(txt, file=logFile, append=T)
+txt <- paste0(summary(tad_occurences), "\n")
+cat(txt)
+cat(txt, file=logFile, append=T)
+
+#######################################################################################################################################
+######################################################################################################################### PLOT - overview conservation (heatmap)
+#######################################################################################################################################                                       
+all_datasets <- unique(all_signif_matching_dt$ref_dataset)
+
+
+# BINARY: 1 if the dataset has a TAD belonging to the conserved region
+cons_region = set_of_tads[[15]]
+matching_dt <- foreach(cons_region = set_of_tads, .combine='cbind') %dopar% {
+  all_matching_ds <- dirname(cons_region)
+  matching_ds <- as.numeric(ds_levels %in% all_matching_ds )
+  # stopifnot(sum(matching_ds) == length(all_matching_ds)) # not TRUE -> 1 TAD can match to multiple TAD in the query
+  stopifnot(sum(matching_ds) <= length(all_matching_ds)) # not TRUE -> 1 TAD can match to multiple TAD in the query
+  matching_ds
+}
+stopifnot(!duplicated(ds_levels))
+rownames(matching_dt) <- ds_levels
+colnames(matching_dt) <- names(set_of_tads)
+
+### !!! >>> v2 update here -> # of conservations based on exprds, not hicds+exprds
+# levels to sort the columns by decreasing # of matches
+# tmp <- colSums(matching_dt)
+# region_levels <- names(sort(-tmp))
+tmp_dt <- data.frame(matching_dt)
+tmp_dt$hicds <- dirname(rownames(matching_dt))
+tmp_dt$exprds <- basename(rownames(matching_dt))
+tmp_dt_m <- melt(tmp_dt, id=c("hicds", "exprds"))
+# tmp_dt_m2b <- aggregate(value ~ exprds+variable, data=tmp_dt_m, FUN=sum)
+# tmp_dt_m3b <- aggregate(value ~ variable, data=tmp_dt_m2b, FUN=function(x) sum(x>0))
+# tmp_dt_m3b <- tmp_dt_m3b[order(tmp_dt_m3b$value, decreasing=TRUE),]
+# stopifnot(tmp_dt_m3$exprds == tmp_dt_m3b$value)
+# stopifnot(tmp_dt_m3$variable == tmp_dt_m3b$variable)
+tmp_dt_m2 <- tmp_dt_m[tmp_dt_m$value > 0,]
+tmp_dt_m3 <- aggregate(exprds~variable, data=tmp_dt_m2, FUN=function(x) length(unique(x)))
+tmp_dt_m3 <- tmp_dt_m3[order(tmp_dt_m3$exprds, decreasing=TRUE),]
+region_levels <- tmp_dt_m3$variable
+exprds_match_dt <- tmp_dt_m3
 
 out_df <- data.frame(
   conserved_region = names(set_of_tads),
@@ -525,7 +605,7 @@ out_df <- data.frame(
 out_df$conserved_region <- factor(out_df$conserved_region, levels = region_levels)
 stopifnot(!is.na(out_df$conserved_region))
 out_df <- out_df[order(as.numeric(out_df$conserved_region)),]
-outFile <- file.path(outFolder, paste0("conserved_regions_with_genes_signif_tads", signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, "_df.txt"))
+outFile <- file.path(outFolder, paste0(file_prefix, "conserved_regions_with_genes_signif_tads", signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, "_df.txt"))
 write.table(out_df, append=F, quote=F, sep="\t", file = outFile, col.names=TRUE, row.names=FALSE)
 cat(paste0("... written: ", outFile, "\n"))
 
@@ -538,7 +618,7 @@ initmar <- par()$mar
 # modifMar <- c(0,-4.1,-4.1,15)
 modifMar <- c(0,0,0,0)
 
-outFile <- file.path(outFolder, paste0("heatmap_conservedRegions_rowReorder_signif", signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, ".", plotType))
+outFile <- file.path(outFolder, paste0(file_prefix, "heatmap_conservedRegions_rowReorder_signif", signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, ".", plotType))
 do.call(plotType, list(outFile,  height=myHeightHeat, width=myWidthHeat))
 par(mar=(initmar+ modifMar))
 # dev.off()
@@ -577,7 +657,7 @@ save(plot_matching_dt, file = file.path(outFolder, "plot_matching_dt.Rdata"), ve
 
 par(mar = initmar)
 
-outFile <- file.path(outFolder, paste0("heatmap_conservedRegions_noReorder_signif", signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, ".", plotType))
+outFile <- file.path(outFolder, paste0(file_prefix,"heatmap_conservedRegions_noReorder_signif", signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, ".", plotType))
 do.call(plotType, list(outFile,  height=myHeightHeat, width=myWidthHeat))
 par(mar=initmar+modifMar)
 
@@ -601,83 +681,59 @@ my_heatmap.2(plot_matching_dt[,paste0(region_levels)], col=c("white", "black"),
 foo <- dev.off()
 cat(paste0("... written: ", outFile, "\n"))
 
-# stop("ok\n")
-
-#### ggplot version
-# plot_dt <- melt(matching_dt)
-# save(plot_dt, file ="plot_dt.Rdata", version=2)
-# 
-# colnames(plot_dt) <- c("dataset", "region", "signif") 
-# 
-# matching_dt <- matching_dt[,region_levels]
-# image(matching_dt)
-# 
-# plot_dt$dataset_label <- gsub("/", "\n", plot_dt$dataset)
-# plot_dt$dataset_label <- factor(plot_dt$dataset_label, levels=ds_label_levels)
-# stopifnot(!is.na(plot_dt$dataset_label))
-# 
-# plot_dt$region <- factor(plot_dt$region, levels=region_levels)
-# stopifnot(!is.na(plot_dt$region))
-# plot_dt$signif <- factor(plot_dt$signif, levels = c(1,0))
-# 
-# g_match <- ggplot(plot_dt, aes(x = region, y = dataset_label, fill = signif, color=signif)) +
-#   geom_point() + 
-#   scale_fill_manual(values = c("black", "white"))+
-#   scale_colour_manual(values = c("black", "white"))
 
 #######################################################################################################################################
-######################################################################################################################### lolli plot nTop regions all DS
+######################################################################################################################### PLOT - lolli plot nTop regions all DS
 #######################################################################################################################################                   
-                    # 
-                    nDS <- nrow(matching_dt)
-                    # 
-                    cr= region_levels[1]
-                    foo <- foreach(i_cr = 1:nRegionLolli) %dopar% {
+nDS <- nrow(matching_dt)
+nExprds <- length(unique(basename(rownames(matching_dt))))
+ 
+cr= region_levels[1]
+foo <- foreach(i_cr = 1:nRegionLolli) %dopar% {
+  cr <- region_levels[i_cr]
+  stopifnot(cr %in% names(set_of_tads))
+  tads_to_plot <- set_of_tads[[paste0(cr)]]
+  stopifnot(cr %in% colnames(matching_dt))
+  nMatch <- sum(matching_dt[,paste0(cr)])
+  stopifnot(cr %in% exprds_match_dt$variable)
+  nMatch_exprds <- exprds_match_dt$exprds[exprds_match_dt$variable == paste0(cr)]
 
-                      cr <- region_levels[i_cr]
+  nPlotted <- length(tads_to_plot)
 
-                      stopifnot(cr %in% names(set_of_tads))
-                      tads_to_plot <- set_of_tads[[paste0(cr)]]
+  outHeightGG <- min(c(7 * nPlotted/2, 49))
+  outHeightGG <- ifelse(nPlotted < 3, outHeightGG*1.5,outHeightGG)
+  outWidthGG <- ifelse(nPlotted == 1, 20/2, 20)
 
-                      stopifnot(cr %in% colnames(matching_dt))
-                      nMatch <- sum(matching_dt[,paste0(cr)])
+  plotList <- list()
+  i_tad=1
+  for(i_tad in 1:nPlotted) {
 
-                      nPlotted <- length(tads_to_plot)
+    hicds <- dirname(dirname(tads_to_plot[i_tad]))
+    exprds <- basename(dirname(tads_to_plot[i_tad]))
+    tad <- basename(tads_to_plot[i_tad])
 
-                      outHeightGG <- min(c(7 * nPlotted/2, 49))
-                      outHeightGG <- ifelse(nPlotted < 3, outHeightGG*1.5,outHeightGG)
-                      outWidthGG <- ifelse(nPlotted == 1, 20/2, 20)
-
-                      plotList <- list()
-                      i_tad=1
-                      for(i_tad in 1:nPlotted) {
-
-                        hicds <- dirname(dirname(tads_to_plot[i_tad]))
-                        exprds <- basename(dirname(tads_to_plot[i_tad]))
-                        tad <- basename(tads_to_plot[i_tad])
-
-                        mytit <- paste0( hicds, " - ", exprds, " - ", tad)
+    mytit <- paste0( hicds, " - ", exprds, " - ", tad)
 
 
-                        plotList[[i_tad]] <- plot_lolliTAD_ds(exprds = exprds,
-                                                              hicds = hicds,
-                                                              all_TADs = tad,
-                                                              orderByLolli = "startPos", mytitle=mytit)
-                      } # end-for iterating over TADs to plot
-                      save(plotList, file="plotList.Rdata")
+    plotList[[i_tad]] <- plot_lolliTAD_ds(exprds = exprds,
+                                          hicds = hicds,
+                                          all_TADs = tad,
+                                          orderByLolli = "startPos", mytitle=mytit)
+  } # end-for iterating over TADs to plot
+  save(plotList, file="plotList.Rdata")
 
-                      outFile <- file.path(outFolder, paste0("allCmps_conservedRegions", i_cr, "_signif", signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, "_lolli.", plotType))
+  outFile <- file.path(outFolder, paste0(file_prefix, "allCmps_conservedRegions", i_cr, "_signif", signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, "_lolli.", plotType))
 
-                      mytit <- paste0("Conserved region ", i_cr, " (all cmps) - ", nMatch, "/", nDS)
-                      all_plots <- do.call(grid.arrange, c(plotList,  list(ncol=ifelse(nPlotted == 1, 1, 2), top=textGrob(mytit, gp=gpar(fontsize=20,font=2)))))
-                      outHeightGG <- min(c(7 * nPlotted/2, 49))
-                      outHeightGG <- ifelse(nPlotted < 3, outHeightGG*1.5,outHeightGG)
-                      outWidthGG <- ifelse(nPlotted == 1, 20/2, 20)
+  mytit <- paste0("Conserved region ", i_cr, " (all cmps) - ", nMatch_exprds, "/", nExprds, "(", nMatch, "/", nDS, ")")
+  all_plots <- do.call(grid.arrange, c(plotList,  list(ncol=ifelse(nPlotted == 1, 1, 2), top=textGrob(mytit, gp=gpar(fontsize=20,font=2)))))
+  outHeightGG <- min(c(7 * nPlotted/2, 49))
+  outHeightGG <- ifelse(nPlotted < 3, outHeightGG*1.5,outHeightGG)
+  outWidthGG <- ifelse(nPlotted == 1, 20/2, 20)
 
-                      ggsave(filename = outFile, all_plots, width=outWidthGG, height = outHeightGG)
-                      cat("... written: ", outFile, "\n")
+  ggsave(filename = outFile, all_plots, width=outWidthGG, height = outHeightGG)
+  cat("... written: ", outFile, "\n")
 
-                    }
+}
 
 
 #######################################################################################################################################
@@ -693,23 +749,35 @@ for(cmpType in unique(as.character(dataset_dt$cmpType))) {
   cmp_matching_dt <- matching_dt[paste0(ds_to_keep),]
   stopifnot(nrow(cmp_matching_dt) == length(ds_to_keep))
   
-  cmp_region_levels <- names(sort(-colSums(cmp_matching_dt)))
+  #>>> v2 update: region levels defined according to exprds
+  # cmp_region_levels <- names(sort(-colSums(cmp_matching_dt)))
+  cmp_tmp_dt <- data.frame(cmp_matching_dt)
+  cmp_tmp_dt$hicds <- dirname(rownames(cmp_matching_dt))
+  cmp_tmp_dt$exprds <- basename(rownames(cmp_matching_dt))
+  cmp_tmp_dt_m <- melt(cmp_tmp_dt, id=c("hicds", "exprds"))
+  cmp_tmp_dt_m2 <- cmp_tmp_dt_m[cmp_tmp_dt_m$value > 0,]
+  cmp_tmp_dt_m3 <- aggregate(exprds~variable, data=cmp_tmp_dt_m2, FUN=function(x) length(unique(x)))
+  cmp_tmp_dt_m3 <- cmp_tmp_dt_m3[order(cmp_tmp_dt_m3$exprds, decreasing=TRUE),]
+  cmp_region_levels <- cmp_tmp_dt_m3$variable
+  cmp_exprds_match_dt <- cmp_tmp_dt_m3
   
   nDS_cmp <- nrow(cmp_matching_dt)
-  
-  
+  nExprds_cmp <- length(unique(basename(rownames(cmp_matching_dt))))
   
   foo <- foreach(i_cr = 1:nRegionLolli) %dopar% {
-    
     cr <- cmp_region_levels[i_cr]
-    
     stopifnot(cr %in% names(set_of_tads))
     tads_to_plot <- set_of_tads[[paste0(cr)]]
     
     stopifnot(cr %in% colnames(matching_dt))
+    stopifnot(cr %in% colnames(cmp_matching_dt))
     nMatch <- sum(matching_dt[,paste0(cr)])
-    
     nMatch_cmp <- sum(cmp_matching_dt[,paste0(cr)])
+    
+    stopifnot(cr %in% exprds_match_dt$variable)
+    stopifnot(cr %in% cmp_exprds_match_dt$variable)
+    nMatch_exprds <- exprds_match_dt$exprds[exprds_match_dt$variable == paste0(cr)]
+    nMatch_exprds_cmp <- cmp_exprds_match_dt$exprds[cmp_exprds_match_dt$variable == paste0(cr)]
     
     nPlotted <- length(tads_to_plot)
     
@@ -735,9 +803,9 @@ for(cmpType in unique(as.character(dataset_dt$cmpType))) {
     } # end-for iterating over TADs to plot
     save(plotList, file="plotList.Rdata")
     
-    outFile <- file.path(outFolder, paste0(cmpType, "_conservedRegions", i_cr, "_signif", signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, "_lolli.", plotType))
+    outFile <- file.path(outFolder, paste0(file_prefix, cmpType, "_conservedRegions", i_cr, "_signif", signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, "_lolli.", plotType))
     
-    mytit <- paste0("Conserved region ", i_cr, " (", cmpType, ") - ", nMatch_cmp, "/", nDS_cmp, " (", nMatch, "/", nDS, ")")
+    mytit <- paste0("Conserved region ", i_cr, " (", cmpType, ") - ", nMatch_exprds_cmp, "/", nExprds_cmp, " (", nMatch_exprds, "/", nExprds, "); ", nMatch_cmp, "/", nDS_cmp, " (", nMatch, "/", nDS, ")")
     all_plots <- do.call(grid.arrange, c(plotList,  list(ncol=ifelse(nPlotted == 1, 1, 2), top=textGrob(mytit, gp=gpar(fontsize=20,font=2)))))
     outHeightGG <- min(c(7 * nPlotted/2, 49))
     outHeightGG <- ifelse(nPlotted < 3, outHeightGG*1.5,outHeightGG)

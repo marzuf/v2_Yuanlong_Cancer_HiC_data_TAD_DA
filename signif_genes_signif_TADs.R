@@ -2,7 +2,7 @@ options(scipen=100)
 
 setDir = ""
 
-buildTable <- FALSE
+buildTable <- TRUE
 
 # Rscript signif_genes_signif_TADs.R   # 
 
@@ -212,10 +212,6 @@ for(signif_gene in signif_gene_vars) {
   }
 }
 
-stop("--ok\n")
-
-
-
 
     
 idvars <- c("hicds", "exprds", "region")
@@ -258,16 +254,16 @@ for(var_gene in all_signif_genes) {
     plot(
       x=myx,
       y=myy,
-      xlab = var_gene,
-      ylab = var_tad,
+      xlab = paset0("# genes ", var_gene),
+      ylab = paste0("# genes ", var_tad),
       main = paste0(var_tad, " vs. ", var_gene),
       cex.lab=plotCex,
       cex.axis = plotCex,
       col = mycols
     )
     addCorr(x = myx, y = myy, bty="n")
-    mtext(side=3, text = paste0("nDS = ", nDS))
-    text(x = myx, y=myy, col=mycols, labels = rownames(nSignif_dt2))
+    mtext(side=3, text = paste0("# signif. genes - nDS = ", nDS))
+    text(x = myx, y=myy, col=mycols, labels = rownames(nSignif_dt2), cex=0.7)
     foo <- dev.off()
     cat(paste0("... written: ", outFile, "\n"))
   }
