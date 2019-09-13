@@ -3,6 +3,14 @@
 library(clusterProfiler)
 
 library(ontologySimilarity)
+
+library(foreach, warn.conflicts = FALSE, quietly = TRUE, verbose = FALSE)
+library(doMC, warn.conflicts = FALSE, quietly = TRUE, verbose = FALSE)
+
+hicds="K562_40kb"
+exprds="TCGAlaml_wt_mutFLT3"
+
+
 # data(gene_GO_terms)
 data(GO_IC)
 # 
@@ -36,6 +44,9 @@ options(scipen=100)
 
 SSHFS=F
 
+
+setDir <- ifelse(SSHFS, "/media/electron", "")
+registerDoMC(ifelse(SSHFS, 2, 80))
 startTime <- Sys.time()
 
 script_name <- "go_specificity_geneLevel_tadLevel.R"
@@ -94,6 +105,8 @@ printAndLog(txt, logFile)
 inFile <- file.path("GO_SIGNIF_GENELEVEL_TADLEVEL", "all_go_enrich_list.Rdata")
 stopifnot(file.exists(inFile))
 all_go_enrich_list <- get(load(inFile))
+
+all_datasets <- unlist(lapply(1:length(all_exprds), function(x) file.path(names(all_exprds)[x], all_exprds[[x]])))
 
 if(buildTable) {
   
@@ -187,18 +200,18 @@ if(buildTable) {
     names(exprds_list) <- file.path(hicds, all_exprds[[paste0(hicds)]])
     exprds_list
   } # end-foreach iterating over hicds
-  
+  names(all_go_ic_list) <- all_hicds
   outFile <- file.path(outFolder, paste0("all_go_ic_list.Rdata"))
   save(all_go_ic_list, file = outFile, version=2)
-  stopifnot(length(all_go_ic_list) == length(all_datasets))
+  stopifnot(length(unlist(all_go_ic_list, recursive=FALSE)) == length(all_datasets))
   cat(paste0("... written: ", outFile, "\n"))
 } else {
   outFile <- file.path(outFolder, paste0( "all_go_ic_list.Rdata"))
   cat("... load data\n")
   all_go_ic_list <- get(load(outFile))
 }
-
-
+all_ic_signif_tads <- unlist(lapply(all_go_ic_list, function(sublist) lapply(sublist, function(x) x[["tad_signif_mean_go_ic"]])))
+all_ic_signif_limma <- unlist(lapply(all_go_ic_list, function(sublist) lapply(sublist, function(x) x[["limma_signif_mean_go_ic"]])))
 
 
 

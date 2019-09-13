@@ -4,14 +4,17 @@ SSHFS=F
 
 buildData <- TRUE
 
-# Rscript tad_matching_across_hicds_allMatch_v2.R
+# Rscript go_signif_across_hicds_v2.R
+# Rscript go_signif_across_hicds_v2.R norm_vs_tumor
+# Rscript go_signif_across_hicds_v2.R subtypes
+# Rscript go_signif_across_hicds_v2.R wt_vs_mut
 
-script_name <- "tad_matching_signif_across_hicds_allMatch_v2.R"
+script_name <- "go_signif_across_hicds_v2.R"
 
 startTime <- Sys.time()
 
 cat("> START ", script_name, "\n")
-require(clusterProfiler, warn.conflicts = FALSE, quietly = TRUE, verbose = FALSE)
+require(clusterProfiler)
 require(foreach)
 require(doMC)
 require(GenomicRanges)
@@ -85,7 +88,7 @@ stopifnot(dir.exists(file.path(mainFolder, all_hicds)))
 all_exprds <- lapply(all_hicds, function(x) list.files(file.path(pipFolder, x)))
 names(all_exprds) <- all_hicds
 
-outFolder <- file.path("GO_SIGNIF_ACROSS_HICDS_v2")
+outFolder <- file.path("GO_SIGNIF_ACROSS_HICDS_v2", data_cmpType)
 dir.create(outFolder, recursive = TRUE)
 
 all_datasets <- unlist(lapply(1:length(all_exprds), function(x) file.path(names(all_exprds)[x], all_exprds[[x]])))
@@ -118,7 +121,7 @@ cat(paste0("> minIntersectGenes\t=\t", minIntersectGenes, "\n"))
 cat(paste0("> nRegionLolli\t=\t", nRegionLolli, "\n"))
 
 
-inFolder <- file.path("TAD_MATCHING_SIGNIF_ACROSS_HICDS_ALLMATCH", data_cmpType)
+inFolder <- file.path("TAD_MATCHING_SIGNIF_ACROSS_HICDS_ALLMATCH_v2", data_cmpType)
 stopifnot(dir.exists(inFolder))
 
 inFile <- file.path(inFolder, paste0(file_prefix, "conserved_signif_tads", signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, ".Rdata"))
@@ -389,6 +392,16 @@ if(length(go_all_not_conserved_signif_tads_genes) > 0) {
 } else {
   not_conserved_signif_enrich_resultDT <- NULL
 }
+
+
+outFile <- file.path(outFolder,paste0(file_prefix, "not_conserved_signif_enrich_resultDT.Rdata"))
+save(not_conserved_signif_enrich_resultDT, file=outFile)
+cat(paste0("... written: ", outFile, "\n"))
+
+
+outFile <- file.path(outFolder,paste0(file_prefix, "conserved_signif_enrich_resultDT.Rdata"))
+save(conserved_signif_enrich_resultDT, file=outFile)
+cat(paste0("... written: ", outFile, "\n"))
 
 
 

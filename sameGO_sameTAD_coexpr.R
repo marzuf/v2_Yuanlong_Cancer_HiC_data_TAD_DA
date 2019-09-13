@@ -26,10 +26,10 @@ all_genes_GO_list <- as.list(x[mapped_genes])
 
 SSHFS <- F
 setDir <- ifelse(SSHFS, "/media/electron", "")
-registerDoMC(ifelse(SSHFS, 2, 40))
+registerDoMC(ifelse(SSHFS, 2, 80))
 
-outFold <- file.path("SAMEGO_SAMETAD_COEXPR")
-dir.create(outFold, recursive = TRUE)
+outFolder <- file.path("SAMEGO_SAMETAD_COEXPR")
+dir.create(outFolder, recursive = TRUE)
 
 mainFolder <- file.path(".")
 pipFolder <- file.path(mainFolder, "PIPELINE", "OUTPUT_FOLDER")
@@ -44,11 +44,10 @@ names(all_exprds) <- all_hicds
 
 script0_name <- "0_prepGeneData"
 
-all_hicds=all_hicds[1]
 
 ####################################################################################################################################### >>> prepare the data
 if(buildTable) {
-  all_go_coexpr_dt <- foreach(hicds = all_hicds, .combine='rbind') %dopar% {
+  all_go_coexpr_dt <- foreach(hicds = all_hicds, .combine='rbind') %do% {
     
     tadFile <- file.path("CREATE_SAME_TAD_SORTNODUP", hicds,  "all_TAD_pairs.Rdata")
     stopifnot(file.exists(tadFile))
@@ -106,10 +105,13 @@ if(buildTable) {
       stopifnot(coexprDT$gene1 < coexprDT$gene2)
       coexprDT <- coexprDT[coexprDT$gene1 %in% pipeline_geneList & 
                                        coexprDT$gene2 %in% pipeline_geneList,]
-      i=1
-      all_go_coexpr_dt <- foreach(i = 1:nrow(all_go_dt), .combine='rbind') %dopar% {
+
+      all_gos <- unique(as.character(all_go_dt$go))
+      all_go_dt$go <- as.character(all_go_dt$go)
+  
+     all_go_coexpr_dt <- foreach(go = all_gos, .combine='rbind') %dopar% {
         
-        go <- all_go_dt$go[i]
+        # go <- all_go_dt$go[i]
         go_genes <- all_go_dt$entrezID[all_go_dt$go == go]
         
         stopifnot(go_genes %in% pipeline_geneList)
@@ -133,7 +135,16 @@ if(buildTable) {
         mapTAD_nPairs <- aggregate(coexpr ~ mapTAD, data = merge_dt, length)
         colnames(mapTAD_nPairs)[colnames(mapTAD_nPairs) == "coexpr"] <- "nPairs"
         
-        go_dt <- merge(mapTAD_meanCoexpr, mapTAD_nPairs, by="mapTAD")
+        mapTAD_nPositivePairs <- aggregate(coexpr ~ mapTAD, data = merge_dt, function(x) sum(x>0))
+        colnames(mapTAD_nPositivePairs)[colnames(mapTAD_nPositivePairs) == "coexpr"] <- "nPositivePairs"
+        
+        
+        
+        
+        
+        go_dt <- merge(mapTAD_nPositivePairs, merge(mapTAD_meanCoexpr, mapTAD_nPairs, by="mapTAD"), by ="mapTAD")
+        
+        
         otherCols <- colnames(go_dt)
         firstCols <- c("hicds", "exprds", "GO")
         go_dt$hicds <- hicds
