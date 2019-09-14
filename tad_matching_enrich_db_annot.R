@@ -45,16 +45,18 @@ annot3_symbols <- setNames(annot3_dt$role, annot3_dt$symbol)
 args <- commandArgs(trailingOnly = TRUE)
 
 if(length(args) == 0) {
-  inFolder <- "TAD_MATCHING_SIGNIF_ACROSS_HICDS_ALLMATCH"
+  inFolder <- "TAD_MATCHING_SIGNIF_ACROSS_HICDS_ALLMATCH_v2"
   args <- ""
+  file_prefix <- ""
 } else if(length(args) == 1) {
-  inFolder <- file.path("TAD_MATCHING_SIGNIF_ACROSS_HICDS_ALLMATCH", args[1])
+  inFolder <- file.path("TAD_MATCHING_SIGNIF_ACROSS_HICDS_ALLMATCH_v2", args[1])
   args <- args[1]
+  file_prefix <- paste0(args, "_")
 } else {
   stop("error\n")
 }
 stopifnot(dir.exists(inFolder))
-inFile <- file.path(inFolder, paste0("conserved_regions_with_genes_signif_tads", signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, "_df.txt"))
+inFile <- file.path(inFolder, paste0(file_prefix,"conserved_regions_with_genes_signif_tads", signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, "_df.txt"))
 stopifnot(file.exists(inFile))
 conserved_dt <- read.delim(inFile, header=TRUE, stringsAsFactors = FALSE)
 stopifnot(nrow(conserved_dt) > 0)

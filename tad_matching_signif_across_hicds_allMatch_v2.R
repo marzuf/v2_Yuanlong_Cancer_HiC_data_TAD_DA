@@ -136,6 +136,8 @@ final_dt[, paste0(signifcol)] <- final_dt[, paste0(signif_column)] <= signifThre
 final_dt <- final_dt[final_dt$hicds %in% dirname(all_datasets) & final_dt$exprds %in% basename(all_datasets),]
 stopifnot(nrow(final_dt) > 0)
 
+stopifnot(length(unique(paste0(final_dt$hicds, final_dt$exprds))) == length(all_datasets))
+
 minOverlapBpRatio <- 0.8
 minIntersectGenes <- 3
 gene_matching_fuse_threshold <- 0.8
