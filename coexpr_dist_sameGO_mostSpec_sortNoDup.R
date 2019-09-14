@@ -215,12 +215,12 @@ if(buildTable) {
     allData_dt$GO <- NULL
     allData_dt <- na.omit(allData_dt)
     
-    outFile <-file.path(outFold, paste0("allData_dt.Rdata"))
+    outFile <-file.path(outFold, paste0(hicds, "_", exprds, "_allData_dt.Rdata"))
     save(allData_dt, file = outFile)
     cat(paste0("... written: ", outFile, "\n"))    
     
   } else{
-    outFile <-file.path(outFold, paste0("allData_dt.Rdata"))
+    outFile <-file.path(outFold, paste0(hicds, "_", exprds, "_allData_dt.Rdata"))
     load(outFile)
   }
   
@@ -300,7 +300,7 @@ if(buildTable) {
     # global_margins_cm = c(0, 0, 0.25, 0.25)
     global_margins_cm = c(0.25, 0.25, 0.25, 0.25)
   )
-  outFile <- file.path(outFold, paste0("sameTAD_diffTAD_sameTADgo_diffTADgo_2curves_coexpr2_dist.", plotType))
+  outFile <- file.path(outFold, paste0(hicds, "_", exprds, "_sameTAD_diffTAD_sameTADgo_diffTADgo_2curves_coexpr2_dist.", plotType))
   ggsave(p_coexpr2curves, height = myHeight*1.2, width = myWidth*1.2, filename=outFile)
   cat(paste0("... written: ", outFile, "\n"))
 
@@ -313,7 +313,7 @@ if(buildTable) {
     scale_color_manual(values=mycols, name="") + 
     mytheme
   
-  outFile <- file.path(outFold, paste0("sameTAD_diffTAD_sameTADgo_diffTADgo_4curves_nbr_dist.", plotType))
+  outFile <- file.path(outFold, paste0(hicds, "_", exprds, "_sameTAD_diffTAD_sameTADgo_diffTADgo_4curves_nbr_dist.", plotType))
   ggsave(p_nbr, height = myHeight, width = myWidth, filename=outFile)
   cat(paste0("... written: ", outFile, "\n"))
   
@@ -343,7 +343,7 @@ if(buildTable) {
     # global_margins_cm = c(0, 0, 0.25, 0.25)
     global_margins_cm = c(0.25, 0.25, 0.25, 0.25)
   )
-  outFile <- file.path(outFold, paste0("sameTAD_diffTAD_sameTADgo_diffTADgo_4curves_nbr1_dist.", plotType))
+  outFile <- file.path(outFold, paste0(hicds, "_", exprds, "_sameTAD_diffTAD_sameTADgo_diffTADgo_4curves_nbr1_dist.", plotType))
   ggsave(p_nbr1, height = myHeight*1.2, width = myWidth*1.2, filename=outFile)
   cat(paste0("... written: ", outFile, "\n"))
   
@@ -355,7 +355,7 @@ if(buildTable) {
     scale_color_manual(values=mycols, name="") + 
     mytheme
   
-  outFile <- file.path(outFold, paste0("sameTAD_diffTAD_sameTADgo_diffTADgo_4curves_coexpr1_dist.", plotType))
+  outFile <- file.path(outFold, paste0(hicds, "_", exprds, "_sameTAD_diffTAD_sameTADgo_diffTADgo_4curves_coexpr1_dist.", plotType))
   ggsave(p_coexpr1, height = myHeight, width = myWidth, filename=outFile)
   cat(paste0("... written: ", outFile, "\n"))
   
@@ -394,7 +394,7 @@ if(buildTable) {
     # global_margins_cm = c(0, 0, 0.25, 0.25)
     global_margins_cm = c(0.25, 0.25, 0.25, 0.25)
   )
-  outFile <- file.path(outFold, paste0("sameTAD_diffTAD_sameTADgo_diffTADgo_4curves_coexpr2_dist.", plotType))
+  outFile <- file.path(outFold, paste0(hicds, "_", exprds, "_sameTAD_diffTAD_sameTADgo_diffTADgo_4curves_coexpr2_dist.", plotType))
   ggsave(p_coexpr2, height = myHeight*1.2, width = myWidth*1.2, filename=outFile)
   cat(paste0("... written: ", outFile, "\n"))
   
@@ -409,7 +409,7 @@ if(buildTable) {
     scale_color_manual(values=mycols, name="") +
     mytheme
   
-  outFile <- file.path(outFold, paste0("sameTAD_diffTAD_sameTADgo_diffTADgo_4curves_coexpr_dist.", plotType))
+  outFile <- file.path(outFold, paste0(hicds, "_", exprds, "_sameTAD_diffTAD_sameTADgo_diffTADgo_4curves_coexpr_dist.", plotType))
   ggsave(p_coexpr, height = myHeight, width = myWidth, filename=outFile)
   cat(paste0("... written: ", outFile, "\n"))
 

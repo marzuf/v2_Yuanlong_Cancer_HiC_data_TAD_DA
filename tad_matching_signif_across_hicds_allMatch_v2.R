@@ -89,6 +89,34 @@ file.remove(logFile)
 
 all_datasets <- unlist(lapply(1:length(all_exprds), function(x) file.path(names(all_exprds)[x], all_exprds[[x]])))
 
+# to retrieve the colors of cmpType for plotting heatmap
+dataset_dt <- data.frame(dataset = all_datasets, hicds = dirname(all_datasets),exprds = basename(all_datasets),stringsAsFactors = FALSE)
+dataset_dt$cmpType <- all_cmps[paste0(dataset_dt$exprds)]
+dataset_dt$subtype_col <- all_cols[paste0(dataset_dt$cmpType)]
+stopifnot(!is.na(dataset_dt$subtype_col))
+dataset_dt <- dataset_dt[order(dataset_dt$cmpType, dataset_dt$hicds, dataset_dt$exprds),]
+
+if(length(args)>0) {
+  
+  stopifnot(data_cmpType %in% dataset_dt$cmpType)
+  dataset_dt <- dataset_dt[dataset_dt$cmpType == data_cmpType,]
+  
+  all_datasets <- all_datasets[basename(all_datasets) %in% dataset_dt$exprds & dirname(all_datasets) %in% dataset_dt$hicds]
+  stopifnot(length(all_datasets) > 0)
+  
+  all_hicds <- all_hicds[all_hicds %in% dirname(all_datasets)]
+  all_exprds <- lapply(all_exprds, function(x) x[x %in% basename(all_datasets)])
+  
+  stopifnot(length(unlist(all_exprds)) == length(all_datasets))
+  
+}
+
+
+dataset_dt$dataset_label <- gsub("/", "\n", dataset_dt$dataset)
+ds_label_levels <- dataset_dt$dataset_label
+ds_levels <- dataset_dt$dataset
+
+
 cat(paste0("n allDS = ", length(all_datasets), "\n"))
 
 # => best TAD matching
@@ -104,6 +132,9 @@ signifThresh <- 0.01
 signifcol <- paste0(signif_column, "_", signifThresh)
 
 final_dt[, paste0(signifcol)] <- final_dt[, paste0(signif_column)] <= signifThresh
+
+final_dt <- final_dt[final_dt$hicds %in% dirname(all_datasets) & final_dt$exprds %in% basename(all_datasets),]
+stopifnot(nrow(final_dt) > 0)
 
 minOverlapBpRatio <- 0.8
 minIntersectGenes <- 3
@@ -136,17 +167,6 @@ signif_tads <- file.path(final_dt$hicds[final_dt[, paste0(signifcol)] ],
 outFile <- file.path(outFolder, paste0(file_prefix, "signif_tads", signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, ".Rdata"))
 save(signif_tads, file=outFile, version=2)
 cat(paste0("... written: ", outFile, "\n"))
-
-
-# to retrieve the colors of cmpType for plotting heatmap
-dataset_dt <- data.frame(dataset = all_datasets, hicds = dirname(all_datasets),exprds = basename(all_datasets),stringsAsFactors = FALSE)
-dataset_dt$cmpType <- all_cmps[paste0(dataset_dt$exprds)]
-dataset_dt$subtype_col <- all_cols[paste0(dataset_dt$cmpType)]
-stopifnot(!is.na(dataset_dt$subtype_col))
-dataset_dt <- dataset_dt[order(dataset_dt$cmpType, dataset_dt$hicds, dataset_dt$exprds),]
-dataset_dt$dataset_label <- gsub("/", "\n", dataset_dt$dataset)
-ds_label_levels <- dataset_dt$dataset_label
-ds_levels <- dataset_dt$dataset
 
 
 ####################################################################################################################################### >>> prepare the data
