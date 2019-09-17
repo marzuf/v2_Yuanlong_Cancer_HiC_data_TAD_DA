@@ -117,7 +117,7 @@ plot_DT_m <- melt(plot_DT, id=c("tad_id", "nEnhancers"))
 plot_DT_m$plot_variable <- paste0(plot_DT_m$variable, plot_DT_m$value)
 
 
-
+plot_DT_m$plot_variable <- gsub("conserved_signif", "conserved\nsignif", plot_DT_m$plot_variable)
 
 p_var <-  ggplot(plot_DT_m, aes(x = plot_variable, y = nEnhancers)) + 
   geom_boxplot()+
