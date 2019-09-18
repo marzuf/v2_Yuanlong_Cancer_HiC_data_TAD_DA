@@ -5,25 +5,27 @@ plotType <- "png"
 myHeight  <- ifelse(plotType=="png", 400, 7)
 myWidth <- myHeight
 
+
 myHeightGG <- 7
 myWidthGG <- myHeightGG*1.2
 
 
-# Rscript ahlfors_FC_test.R
+# Rscript ahlfors_flips_test.R
 
-script_name <- "ahlfors_FC_test.R"
+script_name <- "ahlfors_flips_test.R"
 
 startTime <- Sys.time()
 
 cat("> START ", script_name, "\n")
 
 SSHFS=F
-require(ggpubr)
 require(foreach)
 require(doMC)
 registerDoMC(ifelse(SSHFS, 2, 40))
 
-buildTable <- FALSE
+require(ggpubr)
+
+buildTable <- F
 
 hicds = "Panc1_rep12_40kb"
 exprds = "TCGApaad_wt_mutKRAS"
@@ -43,7 +45,7 @@ genomeTadCol <- "red"
 minQt <- 0.05
 maxQt <- 0.95
 
-outFolder <- file.path("AHLFORS_FC_TEST")
+outFolder <- file.path("AHLFORS_FLIPS_TEST")
 dir.create(outFolder, recursive = TRUE)
 
 pipFolder <- file.path("PIPELINE", "OUTPUT_FOLDER")
@@ -62,8 +64,8 @@ names(all_exprds) <- all_hicds
 ####################################################################################################################################### >>> prepare the data
 if(buildTable) {
   all_cumsum_data <- foreach(hicds = all_hicds) %dopar% {
-
-
+    
+    
     gene2tad_file <- file.path(mainFolder, hicds, "genes2tad", "all_genes_positions.txt")
     stopifnot(file.exists(gene2tad_file))
     all_g2t_dt <- read.delim(gene2tad_file, stringsAsFactors = FALSE, col.names = c("entrezID", "chromo", "start", "end", "region"), header=FALSE)
@@ -94,59 +96,58 @@ if(buildTable) {
       stopifnot(setequal(names(gene_logFC), names(gene_tad)))
       
       i=2
-      all_sumFC <- foreach(i = 2:c(nrow(g2t_dt)-1)) %dopar% {
+      all_sumFC <- foreach(i = 2:c(nrow(g2t_dt))) %dopar% {
         chromo_i <- g2t_dt$chromo[i]
-        chromo_next <- g2t_dt$chromo[i+1]
         chromo_prev <- g2t_dt$chromo[i-1]
         
-        if( chromo_i != chromo_next | chromo_i != chromo_prev) return(NULL)
+        if( chromo_i != chromo_prev) return(NULL)
         entrez_i <- g2t_dt$entrezID[i]
         stopifnot(entrez_i %in% names(gene_logFC)); stopifnot(entrez_i %in% names(gene_tad))
         entrez_prev <- g2t_dt$entrezID[i-1]
         stopifnot(entrez_prev %in% names(gene_logFC)); stopifnot(entrez_prev %in% names(gene_tad))
-        entrez_next <- g2t_dt$entrezID[i-1]
-        stopifnot(entrez_next %in% names(gene_logFC)); stopifnot(entrez_next %in% names(gene_tad))
+        
         
         fc_i <- gene_logFC[paste0(entrez_i)]
         fc_prev <- gene_logFC[paste0(entrez_prev)]
-        fc_next <- gene_logFC[paste0(entrez_next)]
+        
         
         tad_i <- gene_tad[paste0(entrez_i)]
         tad_prev <- gene_tad[paste0(entrez_prev)]
-        tad_next <- gene_tad[paste0(entrez_next)]
         
-        sum_fc <- fc_i*fc_prev + fc_i*fc_next
         
-        if(tad_i == tad_prev & tad_i == tad_next) {
-          i_tad_sum_fc <- sum_fc
+        
+        i_sign_flip <- as.numeric(sign(fc_i) != sign(fc_prev))
+        
+        if(tad_i == tad_prev ) {
+          i_tad_sign_flip <- i_sign_flip
         } else {
-          i_tad_sum_fc <- NULL
+          i_tad_sign_flip <- NULL
         }
         list(
-          i_sum_fc = sum_fc,
-          i_tad_sum_fc = i_tad_sum_fc)
+          i_sign_flip = i_sign_flip,
+          i_tad_sign_flip = i_tad_sign_flip)
       }
       
-      all_sumFC_values <- unlist(lapply(all_sumFC, function(x)x[["i_sum_fc"]]))
-      cumsum_genome <- cumsum(all_sumFC_values)
+      all_signFlip_values <- unlist(lapply(all_sumFC, function(x)x[["i_sign_flip"]]))
+      cumsum_genome <- cumsum(all_signFlip_values)
       
-      all_tad_sumFC_values <- unlist(lapply(all_sumFC, function(x)x[["i_tad_sum_fc"]]))
-      cumsum_genome_tads <- cumsum(all_tad_sumFC_values)
+      all_tad_signFlip_values <- unlist(lapply(all_sumFC, function(x)x[["i_tad_sign_flip"]]))
+      cumsum_genome_tads <- cumsum(all_tad_signFlip_values)
       
       nBoundaries <-  length(cumsum_genome) - length(cumsum_genome_tads)
       
       # all_random_cumsum <- foreach(irand = 1:nRandom, .combine='rbind') %dopar% {
       #   random_null_idx <- sample(1:length(cumsum_genome), size=nBoundaries, replace = FALSE)
-      #   random_values <- all_sumFC_values[-random_null_idx]
-      #   stopifnot(length(random_values) == length(all_tad_sumFC_values))
+      #   random_values <- all_signFlip_values[-random_null_idx]
+      #   stopifnot(length(random_values) == length(all_tad_signFlip_values))
       #   cumsum_rand <- cumsum(random_values)
       #   #lines(x=1:length(cumsum_rand), y=cumsum_rand, type="l", col="grey")
       #   cumsum_rand
       # }
       all_random <- foreach(irand = 1:nRandom) %dopar% {
         random_null_idx <- sample(1:length(cumsum_genome), size=nBoundaries, replace = FALSE)
-        random_values <- all_sumFC_values[-random_null_idx]
-        stopifnot(length(random_values) == length(all_tad_sumFC_values))
+        random_values <- all_signFlip_values[-random_null_idx]
+        stopifnot(length(random_values) == length(all_tad_signFlip_values))
         cumsum_rand <- cumsum(random_values)
         #lines(x=1:length(cumsum_rand), y=cumsum_rand, type="l", col="grey")
         list(cumsum_rand=cumsum_rand,random_values=random_values)
@@ -165,7 +166,7 @@ if(buildTable) {
            xlab="genome index",
            ylab="cumsum FC product window",
            main=paste0(hicds, " - ", exprds)
-           )
+      )
       lines(x=1:length(cumsum_genome_tads), y=cumsum_genome_tads, type="l", col=genomeTadCol)
       polygon( c(1:ncol(random_qts), rev(1:ncol(random_qts))), c(random_qts[1,], rev(random_qts[2,])), col=randomQtCol, 
                density = c(20, 60), angle = c(-45, -45))
@@ -174,8 +175,8 @@ if(buildTable) {
       cat(paste0("... written: ", outFile,"\n"))
       
       list(
-        all_sumFC_values=all_sumFC_values,
-        all_tad_sumFC_values=all_tad_sumFC_values,
+        all_signFlip_values=all_signFlip_values,
+        all_tad_signFlip_values=all_tad_signFlip_values,
         all_random_values = all_random_values,
         cumsum_genome=cumsum_genome,
         cumsum_genome_tads=cumsum_genome_tads,
@@ -189,20 +190,27 @@ if(buildTable) {
     exprds_cumsum
   } # end-foreach hicds
   
-    
+  
   
   outFile <- file.path(outFolder, paste0("all_cumsum_data.Rdata"))
   save(all_cumsum_data, file=outFile, version=2)  
   cat(paste0("... written: ", outFile, "\n"))
-
+  
 } else {
-  # outFile= "AHLFORS_FC_TEST/all_cumsum_data.Rdata"
+  # outFile= "AHLFORS_FLIPS_TEST/all_cumsum_data.Rdata"
   outFile <- file.path(outFolder, paste0("all_cumsum_data.Rdata"))
   cat(paste0("... load data\n"))
   all_cumsum_data <- get(load(outFile))
   
 }
+
 all_cumsum_data_ul <- unlist(all_cumsum_data, recursive=FALSE)
+
+all_nFlips_genome <- unlist(lapply(lapply(all_cumsum_data_ul,function(x) x[["all_signFlip_values"]]), sum))
+all_nFlips_genome_tad <- unlist(lapply(lapply(all_cumsum_data_ul,function(x) x[["all_tad_signFlip_values"]]), sum))
+all_nFlips_random <- unlist(lapply(lapply(all_cumsum_data_ul, function(x) x[["all_random_values"]]), function(dt)apply(dt,1,sum)))
+
+
 all_cumsum_genome <- lapply(all_cumsum_data_ul,function(x)x[["cumsum_genome"]])
 all_cumsum_genome_tads <- lapply(all_cumsum_data_ul,function(x)x[["cumsum_genome_tads"]])
 all_cumsum_random_qts005 <- lapply(all_cumsum_data_ul,function(x)x[["random_qts005"]])
@@ -275,7 +283,7 @@ plot(NULL,
      xlim=c(0,minLength),
      ylim=c(minCumSumMean,maxCumSumMean),
      xlab="genome index",
-     ylab="cumsum FC product window",
+     ylab="cumsum sign flip product window",
      main=paste0("all DS - n = ", nDS)
 )
 mtext(side=3, text=paste0("(all ds and ", minQt, "-", maxQt, " quantiles mean values)"))
@@ -289,73 +297,85 @@ foo <- dev.off()
 cat(paste0("... written: ", outFile,"\n"))
 
 
-# distribution 
-
-all_genome_values <- unlist(lapply(all_cumsum_data_ul, function(x)x[["all_sumFC_values"]] ))
-all_genome_tad_values <- unlist(lapply(all_cumsum_data_ul, function(x)x[["all_tad_sumFC_values"]] ))
-all_random_values <- unlist(lapply(all_cumsum_data_ul, function(x)x[["all_random_values"]] ))
-
-
-# plot_dt <- rbind(
-#   data.frame(
-#     value_type = "random_tads",
-#     fc_values = c(all_random_values),
-#     stringsAsFactors = FALSE
-#   ),
-#   rbind(
-#     data.frame(
-#       value_type = "genome",
-#       fc_values = c(all_genome_values),
-#       stringsAsFactors = FALSE
-#     ),
-#     data.frame(
-#       value_type = "with_tads",
-#       fc_values = c(all_genome_tad_values),
-#       stringsAsFactors = FALSE
-#     )
-#   ))
-
+all_nFlips_genome <- unlist(lapply(lapply(all_cumsum_data_ul,function(x) x[["all_signFlip_values"]]), sum))
+all_nFlips_genome_tad <- unlist(lapply(lapply(all_cumsum_data_ul,function(x) x[["all_tad_signFlip_values"]]), sum))
+all_nFlips_random <- unlist(lapply(lapply(all_cumsum_data_ul, function(x) x[["all_random_values"]]), function(dt)apply(dt,1,sum)))
 
 plot_dt <- rbind(
-  
-    data.frame(
-      value_type = "genome",
-      fc_values = c(all_genome_values),
-      stringsAsFactors = FALSE
-    ),
-    data.frame(
-      value_type = "with_tads",
-      fc_values = c(all_genome_tad_values),
-      stringsAsFactors = FALSE
-    )
+  rbind(
+  data.frame(
+    value_type = "genome",
+    flip_values = c(all_nFlips_genome),
+    stringsAsFactors = FALSE
+  ),
+  data.frame(
+    value_type = "with_tads",
+    flip_values = c(all_nFlips_genome_tad),
+    stringsAsFactors = FALSE
   )
+),
+data.frame(
+  value_type = "random_tads",
+  flip_values = c(all_nFlips_random),
+  stringsAsFactors = FALSE
+)
+)
 
-plot_dt <- plot_dt[!is.null(plot_dt$fc_values),]
+plot_dt <- plot_dt[!is.null(plot_dt$flip_values),]
 
 plot_dt$value_type <- factor(plot_dt$value_type, levels=c("genome", "with_tads", "random_tads"))
 
 
 p <- ggdensity(plot_dt, 
-          x = "fc_values", 
-          color = "value_type", fill = "value_type",
-          add = "mean", rug = TRUE,
-          xlab = "adj. FC product",
-          palette = c(genomeCol, genomeTadCol, randomQtCol))
+               x = "flip_values", 
+            xlab="sum # flips",
+               color = "value_type", fill = "value_type",
+               add = "mean", rug = TRUE,
+               palette = c(genomeCol, genomeTadCol, randomQtCol))
 
 outFile <- file.path(outFolder, paste0("all_ds_values_density.", plotType))
 ggsave(p, file = outFile, height=myHeightGG, width=myWidthGG)
 cat(paste0("... written: ", outFile,"\n"))
 
 
-p <- ggboxplot(plot_dt, 
-               x = "value_type", 
-               y="fc_values",
-               xlab = "adj. FC product",
+
+all_meanFlips_genome <- unlist(lapply(lapply(all_cumsum_data_ul,function(x) x[["all_signFlip_values"]]), mean))
+all_meanFlips_genome_tad <- unlist(lapply(lapply(all_cumsum_data_ul,function(x) x[["all_tad_signFlip_values"]]), mean))
+all_meanFlips_random <- unlist(lapply(lapply(all_cumsum_data_ul, function(x) x[["all_random_values"]]), function(dt)apply(dt,1,mean)))
+
+plot_dt <- rbind(
+  rbind(
+  data.frame(
+    value_type = "genome",
+    flip_values = c(all_meanFlips_genome),
+    stringsAsFactors = FALSE
+  ),
+  data.frame(
+    value_type = "with_tads",
+    flip_values = c(all_meanFlips_genome_tad),
+    stringsAsFactors = FALSE
+  )
+),
+data.frame(
+  value_type = "random_tads",
+  flip_values = c(all_meanFlips_random),
+  stringsAsFactors = FALSE
+)
+)
+
+plot_dt <- plot_dt[!is.null(plot_dt$flip_values),]
+
+plot_dt$value_type <- factor(plot_dt$value_type, levels=c("genome", "with_tads", "random_tads"))
+
+
+p <- ggdensity(plot_dt, 
+               x = "flip_values", 
+            xlab="mean # flips",
                color = "value_type", fill = "value_type",
                add = "mean", rug = TRUE,
                palette = c(genomeCol, genomeTadCol, randomQtCol))
 
-outFile <- file.path(outFolder, paste0("all_ds_values_boxplot.", plotType))
+outFile <- file.path(outFolder, paste0("all_ds_mean_values_density.", plotType))
 ggsave(p, file = outFile, height=myHeightGG, width=myWidthGG)
 cat(paste0("... written: ", outFile,"\n"))
 
@@ -364,6 +384,7 @@ cat(paste0("... written: ", outFile,"\n"))
 ######################################################################################
 cat("*** DONE\n")
 cat(paste0(startTime, "\n", Sys.time(), "\n"))
+
 
 
 

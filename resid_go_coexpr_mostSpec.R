@@ -154,9 +154,6 @@ if(buildTable) {
 }
 
 
-outFile="RESID_GO_COEXPR_MOST_SPEC_oneDS/all_mostSpecGO_dist_coexpr_dt.Rdata"
-all_mostSpecGO_dist_coexpr_dt=get(load(outFile))
-
 # plot(coexpr~dist, data=all_mostSpecGO_dist_coexpr_dt)
 
 outFile <- file.path(outFolder, paste0("diffTAD_sameTAD_sameGO_mostSpecGO_coexpr_boxplot.", plotType))
@@ -164,7 +161,7 @@ do.call(plotType, list(outFile, height=myHeight, width=myWidth))
 boxplot(coexpr~mapTAD, data=all_mostSpecGO_dist_coexpr_dt,
         ylab="coexpr.",
         xlab="",
-        main=paste0("same GO coexpr. "))
+        main=paste0("same most spec. GO coexpr. "))
 foo <- dev.off()
 cat(paste0("... written: ", outFile, "\n"))
 
@@ -178,7 +175,7 @@ do.call(plotType, list(outFile, height=myHeight, width=myWidth))
 boxplot(coexpr~mapTAD, data=maxTAD_dist_dt,
         ylab="coexpr.",
         xlab="",
-        main=paste0("same GO coexpr. "))
+        main=paste0("same most spec. GO coexpr. "))
 mtext(side=3, text=paste0("max TAD size limited"))
 foo <- dev.off()
 cat(paste0("... written: ", outFile, "\n"))
@@ -195,7 +192,6 @@ boxplot(coexpr_dist_resid~mapTAD, data=all_mostSpecGO_dist_coexpr_dt,
         ylab="coexpr~dist resid.",
         xlab="",
         main=paste0("same GO coexpr. ~ dist. resid "))
-mtext(side=3, text=paste0("max TAD size limited"))
 foo <- dev.off()
 cat(paste0("... written: ", outFile, "\n"))
 

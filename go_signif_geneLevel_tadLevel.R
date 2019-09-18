@@ -72,8 +72,6 @@ stopifnot(dir.exists(file.path(mainFolder, all_hicds)))
 all_exprds <- lapply(all_hicds, function(x) list.files(file.path(pipFolder, x)))
 names(all_exprds) <- all_hicds
 
-outFolder <- file.path("GO_SIGNIF_GENELEVEL_TADLEVEL")
-dir.create(outFolder, recursive = TRUE)
 
 all_datasets <- unlist(lapply(1:length(all_exprds), function(x) file.path(names(all_exprds)[x], all_exprds[[x]])))
 
@@ -84,7 +82,7 @@ final_dt_file <- file.path("CREATE_FINAL_TABLE", "all_result_dt.Rdata")
 stopifnot(file.exists(final_dt_file))
 final_dt <- get(load(final_dt_file))
 signif_column <- "adjPvalComb"
-tads_signifThresh <- 0.01
+tads_signifThresh <- 0.05
 signifcol <- paste0(signif_column, "_", tads_signifThresh)
 final_dt[, paste0(signifcol)] <- final_dt[, paste0(signif_column)] <= tads_signifThresh
 cat(paste0("> signif_column\t=\t", signif_column, "\n"))
@@ -95,8 +93,6 @@ genes_signifTresh <- 0.05
 
 padjVarGO <- "p.adjust" # p.adjust or qvalue ???
 
-logFile <- file.path(outFolder, "go_signif_geneLevel_tadLevel_logFile.txt")
-if(buildTable) file.remove(logFile)
 
 barplot_vars <- c("foldEnrichment", "geneRatio", "log10_pval")
 barplot_vars_tit <- setNames(c("Fold enrichment", "Gene ratio", paste0("-log10(", padjVarGO,  ")")), barplot_vars)
@@ -111,6 +107,13 @@ if(enricher_ontologyType == "BP" | enricher_ontologyType == "MF" | enricher_onto
 }
 stopifnot(file.exists(gmtFile))
 c5_msigdb <- read.gmt(gmtFile)
+
+
+outFolder <- file.path("GO_SIGNIF_GENELEVEL_TADLEVEL", paste0("tadPvalThresh", tads_signifThresh, "_genePvalThresh", genes_signifTresh))
+dir.create(outFolder, recursive = TRUE)
+logFile <- file.path(outFolder, "go_signif_geneLevel_tadLevel_logFile.txt")
+if(buildTable) file.remove(logFile)
+
 
 
 printAndLog <- function(txt, logFile=NULL) {
@@ -211,9 +214,9 @@ if(buildTable) {
       go_tads_signif_genes <- as.character(tads_signif_genes)[as.character(tads_signif_genes) %in% as.character(c5_msigdb$gene)]
       go_limma_signif_genes <- as.character(limma_signif_genes)[as.character(limma_signif_genes) %in% as.character(c5_msigdb$gene)]
       
-      txt <- paste0("... ", hicds, " - ", exprs, " available annot. for universe_genes:\t", length(go_universe_genes) , "/", length(universe_genes), "\n")
-      txt <- paste0("... ", hicds, " - ", exprs, " available annot. for tads_signif_genes:\t", length(go_tads_signif_genes) , "/", length(tads_signif_genes), "\n")
-      txt <- paste0("... ", hicds, " - ", exprs, " available annot. for limma_signif_genes:\t", length(go_limma_signif_genes) , "/", length(limma_signif_genes), "\n")
+      txt <- paste0("... ", hicds, " - ", exprds, " available annot. for universe_genes:\t", length(go_universe_genes) , "/", length(universe_genes), "\n")
+      txt <- paste0("... ", hicds, " - ", exprds, " available annot. for tads_signif_genes:\t", length(go_tads_signif_genes) , "/", length(tads_signif_genes), "\n")
+      txt <- paste0("... ", hicds, " - ", exprds, " available annot. for limma_signif_genes:\t", length(go_limma_signif_genes) , "/", length(limma_signif_genes), "\n")
       
       stopifnot(go_tads_signif_genes %in% go_universe_genes)
       stopifnot(go_limma_signif_genes %in% go_universe_genes)
@@ -337,8 +340,8 @@ if(buildTable) {
   cat("... load data\n")
   all_go_enrich_list <- get(load(outFile))
 }
-
-
+# outFile="GO_SIGNIF_GENELEVEL_TADLEVEL/tadPvalThresh0.05_genePvalThresh0.05/all_go_enrich_list.Rdata"
+# all_go_enrich_list <- get(load(outFile))
 
 ######################################################################################
 ######################################################################################

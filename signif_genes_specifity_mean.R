@@ -1,5 +1,5 @@
 startTime <- Sys.time()
-cat(paste0("> Rscript signif_genes_specifity.R\n"))
+cat(paste0("> Rscript signif_genes_specifity_mean.R\n"))
 
 suppressPackageStartupMessages(library(foreach, warn.conflicts = FALSE, quietly = TRUE, verbose = FALSE))
 suppressPackageStartupMessages(library(doMC, warn.conflicts = FALSE, quietly = TRUE, verbose = FALSE))
@@ -7,8 +7,6 @@ suppressPackageStartupMessages(library(org.Hs.eg.db, warn.conflicts = FALSE, qui
 library(ontologySimilarity)
 data(GO_IC)
 require(reshape2)
-
-require(ggpubr)
 
 buildTable <- TRUE
 
@@ -19,19 +17,12 @@ printAndLog <- function(txt, logFile=NULL) {
 
 options(scipen=100)
 
-# Rscript signif_genes_specifity.R 0.01 0.05 # <tadpval> <genepval>
+# Rscript signif_genes_specifity_mean.R 
 
 plotType <- "png"
 myHeight <- ifelse(plotType=="png", 400, 7)
 myWidth <- myHeight
 axisCex <- 1.4
-
-
-myHeightGG <- 7
-myWidthGG <- myHeightGG*1.2
-
-limmaCol <- "#00AFBB"
-tadCol <- "#FC4E07"
 
 ### PREPARE GO DATA
 ontologyType <- "BP"
@@ -47,6 +38,12 @@ SSHFS <- F
 setDir <- ifelse(SSHFS, "/media/electron", "")
 registerDoMC(ifelse(SSHFS, 2, 40))
 
+outFolder <- file.path("SIGNIF_GENES_SPECIFICITY_MEAN")
+dir.create(outFolder, recursive = TRUE)
+
+logFile <- file.path(outFolder, "signif_genes_specifity_logFile.txt")
+file.remove(logFile)
+
 mainFolder <- file.path(".")
 
 pipFolder <- file.path(mainFolder, "PIPELINE", "OUTPUT_FOLDER")
@@ -61,49 +58,23 @@ stopifnot(dir.exists(file.path(mainFolder, all_hicds)))
 all_exprds <- lapply(all_hicds, function(x) list.files(file.path(pipFolder, x)))
 names(all_exprds) <- all_hicds
 
-args <- commandArgs(trailingOnly = TRUE)
-tads_signifThresh <- 0.01
-tads_signifThresh <- args[1]
-
-genes_signifTresh <- 0.05
-genes_signifTresh <- args[2]
-
-file_suffix <- paste0("tadPvalThresh", tads_signifThresh, "_genePvalThresh", genes_signifTresh)
-
-outFolder <- file.path("SIGNIF_GENES_SPECIFICITY", file_suffix)
-dir.create(outFolder, recursive = TRUE)
-
-logFile <- file.path(outFolder, "signif_genes_specifity_logFile.txt")
-file.remove(logFile)
-
 final_dt_file <- file.path("CREATE_FINAL_TABLE", "all_result_dt.Rdata")
 stopifnot(file.exists(final_dt_file))
 final_dt <- get(load(final_dt_file))
 signif_column <- "adjPvalComb"
+tads_signifThresh <- 0.01
 signifcol <- paste0(signif_column, "_", tads_signifThresh)
 final_dt[, paste0(signifcol)] <- final_dt[, paste0(signif_column)] <= tads_signifThresh
 cat(paste0("> signif_column\t=\t", signif_column, "\n"))
 cat(paste0("> tads_signifThresh\t=\t", tads_signifThresh, "\n"))
-
-
-all_genes_GO_list_filter <- lapply( all_genes_GO_list, function(x) {
-  Filter(function(k) k[["Ontology"]] == ontologyType, x)
-})
-all_genes_GO_list_filter_ul <- as.character(unlist(lapply(unlist(all_genes_GO_list_filter, recursive=FALSE), function(x)x[["GOID"]])))
-
-GO_freq <- setNames(
-  as.numeric(table(all_genes_GO_list_filter_ul)),
-  names(table(all_genes_GO_list_filter_ul))
-)
-GO_freq <- GO_freq/length(all_genes_GO_list_filter_ul)
-
+genes_signifTresh <- 0.05
 
 ####################################################################################################################################### >>> prepare the data
 if(buildTable) {
   cat("... start preparing data before matching \n")
   
   hicds = all_hicds[1]
-  all_signif_genes_ic <- foreach(hicds = all_hicds) %dopar% {
+  all_signif_genes_meanIC_dt <- foreach(hicds = all_hicds, .combine='rbind') %dopar% {
     
     hicds_file <- file.path(mainFolder, hicds, "genes2tad", "all_genes_positions.txt")
     stopifnot(file.exists(hicds_file))
@@ -113,7 +84,7 @@ if(buildTable) {
     
     
     exprds = all_exprds[[paste0(hicds)]][1]
-    exprds_dt <- foreach(exprds = all_exprds[[paste0(hicds)]]) %do% {
+    exprds_dt <- foreach(exprds = all_exprds[[paste0(hicds)]], .combine='rbind') %do% {
       
       cat(paste0("... start ", hicds, " - ", exprds, "\n"))
       
@@ -172,10 +143,7 @@ if(buildTable) {
       signif_tad_genes_GO_list_filter_mostSpec_ic <- GO_IC[names(GO_IC) %in% signif_tad_genes_GO_list_filter_mostSpec]
       txt <- paste0(hicds, " - ", exprds, " - av. IC for signif. TADs genes:\t", length(signif_tad_genes_GO_list_filter_mostSpec_ic), "/", length(signif_tad_genes_GO_list_filter_mostSpec), "\n")
       printAndLog(txt, logFile)
-
-            
-      signif_tad_genes_GO_list_filter_mostSpec_freq <- GO_freq[names(GO_freq) %in% signif_tad_genes_GO_list_filter_mostSpec]
-      
+      mean_ic_signif_tad_genes <- mean(signif_tad_genes_GO_list_filter_mostSpec_ic)
       
       tad_genes_GO <- names(GO_IC)[names(GO_IC) %in% signif_tad_genes_GO_list_filter_mostSpec]
       sigif_tad_nGO <- length(tad_genes_GO)
@@ -195,8 +163,7 @@ if(buildTable) {
       signif_limma_genes_GO_list_filter_mostSpec_ic <- GO_IC[names(GO_IC) %in% signif_limma_genes_GO_list_filter_mostSpec]
       txt <- paste0(hicds, " - ", exprds, " - av. IC for signif. TADs genes:\t", length(signif_limma_genes_GO_list_filter_mostSpec_ic), "/", length(signif_limma_genes_GO_list_filter_mostSpec), "\n")
       printAndLog(txt, logFile)
-      
-      signif_limma_genes_GO_list_filter_mostSpec_freq <- GO_freq[names(GO_freq) %in% signif_limma_genes_GO_list_filter_mostSpec]
+      mean_ic_signif_limma_genes <- mean(signif_limma_genes_GO_list_filter_mostSpec_ic)
       
       
       limma_genes_GO <- names(GO_IC)[names(GO_IC) %in% signif_limma_genes_GO_list_filter_mostSpec]
@@ -204,11 +171,15 @@ if(buildTable) {
       sigif_limma_nUniqueGO <- length(unique(limma_genes_GO))
       
       
-      list( ic_signif_tad_genes=signif_tad_genes_GO_list_filter_mostSpec_ic,
-            ic_signif_limma_genes=signif_limma_genes_GO_list_filter_mostSpec_ic,
-            freq_signif_tad_genes=signif_tad_genes_GO_list_filter_mostSpec_freq,
-            freq_signif_limma_genes=signif_limma_genes_GO_list_filter_mostSpec_freq
-            )
+      data.frame(hicds=hicds,
+                 exprds=exprds,
+                 sigif_tad_nGO=sigif_tad_nGO,
+                 sigif_limma_nGO=sigif_limma_nGO,
+                 sigif_tad_nUniqueGO=sigif_tad_nUniqueGO,
+                 sigif_limma_nUniqueGO=sigif_limma_nUniqueGO,
+                 mean_ic_signif_tad_genes=mean_ic_signif_tad_genes,
+                 mean_ic_signif_limma_genes=mean_ic_signif_limma_genes,
+                 stringsAsFactors = FALSE)
       
     }# end-foreach iterating over exprds
     
@@ -216,107 +187,43 @@ if(buildTable) {
     
   }# end-foreach iterating over hicds
 
-  outFile <- file.path(outFolder, paste0("all_signif_genes_ic.Rdata"))
-  save(all_signif_genes_ic, file = outFile, version=2)
+  outFile <- file.path(outFolder, paste0("all_signif_genes_meanIC_dt.Rdata"))
+  save(all_signif_genes_meanIC_dt, file = outFile, version=2)
   cat(paste0("... written: ", outFile, "\n"))
 } else {
-    outFile <- file.path(outFolder, paste0( "all_signif_genes_ic.Rdata"))
-    cat("... load data\n")
-    all_signif_genes_ic <- get(load(outFile))
+  outFile <- file.path(outFolder, paste0( "all_signif_genes_meanIC_dt.Rdata"))
+  cat("... load data\n")
+  all_signif_genes_meanIC_dt <- get(load(outFile))
 }
 
-all_signif_genes_ic_ul <- unlist(all_signif_genes_ic, recursive = FALSE)
 
-#####################################################################################################################################
+all_vars_to_plot <- c("mean_ic", "nGO", "nUniqueGO")
 
-plot_dt <- rbind(
-  data.frame(
-    signif_type="limma",
-  ic_values=unlist(lapply(all_signif_genes_ic_ul, function(x) x[["ic_signif_limma_genes"]])),
-  stringsAsFactors=FALSE),
-  data.frame(
-    signif_type="tad",
-    ic_values=unlist(lapply(all_signif_genes_ic_ul, function(x) x[["ic_signif_tad_genes"]])),
-    stringsAsFactors=FALSE)    
-  )
+plot_dt <- melt(all_signif_genes_meanIC_dt, id=c("hicds", "exprds"))
 
+nDS <- length(unique(paste0(all_signif_genes_meanIC_dt$hicds, all_signif_genes_meanIC_dt$exprds)))
 
-nLimma <- sum(!is.na(plot_dt$ic_values[plot_dt$signif_type=="limma"]))
-nTAD <- sum(!is.na(plot_dt$ic_values[plot_dt$signif_type=="tad"]))
+var_to_plot="mean_ic"
+for(var_to_plot in all_vars_to_plot) {
+  
+  var_plot_dt <- plot_dt[grepl(var_to_plot, plot_dt$variable),]
+  var_plot_dt$variable <- as.character(var_plot_dt$variable)
+  
+  var_plot_dt$variable <- gsub(var_to_plot, "", var_plot_dt$variable)
+  
+  outFile <- file.path(outFolder,paste0(var_to_plot, "_signifTAD_signifLimma_genes_boxplots.", plotType))
+  do.call(plotType, list(outFile, height = myHeight, width = myWidth))    
+  boxplot(value~variable, data=var_plot_dt, las=1, main = var_to_plot)  
+  mtext(side=3, text=paste0("(nDS = ", nDS, ")"))
+  foo <- dev.off()
+  cat(paste0("... written: ", outFile, "\n"))
+  
+}
 
-p <- ggdensity(plot_dt, 
-               title = paste0("signif. gene GO IC"),
-               subtitle=paste0("# values: TAD=", nTAD,"; limma=", nLimma),
-               x = "ic_values", 
-               color = "signif_type", fill = "signif_type",
-               add = "mean", rug = TRUE,
-               xlab = "signif. genes IC",
-               palette = c(limmaCol, tadCol))
-
-outFile <- file.path(outFolder, paste0("all_gene_ic_values_", file_suffix, "_density.", plotType))
-ggsave(p, file = outFile, height=myHeightGG, width=myWidthGG)
-cat(paste0("... written: ", outFile,"\n"))
-
-
-p <- ggviolin(plot_dt, 
-               y = "ic_values", 
-               x="signif_type",
-              title = paste0("signif. gene GO IC"),
-              subtitle=paste0("# values: TAD=", nTAD,"; limma=", nLimma),
-               color = "signif_type", fill = "signif_type",
-               add = "mean", rug = TRUE,
-               xlab = "signif. genes IC",
-               palette = c(limmaCol, tadCol))
-
-outFile <- file.path(outFolder, paste0("all_gene_ic_values_", file_suffix, "_boxplot.", plotType))
-ggsave(p, file = outFile, height=myHeightGG, width=myHeightGG)
-cat(paste0("... written: ", outFile,"\n"))
-
-
-#####################################################################################################################################
-
-plot_dt <- rbind(
-  data.frame(
-    signif_type="limma",
-    freq_values=unlist(lapply(all_signif_genes_ic_ul, function(x) x[["freq_signif_limma_genes"]])),
-    stringsAsFactors=FALSE),
-  data.frame(
-    signif_type="tad",
-    freq_values=unlist(lapply(all_signif_genes_ic_ul, function(x) x[["freq_signif_tad_genes"]])),
-    stringsAsFactors=FALSE)    
-)
-
-
-nLimma <- sum(!is.na(plot_dt$freq_values[plot_dt$signif_type=="limma"]))
-nTAD <- sum(!is.na(plot_dt$freq_values[plot_dt$signif_type=="tad"]))
-
-p <- ggdensity(plot_dt, 
-               title = paste0("signif. gene GO freq"),
-               subtitle=paste0("# values: TAD=", nTAD,"; limma=", nLimma),
-               x = "freq_values", 
-               color = "signif_type", fill = "signif_type",
-               add = "mean", rug = TRUE,
-               xlab = "signif. genes freq",
-               palette = c(limmaCol, tadCol))
-
-outFile <- file.path(outFolder, paste0("all_gene_freq_values_", file_suffix, "_density.", plotType))
-ggsave(p, file = outFile, height=myHeightGG, width=myWidthGG)
-cat(paste0("... written: ", outFile,"\n"))
-
-
-p <- ggviolin(plot_dt, 
-              y = "freq_values", 
-              x="signif_type",
-              title = paste0("signif. gene GO freq"),
-              subtitle=paste0("# values: TAD=", nTAD,"; limma=", nLimma),
-              color = "signif_type", fill = "signif_type",
-              add = "mean", rug = TRUE,
-              xlab = "signif. genes freq",
-              palette = c(limmaCol, tadCol))
-
-outFile <- file.path(outFolder, paste0("all_gene_freq_values_", file_suffix, "_boxplot.", plotType))
-ggsave(p, file = outFile, height=myHeightGG, width=myHeightGG)
-cat(paste0("... written: ", outFile,"\n"))
+all(all_signif_genes_meanIC_dt$sigif_limma_nUniqueGO == all_signif_genes_meanIC_dt$sigif_limma_nGO)
+# [1] TRUE
+all(all_signif_genes_meanIC_dt$sigif_tad_nUniqueGO == all_signif_genes_meanIC_dt$sigif_tad_nGO)
+# [1] TRUE
 
 
 ######################################################################################

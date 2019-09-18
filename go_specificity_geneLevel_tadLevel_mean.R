@@ -1,12 +1,12 @@
-script_name <- "go_specificity_geneLevel_tadLevel.R"
+script_name <- "go_specificity_geneLevel_tadLevel_mean.R"
 options(scipen=100)
 
 SSHFS=F
 
 cat("> START ", script_name, "\n")
 
-# Rscript go_specificity_geneLevel_tadLevel.R 0.05 0.05
-# Rscript go_specificity_geneLevel_tadLevel.R 0.01 0.05
+# Rscript go_specificity_geneLevel_tadLevel_mean.R 0.05 0.05
+# Rscript go_specificity_geneLevel_tadLevel_mean.R 0.01 0.05
 
 library(clusterProfiler)
 library(ontologySimilarity)
@@ -55,7 +55,7 @@ args <- commandArgs(trailingOnly = TRUE)
 tads_signifThresh <- args[1]
 genes_signifTresh <- args[2]
 
-outFolder <- file.path("GO_SPECIFICITY_GENELEVEL_TADLEVEL", paste0("tadPvalThresh", tads_signifThresh, "_genePvalThresh", genes_signifTresh))
+outFolder <- file.path("GO_SPECIFICITY_GENELEVEL_TADLEVEL_MEAN", paste0("tadPvalThresh", tads_signifThresh, "_genePvalThresh", genes_signifTresh))
 dir.create(outFolder, recursive = TRUE)
 
 logFile <- file.path(outFolder, "go_signif_geneLevel_tadLevel_logFile.txt")
@@ -126,12 +126,12 @@ if(buildTable) {
         txt <- paste0(hicds, " - ", exprds, " - ... limma signif.: total retrieved data:\t", length(signif_limma_go_terms), " -> ", length(signif_limma_go_ic), "\n")
         printAndLog(txt, logFile)
         
-        
+        limma_signif_mean_go_ic <- mean(signif_limma_go_ic)
       } else {
         txt <- paste0(hicds, " - ", exprds, " - ... limma signif.: NULL \n")
         printAndLog(txt, logFile)
         
-        signif_limma_go_ic <- NULL
+        limma_signif_mean_go_ic <- NULL
       }
       go_signif_tads_dt <- all_go_enrich_list[[file.path(hicds, exprds)]][["tad_signif_enrich_resultDT"]]
       
@@ -156,18 +156,18 @@ if(buildTable) {
         txt <- paste0(hicds, " - ", exprds, " - ... TAD signif: total retrieved data:\t", length(signif_tad_go_terms), " -> ", length(signif_tad_go_ic), "\n")
         printAndLog(txt, logFile)
         
-        
+        tad_signif_mean_go_ic <- mean(signif_tad_go_ic)
         
       } else {
         txt <- paste0(hicds, " - ", exprds, " - ... TAD signif.: NULL \n")
         printAndLog(txt, logFile)
-        signif_tad_go_ic <- NULL
+        tad_signif_mean_go_ic <- NULL
       }
       list(
         nEnrichedGO_signif_limma = nEnrichedGO_signif_limma,
         nEnrichedGO_signif_tads = nEnrichedGO_signif_tads,
-        signif_limma_go_ic = signif_limma_go_ic,
-        signif_tad_go_ic = signif_tad_go_ic
+        limma_signif_mean_go_ic = limma_signif_mean_go_ic,
+        tad_signif_mean_go_ic = tad_signif_mean_go_ic
       )
     } # end-foreach iterating over exprds
     names(exprds_list) <- file.path(hicds, all_exprds[[paste0(hicds)]])
@@ -188,8 +188,8 @@ all_nGO_signif_tads <- unlist(lapply(all_go_ic_list, function(sublist) lapply(su
 all_nGO_signif_limma <- unlist(lapply(all_go_ic_list, function(sublist) lapply(sublist, function(x) x[["nEnrichedGO_signif_limma"]])))
 
 
-all_ic_signif_tads <- unlist(lapply(all_go_ic_list, function(sublist) lapply(sublist, function(x) x[["signif_tad_go_ic"]])))
-all_ic_signif_limma <- unlist(lapply(all_go_ic_list, function(sublist) lapply(sublist, function(x) x[["signif_limma_go_ic"]])))
+all_ic_signif_tads <- unlist(lapply(all_go_ic_list, function(sublist) lapply(sublist, function(x) x[["tad_signif_mean_go_ic"]])))
+all_ic_signif_limma <- unlist(lapply(all_go_ic_list, function(sublist) lapply(sublist, function(x) x[["limma_signif_mean_go_ic"]])))
 
 
 
@@ -198,49 +198,46 @@ all_ic_signif_limma <- unlist(lapply(all_go_ic_list, function(sublist) lapply(su
 plot_dt <- rbind(
   data.frame(
     signif_type="tad_signif",
-    go_ic = as.numeric(all_ic_signif_tads),
+    mean_ic = as.numeric(all_ic_signif_tads),
     stringsAsFactors = FALSE
   ),
   data.frame(
     signif_type="limma_signif",
-  go_ic = as.numeric(all_ic_signif_limma),
+    mean_ic = as.numeric(all_ic_signif_limma),
     stringsAsFactors = FALSE
   )
 )
 
-# save(plot_dt, file="plot_dt1.Rdata", version=2)
-
-notNa_tads <- sum(!is.na(plot_dt$go_ic[plot_dt$signif_type=="tad_signif"]))
-notNa_limma <- sum(!is.na(plot_dt$go_ic[plot_dt$signif_type=="limma_signif"]))
+notNa_tads <- sum(!is.na(plot_dt$mean_ic[plot_dt$signif_type=="tad_signif"]))
+notNa_limma <- sum(!is.na(plot_dt$mean_ic[plot_dt$signif_type=="limma_signif"]))
 
 p <- ggdensity(plot_dt, 
-               title = paste0("enriched GO IC"),
+               title = paste0("mean enriched GO IC"),
                subtitle=paste0("notNa_tads=", notNa_tads, "; notNa_limma=", notNa_limma),
-               x = "go_ic", 
-               xlab="enriched GO IC",
+               x = "mean_ic", 
+               xlab="mean enriched GO IC",
                color = "signif_type", fill = "signif_type",
                add = "mean", rug = TRUE,
                palette = c(limmaCol, tadCol))
 
-outFile <- file.path(outFolder, paste0("all_ds_enrichedGO_IC_", file_suffix, "_density.", plotType))
+outFile <- file.path(outFolder, paste0("all_ds_enrichedGO_meanIC_", file_suffix, "_density.", plotType))
 ggsave(p, file = outFile, height=myHeightGG, width=myWidthGG)
 cat(paste0("... written: ", outFile,"\n"))
 
 
 p <- ggviolin(plot_dt, 
-              title = paste0("enriched GO IC"),
+              title = paste0("mean enriched GO IC"),
               subtitle=paste0("notNa_tads=", notNa_tads, "; notNa_limma=", notNa_limma),
               x="signif_type",
-               y = "go_ic", 
-               ylab="enriched GO IC",
+               y = "mean_ic", 
+               ylab="mean enriched GO IC",
               xlab="",
-               color = "signif_type", 
-              # fill = "signif_type",
+               color = "signif_type", fill = "signif_type",
                add = "mean", rug = TRUE,
                palette = c(limmaCol, tadCol))
-p <- p + scale_y_continuous(breaks = seq(0, max(na.omit(plot_dt$go_ic)), by = 20))
+p <- p + scale_y_continuous(breaks = seq(0, max(na.omit(plot_dt$mean_ic)), by = 20))
 
-outFile <- file.path(outFolder, paste0("all_ds_enrichedGO_IC_", file_suffix, "_violin.", plotType))
+outFile <- file.path(outFolder, paste0("all_ds_enrichedGO_meanIC_", file_suffix, "_violin.", plotType))
 ggsave(p, file = outFile, height=myHeightGG, width=myWidthGG)
 cat(paste0("... written: ", outFile,"\n"))
 
@@ -261,8 +258,6 @@ plot_dt <- rbind(
     stringsAsFactors = FALSE
   )
 )
-
-# save(plot_dt, file="plot_dt2.Rdata", version=2)
 
 notNa_tads <- sum(!is.na(plot_dt$nbr_GO[plot_dt$signif_type=="tad_signif"]))
 notNa_limma <- sum(!is.na(plot_dt$nbr_GO[plot_dt$signif_type=="limma_signif"]))
@@ -289,8 +284,7 @@ p <- ggviolin(plot_dt,
               y = "nbr_GO", 
               ylab="# enriched GO",
               xlab="",
-              color = "signif_type", 
-              # fill = "signif_type",
+              color = "signif_type", fill = "signif_type",
               add = "mean", rug = TRUE,
               palette = c(limmaCol, tadCol))
 p <- p + scale_y_continuous(breaks = seq(0, max(na.omit(plot_dt$nbr_GO)), by = 20))
