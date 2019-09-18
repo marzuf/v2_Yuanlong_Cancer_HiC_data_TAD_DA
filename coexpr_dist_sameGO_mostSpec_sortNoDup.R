@@ -260,6 +260,72 @@ if(buildTable) {
   sameGO_diffTAD_DT$nPair <- 1:nrow(sameGO_diffTAD_DT)
   sameGO_diffTAD_DT$label <- "same GO + diff. TAD"
   
+  
+  nbrLoessPoints_mod <- 1000
+  distLimit <- min(c(max(diffTAD_DT$dist_kb), max(sameTAD_DT$dist_kb)))
+  
+  distVect <- seq(from=0, to = distLimit, length.out = nbrLoessPoints_mod)
+  
+  diffTAD_mod <- loess(coexpr ~ dist_kb, data = diffTAD_DT)
+  sameTAD_mod <- loess(coexpr ~ dist_kb, data = sameTAD_DT)
+    
+  
+  smooth_vals_diffTAD <- predict(diffTAD_mod, sort(diffTAD_DT$dist_kb))
+  smooth_vals_sameTAD <- predict(sameTAD_mod, sort(sameTAD_DT$dist_kb))
+  
+  auc_diffTAD_obsDist <- auc(x = sort(diffTAD_DT$dist_kb), y = smooth_vals_diffTAD)
+  auc_sameTAD_obsDist <- auc(x = sort(sameTAD_DT$dist_kb), y = smooth_vals_sameTAD)
+  
+  
+  smooth_vals_diffTAD_distVect <- predict(diffTAD_mod, distVect)
+  smooth_vals_sameTAD_distVect <- predict(sameTAD_mod, distVect)
+  
+  
+  auc_diffTAD_distVect <- auc(x = distVect, y = smooth_vals_diffTAD_distVect)
+  auc_sameTAD_distVect <- auc(x = distVect, y = smooth_vals_sameTAD_distVect)
+  
+  
+  
+  
+  sameGO_distLimit <- min(c(max(sameGO_diffTAD_DT$dist_kb), max(sameGO_sameTAD_DT$dist_kb)))
+  
+  sameGO_distVect <- seq(from=0, to = sameGO_distLimit, length.out = nbrLoessPoints_mod)
+  
+  sameGO_diffTAD_mod <- loess(coexpr ~ dist_kb, data = sameGO_diffTAD_DT)
+  sameGO_sameTAD_mod <- loess(coexpr ~ dist_kb, data = sameGO_sameTAD_DT)
+  
+  
+  smooth_vals_sameGO_diffTAD <- predict(sameGO_diffTAD_mod, sort(sameGO_diffTAD_DT$dist_kb))
+  smooth_vals_sameGO_sameTAD <- predict(sameGO_sameTAD_mod, sort(sameGO_sameTAD_DT$dist_kb))
+  
+  auc_sameGO_diffTAD_obsDist <- auc(x = sort(sameGO_diffTAD_DT$dist_kb), y = smooth_vals_sameGO_diffTAD)
+  auc_sameGO_sameTAD_obsDist <- auc(x = sort(sameGO_sameTAD_DT$dist_kb), y = smooth_vals_sameGO_sameTAD)
+  
+  
+  smooth_vals_sameGO_diffTAD_distVect <- predict(sameGO_diffTAD_mod, sameGO_distVect)
+  smooth_vals_sameGO_sameTAD_distVect <- predict(sameGO_sameTAD_mod, sameGO_distVect)
+  
+  
+  auc_sameGO_diffTAD_distVect <- auc(x = sameGO_distVect, y = smooth_vals_sameGO_diffTAD_distVect)
+  auc_sameGO_sameTAD_distVect <- auc(x = sameGO_distVect, y = smooth_vals_sameGO_sameTAD_distVect)
+  
+  
+  
+  all_auc <- list(
+    auc_diffTAD_distVect=auc_diffTAD_distVect,
+    auc_sameTAD_distVect=auc_sameTAD_distVect,
+    auc_sameGO_diffTAD_distVect=auc_sameGO_diffTAD_distVect,
+    auc_sameGO_sameTAD_distVect=auc_sameGO_sameTAD_distVect  
+  )
+  
+  
+  outFile <- file.path(outFold, paste0(hicds, "_", exprds, "_all_auc.Rdata"))
+  save(all_auc, file=outFile)
+  cat(paste0("... written: ", outFile, "\n"))
+  
+  stop("--ok\n")
+  
+  
   sum_4_curves_DT <- rbind(rbind(sameTAD_DT, diffTAD_DT),
                            rbind(sameGO_sameTAD_DT,sameGO_diffTAD_DT))
   

@@ -203,7 +203,7 @@ if(buildTable) {
       #   max_leaf_dist <- max(as.numeric(all_leaves_dist))
       #   max_leaf_dist
       # }))
-      signif_tad_genes_GO_list_filter_mostSpec_maxDistLeaf <- foreach(curr_go =  unique(signif_tad_genes_GO_list_filter_mostSpec), .combine='c') %dopar% {
+      signif_tad_genes_GO_list_filter_mostSpec_maxDistLeaf <- foreach(curr_go =  unique(signif_tad_genes_GO_list_filter_mostSpec), .combine='c') %do% {
         curr_children <- go$children[[paste0(curr_go)]]
         GO_g <- makeGOGraph(ont = tolower(ontologyType)) # AnnotationDbi (GOdata from topGO: no intersect nodes and topTADs_genes)
         if(!curr_go %in% GO_g@nodes) return(NA)
@@ -271,7 +271,7 @@ if(buildTable) {
       #   max_leaf_dist
       # }))
 
-      signif_limma_genes_GO_list_filter_mostSpec_maxDistLeaf <- foreach(curr_go = unique(signif_limma_genes_GO_list_filter_mostSpec), .combine='c') %dopar% {
+      signif_limma_genes_GO_list_filter_mostSpec_maxDistLeaf <- foreach(curr_go = unique(signif_limma_genes_GO_list_filter_mostSpec), .combine='c') %do% {
         curr_children <- go$children[[paste0(curr_go)]]
         GO_g <- makeGOGraph(ont = tolower(ontologyType)) # AnnotationDbi (GOdata from topGO: no intersect nodes and topTADs_genes)
         if(!curr_go %in% GO_g@nodes) return(NA)
