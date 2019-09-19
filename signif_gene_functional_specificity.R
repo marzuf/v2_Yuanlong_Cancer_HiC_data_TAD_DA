@@ -327,6 +327,12 @@ if(buildTable) {
   all_signif_genes_leafDist <- get(load(outFile))
 }
 
+
+inFile <- "SIGNIF_GENES_FUNCTIONAL_SPECIFICITY/tadPvalThresh0.01_genePvalThresh0.05/Barutcu_MCF-10A_40kb_TCGAbrca_lum_bas_out_list.Rdata"
+inlist <- get(load(inFile))
+all_signif_genes_leafDist_ul <- list(inlist)
+
+
 all_signif_genes_leafDist_ul <- unlist(all_signif_genes_leafDist, recursive = FALSE)
 
 plot_dt <- rbind(
@@ -348,7 +354,8 @@ p <- ggdensity(plot_dt,
                subtitle=paste0("# values: TAD=", nTAD,"; limma=", nLimma),
                x = "ic_values", 
                color = "signif_type", fill = "signif_type",
-               add = "mean", rug = TRUE,
+               # add = "mean", 
+               rug = TRUE,
                xlab = "max dist. to leaf",
                palette = c(limmaCol, tadCol))
 
@@ -360,11 +367,11 @@ cat(paste0("... written: ", outFile,"\n"))
 p <- ggviolin(plot_dt, 
               title = paste0("signif. gene max dist leaf (funct. specificity)"),
               subtitle=paste0("# values: TAD=", nTAD,"; limma=", nLimma),
-               y = "ic_values", 
+               y = "max dist. to leaf", 
                x="signif_type",
                color = "signif_type", fill = "signif_type",
-               add = "mean", rug = TRUE,
-               xlab = "max dist. to leaf",
+               # add = "mean", rug = TRUE,
+               xlab = "",
                palette = c(limmaCol, tadCol))
 
 outFile <- file.path(outFolder, paste0("all_gene_maxDistLeaf_values_", file_suffix, "_violin.", plotType))

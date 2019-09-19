@@ -45,7 +45,7 @@ source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 source("plot_lolliTAD_funct.R")
 source("my_heatmap.2.R")
 
-buildTable <- TRUE
+buildTable <- FALSE
 
 plotType <- "png"
 myHeight <- ifelse(plotType=="png", 400, 7)
@@ -785,6 +785,17 @@ for(cmpType in unique(as.character(dataset_dt$cmpType))) {
   
   nDS_cmp <- nrow(cmp_matching_dt)
   nExprds_cmp <- length(unique(basename(rownames(cmp_matching_dt))))
+
+
+cmp_out_df <- out_df
+cmp_out_df$conserved_region <- factor(cmp_out_df$conserved_region, levels = cmp_region_levels)
+cmp_out_df <- cmp_out_df[order(as.numeric(cmp_out_df$conserved_region)),]
+outFile <- file.path(outFolder, paste0(file_prefix, "_", cmpType, "_conserved_regions_with_genes_signif_tads", signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, "_df.txt"))
+write.table(cmp_out_df, append=F, quote=F, sep="\t", file = outFile, col.names=TRUE, row.names=FALSE)
+cat(paste0("... written: ", outFile, "\n"))
+
+
+
   
   foo <- foreach(i_cr = 1:nRegionLolli) %dopar% {
     cr <- cmp_region_levels[i_cr]

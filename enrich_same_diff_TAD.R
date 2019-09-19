@@ -20,6 +20,17 @@ pattern<-"connected_gene=.+?;"
 col1 <- get_palette("Dark2", 2)[1]
 col2 <- get_palette("Dark2", 2)[2]
 
+plotType <- "png"
+myHeight <- ifelse(plotType=="png", 500, 7)
+myWidth <- myHeight
+plotCex <- 1.2
+
+myWidthGG <- 7
+myHeightGG <- 7
+
+pipOutFolder <- file.path( "PIPELINE", "OUTPUT_FOLDER")
+
+
 hicds="Panc1_rep12_40kb"
 exprds="TCGApaad_wt_mutKRAS"
   
@@ -68,8 +79,6 @@ if(buildTable) {
   full_enhancerDT <- get(load(outFile))
 }
 
-
-
 mainFolder <- file.path(".")
 
 pipFolder <- file.path(mainFolder, "PIPELINE", "OUTPUT_FOLDER")
@@ -83,8 +92,6 @@ stopifnot(dir.exists(file.path(mainFolder, all_hicds)))
 
 all_exprds <- lapply(all_hicds, function(x) list.files(file.path(pipFolder, x)))
 names(all_exprds) <- all_hicds
-
-
 
 if(buildTable) {
   cat("... start preparing data before matching \n")
@@ -107,9 +114,7 @@ if(buildTable) {
     # tad_dt <- tad_dt[grepl("_TAD", tad_dt$region),]
     stopifnot(nrow(tad_dt) > 0 )
     
-    
     # all_exprds = all_exprds[[paste0(hicds)]][1]
-    
     exprds = all_exprds[[paste0(hicds)]][1]
     exprds_dt <- foreach(exprds = all_exprds[[paste0(hicds)]], .combine='rbind') %do% {
       
@@ -117,8 +122,6 @@ if(buildTable) {
       
       dataset_pipDir <- file.path(pipFolder, hicds, exprds)
       stopifnot(dir.exists(dataset_pipDir))
-      
-      
       
       geneList_file <- file.path(pipFolder, hicds, exprds, script0_name, "pipeline_geneList.Rdata")
       stopifnot(file.exists(geneList_file))
@@ -148,13 +151,12 @@ if(buildTable) {
       exprds_enhancer2tad_dt$enhancer_region <- foreach(i = 1:nrow(exprds_enhancer2tad_dt), .combine='c') %dopar% {
         match_region <- tad_dt$region[
           tad_dt$chromo == exprds_enhancer2tad_dt$enhancer_chromo[i] &
-            tad_dt$start <= exprds_enhancer2tad_dt$start[i] &
-            tad_dt$end >= exprds_enhancer2tad_dt$start[i] 
+            tad_dt$start <= exprds_enhancer2tad_dt$enhancer_start[i] &
+            tad_dt$end >= exprds_enhancer2tad_dt$enhancer_start[i] 
         ]
         if(length(match_region) == 0) return(NA)
         match_region
       }
-      
       
       gene_tad_enhancer_dt <- merge(exprds_enhancerDT[,c("entrezID", "enhancer_chromo", "enhancer_start", "enhancer_end")], exprds_g2t_dt[,c("entrezID", "gene_region")], by=c("entrezID"), all.x=TRUE, all.y=FALSE)
       stopifnot(!is.na(gene_tad_enhancer_dt$gene_region))
@@ -188,14 +190,9 @@ if(buildTable) {
       all_count_dt$hicds <- hicds
       all_count_dt$exprds <- exprds
       all_count_dt[, c("hicds", "exprds", all_cols)]
-      
-            
     }# end-foreach iterating over exprds
-    
     exprds_dt
-    
   }# end-foreach iterating over hicds
-  
   outFile <- file.path(outFolder, paste0("all_enhancer_tad_dt.Rdata"))
   save(all_enhancer_tad_dt, file = outFile, version=2)
   cat(paste0("... written: ", outFile, "\n"))
@@ -255,21 +252,19 @@ nDS <- length(unique(paste0(pval_enhancer_DT$hicds, pval_enhancer_DT$exprds)))
 all_y <- c("totEnhancers", "nEnhancersInSameTAD", "nEnhancersInDiffTAD")
 
 for(plot_y in all_y) {
-  
-  
-  outFile <- file.path(outFolder, paste0("all_ds_nbr_enhancers_only_diff_TAD_log10", "_density.", plotType))
+  outFile <- file.path(outFolder, paste0("all_ds_", plot_y,"_log10", "_densplot.", plotType))
   do.call(plotType, list(outFile, height=myHeight, width=myWidth))
   densplot(
     main = paste0("# enhancers/TAD and TAD signif."),
     x = -log10(pval_enhancer_DT[, paste0("adjPvalComb")]),
     y=  (pval_enhancer_DT[, paste0(plot_y)]),
     xlab=paste0("adj. pval comb [-log10]"),
-    ylab=paste0("# enhancers (", plot_y, ")")
+    ylab=paste0("# enhancers (", plot_y, ")"),
+    cex.lab=plotCex,
+    cex.axis=plotCex
   )
   foo <- dev.off()
   cat(paste0("... written: ", outFile,"\n"))
-  
-  
 }
 
 
