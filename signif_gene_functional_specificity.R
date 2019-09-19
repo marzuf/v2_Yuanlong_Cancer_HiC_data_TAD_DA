@@ -299,10 +299,18 @@ if(buildTable) {
       
       
       
-        list(    
+      out_list <-  list(    
                  signif_tad_genes_GO_list_filter_mostSpec_maxDistLeaf=signif_tad_genes_GO_list_filter_mostSpec_maxDistLeaf,
                  signif_limma_genes_GO_list_filter_mostSpec_maxDistLeaf=signif_limma_genes_GO_list_filter_mostSpec_maxDistLeaf
                  )
+      
+      
+      outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_out_list.Rdata"))
+      save(out_list, file=outFile)
+      cat(paste0("... written: ", outFile,"\n"))
+      
+      
+      out_list
       
     }# end-foreach iterating over exprds
     
