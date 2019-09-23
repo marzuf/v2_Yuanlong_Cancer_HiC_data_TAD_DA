@@ -25,7 +25,7 @@ require(ggpubr)
 myHeightGG <- 7
 myWidthGG <- myHeightGG*1.2
 
-buildTable <- TRUE
+buildTable <- FALSE
 
 printAndLog <- function(txt, logFile=NULL) {
   cat(txt)
@@ -328,21 +328,17 @@ if(buildTable) {
 }
 
 
-inFile <- "SIGNIF_GENES_FUNCTIONAL_SPECIFICITY/tadPvalThresh0.01_genePvalThresh0.05/Barutcu_MCF-10A_40kb_TCGAbrca_lum_bas_out_list.Rdata"
-inlist <- get(load(inFile))
-all_signif_genes_leafDist_ul <- list(inlist)
-
-
-all_signif_genes_leafDist_ul <- unlist(all_signif_genes_leafDist, recursive = FALSE)
 
 plot_dt <- rbind(
   data.frame(
     signif_type="limma",
-    ic_values=unlist(lapply(all_signif_genes_leafDist_ul, function(x) x[["signif_limma_genes_GO_list_filter_mostSpec_maxDistLeaf"]])),
+    # ic_values=unlist(lapply(all_signif_genes_leafDist_ul, function(x) x[["signif_limma_genes_GO_list_filter_mostSpec_maxDistLeaf"]])), # because forget to remove 'rbind' in foreach
+    ic_values=unlist(apply(all_signif_genes_leafDist, 1, function(x) x[["signif_limma_genes_GO_list_filter_mostSpec_maxDistLeaf"]])),
     stringsAsFactors=FALSE),
   data.frame(
     signif_type="tad",
-    ic_values=unlist(lapply(all_signif_genes_leafDist_ul, function(x) x[["signif_tad_genes_GO_list_filter_mostSpec_maxDistLeaf"]])),
+    # ic_values=unlist(lapply(all_signif_genes_leafDist_ul, function(x) x[["signif_tad_genes_GO_list_filter_mostSpec_maxDistLeaf"]])), # because forget to remove 'rbind' in foreach
+    ic_values=unlist(apply(all_signif_genes_leafDist, 1, function(x) x[["signif_tad_genes_GO_list_filter_mostSpec_maxDistLeaf"]])),
     stringsAsFactors=FALSE)    
 )
 
@@ -367,11 +363,12 @@ cat(paste0("... written: ", outFile,"\n"))
 p <- ggviolin(plot_dt, 
               title = paste0("signif. gene max dist leaf (funct. specificity)"),
               subtitle=paste0("# values: TAD=", nTAD,"; limma=", nLimma),
-               y = "max dist. to leaf", 
+               y = "ic_values", 
                x="signif_type",
                color = "signif_type", fill = "signif_type",
                # add = "mean", rug = TRUE,
                xlab = "",
+               ylab = "max dist. to leaf", 
                palette = c(limmaCol, tadCol))
 
 outFile <- file.path(outFolder, paste0("all_gene_maxDistLeaf_values_", file_suffix, "_violin.", plotType))
