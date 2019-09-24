@@ -128,10 +128,8 @@ step2=1    # run the pipeline
 
 #TAD_DE_pipSteps=( "8cOnlyRatioDownFastSave" ) ### !!! USE FAST SAVE FOR STEP 8 !!! 
 # use fast save and permut version
-#TAD_DE_pipSteps=( "5fastSavePermut" "6fastSave")
-TAD_DE_pipSteps=( "11")
-
-# STEP 9; STEP10sameNbr; STEP11sameNbr
+TAD_DE_pipSteps=( "8cOnlyRatioDownFastSave")
+#TAD_DE_pipSteps=( "6fastSave")
 
 # ./run_pipeline.sh GSE105381_HepG2_40kb TCGAlihc_norm_lihc   # 
 

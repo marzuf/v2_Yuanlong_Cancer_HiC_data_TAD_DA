@@ -1,16 +1,14 @@
 #!/usr/bin/bash
 
-# ./all_AUC_coexprDist_sortNoDup_otherTADfile_otherFamFile.sh
+# ./all_coexprDist_sameGO_mostSpec.sh
 
 start_time=$(date -R)   
 
-script_name="../Yuanlong_Cancer_HiC_data_TAD_DA/AUC_coexprDist_withFam_sortNoDup_otherTADfile_otherFamFile.R"
+scriptCoexpr="coexpr_dist_sameGO_mostSpec_sortNoDup.R"
 
-# Rscript AUC_coexprDist_withFam_sortNoDup_otherTADfile_otherFamFile.R ENCSR079VIJ_G401_40kb TCGAkich_norm_kich hgnc
-# Rscript AUC_coexprDist_withFam_sortNoDup_otherTADfile_otherFamFile.R ENCSR079VIJ_G401_40kb TCGAkich_norm_kich 
- 
-#############################################################
-all_data=(
+# should have hicds + expr ds !!!
+
+all_TAD_files_ds=(
 "ENCSR079VIJ_G401_40kb TCGAkich_norm_kich"  
 "ENCSR312KHQ_SK-MEL-5_40kb TCGAskcm_lowInf_highInf" 
 "ENCSR312KHQ_SK-MEL-5_40kb TCGAskcm_wt_mutBRAF"  
@@ -71,16 +69,12 @@ all_data=(
 "GSE118514_22Rv1_40kb TCGAprad_norm_prad"
 )
 
+# Rscript create_sameGO_mostSpec_sortNoDup.R Panc1_rep12_40kb TCGApaad_wt_mutKRAS
 
-#############################################################
-for data in "${all_data[@]}"; do
-    echo "> START for $data"
-	echo Rscript $script_name $data
-    exit
-	Rscript $script_name $data
+for ds in "${all_TAD_files_ds[@]}"; do
+    echo Rscript $scriptCoexpr $ds
+    Rscript $scriptCoexpr $ds
 done
-
-
 
 
 ###################################################################################################################################################

@@ -122,16 +122,11 @@ step2=1    # run the pipeline
 #TAD_DE_pipSteps=( "11sameNbr" )
 #TAD_DE_pipSteps=( "11" "11sameNbr" )
 #TAD_DE_pipSteps=( "0cleanInputTCGAminCount" )
-#TAD_DE_pipSteps=( "1cleanInputTCGAminCount" "3" "4")
-#TAD_DE_pipSteps=( "5" "6" "7")
-#TAD_DE_pipSteps=( "7")
 
-#TAD_DE_pipSteps=( "8cOnlyRatioDownFastSave" ) ### !!! USE FAST SAVE FOR STEP 8 !!! 
-# use fast save and permut version
-#TAD_DE_pipSteps=( "5fastSavePermut" "6fastSave")
-TAD_DE_pipSteps=( "11")
+#TAD_DE_pipSteps=( "5" "6" )
+# use fast save version
+TAD_DE_pipSteps=( "5fastSave" "6fastSave" )
 
-# STEP 9; STEP10sameNbr; STEP11sameNbr
 
 # ./run_pipeline.sh GSE105381_HepG2_40kb TCGAlihc_norm_lihc   # 
 
@@ -146,7 +141,7 @@ TAD_DE_pipDir="/mnt/ed4/marie/scripts/TAD_DE_pipeline_v2_TopDom"
 TAD_DE_script="./zzz_run_given_step_given_data_v2.sh"
 old_inputFolder="/mnt/ed4/marie/scripts/TAD_DE_pipeline/SETTING_FILES_cleanInput"
 nPermut="100000"
-#nPermut="100"
+#nPermut="10"
 ncpu="40"
 
 Rexec=`which Rscript`

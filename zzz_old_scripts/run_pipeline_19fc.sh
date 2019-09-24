@@ -129,9 +129,10 @@ step2=1    # run the pipeline
 #TAD_DE_pipSteps=( "8cOnlyRatioDownFastSave" ) ### !!! USE FAST SAVE FOR STEP 8 !!! 
 # use fast save and permut version
 #TAD_DE_pipSteps=( "5fastSavePermut" "6fastSave")
-TAD_DE_pipSteps=( "11")
+#TAD_DE_pipSteps=( "6fastSave")
 
-# STEP 9; STEP10sameNbr; STEP11sameNbr
+#TAD_DE_pipSteps=( "19_SAM_emp_measurement" )
+TAD_DE_pipSteps=( "19onlyFC" )
 
 # ./run_pipeline.sh GSE105381_HepG2_40kb TCGAlihc_norm_lihc   # 
 
@@ -287,6 +288,9 @@ if [[ "$step2" -eq 1 ]] ; then
 
 	cd $runDir
 	echo "> END STEP2:" $(date -R)
+
+    echo LOLO
+
 fi
 
 ###################################################################################################################################################
