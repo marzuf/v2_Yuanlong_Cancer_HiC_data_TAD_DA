@@ -1,7 +1,8 @@
 startTime <- Sys.time()
 cat(paste0("> Rscript assemble_homer_results.R\n"))
 
-# Rscript assemble_homer_results.R
+# Rscript assemble_homer_results.R adjPvalComb_0.01 plusminus
+# Rscript assemble_homer_results.R signifFDR_0.2 plusminus
 
 source("../Yuanlong_Cancer_HiC_data_TAD_DA/subtype_cols.R")
 
@@ -12,7 +13,7 @@ suppressPackageStartupMessages(library(foreach, warn.conflicts = FALSE, quietly 
 suppressPackageStartupMessages(library(doMC, warn.conflicts = FALSE, quietly = TRUE, verbose = FALSE))
 registerDoMC(40)
 
-buildTable <- FALSE
+buildTable <- TRUE
 
 
 outFolder <- file.path("ASSEMBLE_HOMER_RESULTS")
@@ -56,7 +57,8 @@ if(buildTable) {
       cat("... start ", hicds, " - ", exprds, "\n")
       
       result_file <- file.path(homerFolder, hicds, exprds, signifcol, paste0("MotifOutput_", strandselect), "knownResults.txt")
-      stopifnot(file.exists(result_file))
+      #stopifnot(file.exists(result_file))
+      if(!file.exists(result_file)) return(NULL)
       
       result_dt <- read.delim(result_file, header=TRUE, stringsAsFactors = FALSE)
       
@@ -83,17 +85,31 @@ if(buildTable) {
   outFile <- file.path(outFolder, paste0("homer_signifMotifs_", signifcol, "_", strandselect, ".Rdata"))
   all_results_dt <- get(load(outFile))
 }
-
+all_results_dt$dataset <- file.path(all_results_dt$hicds, all_results_dt$exprds)
 all_results_dt$motif <- gsub("(^.+?)/.+", "\\1", all_results_dt[,paste0(homerKeepCol)])
 
 all_results_dt$cmpType <-  all_cmps[paste0(all_results_dt$exprds)]
 stopifnot(!is.na(all_results_dt$cmpType))
 
+nSignif_all_tmp1 <- aggregate( as.formula(paste0(homerSignifCol, " ~ motif")), FUN=length, data = all_results_dt)
+colnames(nSignif_all_tmp1)[colnames(nSignif_all_tmp1) == paste0(homerSignifCol)] <- "nSignif"
+nSignif_all_tmp2 <- aggregate( as.formula(paste0("dataset", " ~ motif")), FUN=function(x) paste0(x, collapse=","), data = all_results_dt)
+colnames(nSignif_all_tmp2)[colnames(nSignif_all_tmp2) == paste0(homerSignifCol)] <- "datasets"
+nSignif_all <- merge(nSignif_all_tmp1, nSignif_all_tmp2, by="motif")
+nSignif_all <- nSignif_all[order(nSignif_all$nSignif, decreasing=TRUE),]
+outFile <- file.path(outFolder, paste0("nSignif_all_motifCount_", signifcol, "_", strandselect, ".txt"))
+write.table(nSignif_all, file=outFile, col.names=TRUE, row.names=FALSE, sep="\t", quote=F)
+cat(paste0("... written: ", outFile, "\n"))
 
-
-nSignif_all <- aggregate( as.formula(paste0(homerSignifCol, " ~ motif")), FUN=length, data = all_results_dt)
-nSignif_byCmpType <- aggregate( as.formula(paste0(homerSignifCol, " ~ motif + cmpType")), FUN=length, data = all_results_dt)
-
+nSignif_byCmpType_tmp1 <- aggregate( as.formula(paste0(homerSignifCol, " ~ motif + cmpType")), FUN=length, data = all_results_dt)
+colnames(nSignif_byCmpType_tmp1)[colnames(nSignif_byCmpType_tmp1) == paste0(homerSignifCol)] <- "nSignif"
+nSignif_byCmpType_tmp2 <- aggregate( as.formula(paste0("dataset", " ~ motif + cmpType")), FUN=function(x) paste0(x, collapse=","), data = all_results_dt)
+colnames(nSignif_byCmpType_tmp2)[colnames(nSignif_byCmpType_tmp2) == paste0(homerSignifCol)] <- "datasets"
+nSignif_byCmpType <- merge(nSignif_byCmpType_tmp1, nSignif_byCmpType_tmp2, by=c("motif", "cmpType"))
+nSignif_byCmpType <- nSignif_byCmpType[order(nSignif_byCmpType$nSignif, nSignif_byCmpType$cmpType, decreasing = TRUE),]
+outFile <- file.path(outFolder, paste0("nSignif_byCmpType_motifCount_", signifcol, "_", strandselect, ".txt"))
+write.table(nSignif_byCmpType, file=outFile, col.names=TRUE, row.names=FALSE, sep="\t", quote=F)
+cat(paste0("... written: ", outFile, "\n"))
 
 
 
