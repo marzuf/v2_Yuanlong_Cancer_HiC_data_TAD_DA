@@ -270,17 +270,82 @@ for(plot_y in all_y) {
 
 
 
+# assemble the number of genes in TAD
+
+
+# all_hicds=all_hicds[1]
+hicds = all_hicds[1]
+all_tad_ngenes_dt <- foreach(hicds = all_hicds, .combine='rbind') %do% {
+  
+  hicds_file <- file.path(mainFolder, hicds, "genes2tad", "all_genes_positions.txt")
+  stopifnot(file.exists(hicds_file))
+  g2t_dt <- read.delim(hicds_file, header=F, stringsAsFactors = FALSE, col.names=c("entrezID", "gene_chromo", "gene_start", "gene_end", "gene_region"))
+  g2t_dt$entrezID <- as.character(g2t_dt$entrezID)
+  stopifnot(nrow(g2t_dt) > 0 )
+  stopifnot(!duplicated(g2t_dt$entrezID))
+  rownames(g2t_dt) <- g2t_dt$entrezID
+  
+  
+  
+  # all_exprds = all_exprds[[paste0(hicds)]][1]
+  exprds = all_exprds[[paste0(hicds)]][1]
+  exprds_dt <- foreach(exprds = all_exprds[[paste0(hicds)]], .combine='rbind') %do% {
+    
+    cat(paste0("... start ", hicds, " - ", exprds, "\n"))
+    
+    dataset_pipDir <- file.path(pipFolder, hicds, exprds)
+    stopifnot(dir.exists(dataset_pipDir))
+    
+    geneList_file <- file.path(pipFolder, hicds, exprds, script0_name, "pipeline_geneList.Rdata")
+    stopifnot(file.exists(geneList_file))
+    pipeline_geneList <- get(load(geneList_file))
+    
+  
+    exprds_g2t_dt <- g2t_dt[g2t_dt$entrezID %in% pipeline_geneList,]
+    stopifnot(setequal(rownames(exprds_g2t_dt), pipeline_geneList))
+    stopifnot(rownames(exprds_g2t_dt) == exprds_g2t_dt$entrezID)
+    
+    data.frame(
+      hicds=hicds,
+      exprds=exprds,
+      region=as.character(names(table(exprds_g2t_dt$gene_region))),
+      nTADgenes = as.numeric(table(exprds_g2t_dt$gene_region)),
+      stringsAsFactors = FALSE
+    )
+  }
+  exprds_dt
+}
 
 
 
+all_enh_ngenes_dt <- merge(pval_enhancer_DT, all_tad_ngenes_dt, by=c("hicds", "exprds", "region"), all=TRUE)
+stopifnot(!is.na(all_enh_ngenes_dt$nTADgenes))
+
+
+all_enh_ngenes_dt$nEnhancersInSameTAD_ratio <- all_enh_ngenes_dt$nEnhancersInSameTAD/all_enh_ngenes_dt$nTADgenes
+all_enh_ngenes_dt$nEnhancersInDiffTAD_ratio <- all_enh_ngenes_dt$nEnhancersInDiffTAD/all_enh_ngenes_dt$nTADgenes
+
+all_enh_ngenes_dt$totEnhancers_ratio <- all_enh_ngenes_dt$totEnhancers/all_enh_ngenes_dt$nTADgenes
 
 
 
-
-
-
-
-
+all_y <- c("totEnhancers_ratio", "nEnhancersInSameTAD_ratio", "nEnhancersInDiffTAD_ratio")
+plot_y=all_y[1]
+for(plot_y in all_y) {
+  outFile <- file.path(outFolder, paste0("all_ds_", plot_y,"_log10", "_densplot.", plotType))
+  do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+  densplot(
+    main = paste0("# enhancers/TAD and TAD signif."),
+    x = -log10(all_enh_ngenes_dt[, paste0("adjPvalComb")]),
+    y=  (all_enh_ngenes_dt[, paste0(plot_y)]),
+    xlab=paste0("adj. pval comb [-log10]"),
+    ylab=paste0("# enhancers (", plot_y, ")"),
+    cex.lab=plotCex,
+    cex.axis=plotCex
+  )
+  foo <- dev.off()
+  cat(paste0("... written: ", outFile,"\n"))
+}
 
 
 
