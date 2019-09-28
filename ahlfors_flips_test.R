@@ -25,7 +25,7 @@ registerDoMC(ifelse(SSHFS, 2, 40))
 
 require(ggpubr)
 
-buildTable <- F
+buildTable <- TRUE
 
 hicds = "Panc1_rep12_40kb"
 exprds = "TCGApaad_wt_mutKRAS"

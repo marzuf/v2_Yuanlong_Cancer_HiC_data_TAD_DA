@@ -1,6 +1,8 @@
 startTime <- Sys.time()
 cat(paste0("> Rscript signif_genes_specifity_v2.R\n"))
 
+# => v2 uses get_term_info_content (not working?)
+
 suppressPackageStartupMessages(library(foreach, warn.conflicts = FALSE, quietly = TRUE, verbose = FALSE))
 suppressPackageStartupMessages(library(doMC, warn.conflicts = FALSE, quietly = TRUE, verbose = FALSE))
 suppressPackageStartupMessages(library(org.Hs.eg.db, warn.conflicts = FALSE, quietly = TRUE, verbose = FALSE))

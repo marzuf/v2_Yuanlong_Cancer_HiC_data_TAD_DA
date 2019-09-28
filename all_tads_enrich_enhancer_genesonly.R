@@ -13,7 +13,7 @@ suppressPackageStartupMessages(library(ggplot2, warn.conflicts = FALSE, quietly 
 
 buildTable <- FALSE
 
-
+source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 
 plotType <- "png"
 myHeight <- ifelse(plotType=="png", 400, 7)
@@ -231,6 +231,43 @@ for(signcol in signif_cols) {
     
   }
   
+  
+}
+
+
+meanSameTAD_dt <- aggregate(nEnhancersSameTAD ~ hicds + exprds+region, data=all_enh_signif_dt, FUN=mean)
+meanDiffTAD_dt <- aggregate(nEnhancersDiffTAD ~ hicds + exprds+region, data=all_enh_signif_dt, FUN=mean)
+
+mean_final_dt <- merge(final_table_DT, merge(meanSameTAD_dt, meanDiffTAD_dt, by=idcols), by=idcols)
+
+outFile <- file.path(outFolder, paste0("all_ds_nbr_enhancers_diff_vs_same_TAD.", plotType))
+do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+densplot(x=mean_final_dt$nEnhancersSameTAD,
+         y=mean_final_dt$nEnhancersDiffTAD,
+         xlab="TAD mean # enhancer same TAD",
+         ylab="TAD mean # enhancer diff TAD"
+         )
+foo <- dev.off()
+cat(paste0("... written: ", outFile,"\n"))
+
+
+mean_final_dt$sameDiffRatio <- mean_final_dt$nEnhancersSameTAD/mean_final_dt$nEnhancersDiffTAD
+
+yvar="nEnhancersSameTAD"
+
+for(yvar in c("sameDiffRatio", "nEnhancersSameTAD",  "nEnhancersDiffTAD")) {
+    
+  outFile <- file.path(outFolder, paste0("all_ds_", yvar, "_vs_adjPvalComb.", plotType))
+  do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+  
+  densplot(
+           x=-log10(mean_final_dt$adjPvalComb),
+           y = mean_final_dt[,paste0(yvar)],
+           xlab="adj. pval. comb. [-log10]",
+           ylab=paste0(yvar)
+  )
+  foo <- dev.off()
+  cat(paste0("... written: ", outFile,"\n"))
   
 }
 
