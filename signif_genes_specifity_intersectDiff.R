@@ -30,8 +30,16 @@ axisCex <- 1.4
 myHeightGG <- 7
 myWidthGG <- myHeightGG*1.2
 
-limmaCol <- "#00AFBB"
-tadCol <- "#FC4E07"
+
+col1 <- get_palette("Dark2", 5)[1]
+col2 <- get_palette("Dark2", 5)[2]
+col3 <- get_palette("Dark2", 5)[3]
+col4 <- get_palette("Dark2", 5)[4]
+col5 <- get_palette("Dark2", 5)[5]
+
+
+
+
 
 ### PREPARE GO DATA
 ontologyType <- "BP"
@@ -173,7 +181,7 @@ if(buildTable) {
       
       
       signif_intersect_genes_GO_list <- all_genes_GO_list[names(all_genes_GO_list) %in% intersect_signif_genes]
-      stopifnot(length(signif_intersect_genes_GO_list) > 0)
+      # stopifnot(length(signif_intersect_genes_GO_list) > 0)
       signif_intersect_genes_GO_list_filter <- lapply(signif_intersect_genes_GO_list, function(x) {
         Filter(function(k) k[["Ontology"]] == ontologyType, x)
       })
@@ -201,7 +209,7 @@ if(buildTable) {
       
       
       signif_limmaOnly_genes_GO_list <- all_genes_GO_list[names(all_genes_GO_list) %in% limmaOnly_signif_genes]
-      stopifnot(length(signif_limmaOnly_genes_GO_list) > 0)
+      # stopifnot(length(signif_limmaOnly_genes_GO_list) > 0)
       signif_limmaOnly_genes_GO_list_filter <- lapply(signif_limmaOnly_genes_GO_list, function(x) {
         Filter(function(k) k[["Ontology"]] == ontologyType, x)
       })
@@ -230,7 +238,7 @@ if(buildTable) {
       
       
       signif_tadOnly_genes_GO_list <- all_genes_GO_list[names(all_genes_GO_list) %in% tadsOnly_signif_genes]
-      stopifnot(length(signif_tadOnly_genes_GO_list) > 0)
+      # stopifnot(length(signif_tadOnly_genes_GO_list) > 0)
       signif_tadOnly_genes_GO_list_filter <- lapply(signif_tadOnly_genes_GO_list, function(x) {
         Filter(function(k) k[["Ontology"]] == ontologyType, x)
       })
@@ -377,7 +385,7 @@ p <- ggdensity(plot_dt,
                color = "signif_type", fill = "signif_type",
                add = "mean", rug = TRUE,
                xlab = "signif. genes IC",
-               palette = c(limmaCol, tadCol))
+               palette = c(col1,col2,col3,col4,col5))
 
 outFile <- file.path(outFolder, paste0("all_gene_ic_values_", file_suffix, "_density.", plotType))
 ggsave(p, file = outFile, height=myHeightGG, width=myWidthGG)
@@ -392,7 +400,7 @@ p <- ggviolin(plot_dt,
                color = "signif_type", fill = "signif_type",
                add = "mean", rug = TRUE,
                xlab = "signif. genes IC",
-               palette = c(limmaCol, tadCol))
+               palette = c(col1,col2,col3,col4,col5))
 
 outFile <- file.path(outFolder, paste0("all_gene_ic_values_", file_suffix, "_boxplot.", plotType))
 ggsave(p, file = outFile, height=myHeightGG, width=myHeightGG)
@@ -441,7 +449,7 @@ p <- ggdensity(plot_dt,
                color = "signif_type", fill = "signif_type",
                add = "mean", rug = TRUE,
                xlab = "signif. genes freq",
-               palette = c(limmaCol, tadCol))
+               palette = c(col1,col2,col3,col4,col5))
 
 outFile <- file.path(outFolder, paste0("all_gene_freq_values_", file_suffix, "_density.", plotType))
 ggsave(p, file = outFile, height=myHeightGG, width=myWidthGG)
@@ -456,7 +464,7 @@ p <- ggviolin(plot_dt,
               color = "signif_type", fill = "signif_type",
               add = "mean", rug = TRUE,
               xlab = "signif. genes freq",
-              palette = c(limmaCol, tadCol))
+              palette = c(col1,col2,col3,col4,col5))
 
 outFile <- file.path(outFolder, paste0("all_gene_freq_values_", file_suffix, "_boxplot.", plotType))
 ggsave(p, file = outFile, height=myHeightGG, width=myHeightGG)
