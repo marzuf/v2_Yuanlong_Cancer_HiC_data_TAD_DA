@@ -41,7 +41,7 @@ col4 <- get_palette("Dark2", 5)[4]
 col5 <- get_palette("Dark2", 5)[5]
 
 
-buildTable <- TRUE
+buildTable <- FALSE
 
 mainFolder <- file.path(".")
 stopifnot(dir.exists(mainFolder))
@@ -360,6 +360,11 @@ plot_dt <- rbind(
   )
 )
 
+myLevels <- c("tad_signif", "tadOnly_signif", "limma_signif", "limmaOnly_signif", "intersect")
+plot_dt$signif_type <- factor(plot_dt$signif_type, levels=myLevels)
+stopifnot(!is.na(plot_dt$signif_type))
+
+
 # save(plot_dt, file="plot_dt1.Rdata", version=2)
 
 notNa_tads <- sum(!is.na(plot_dt$go_ic[plot_dt$signif_type=="tad_signif"]))
@@ -368,8 +373,8 @@ notNa_tadsOnly <- sum(!is.na(plot_dt$go_ic[plot_dt$signif_type=="tadOnly_signif"
 notNa_limmaOnly <- sum(!is.na(plot_dt$go_ic[plot_dt$signif_type=="limmaOnly_signif"]))
 notNa_intersect <- sum(!is.na(plot_dt$go_ic[plot_dt$signif_type=="intersect"]))
 
-subTit <- paste0("notNa_tads=", notNa_tads, "; notNa_limma=", notNa_limma, "notNa_tadsOnly=",
-                 notNa_tadsOnly, "; notNa_limmaOnly=", notNa_limmaOnly, "notNa_intersect=", notNa_intersect)
+subTit <- paste0("notNa_tads=", notNa_tads, "; notNa_limma=", notNa_limma, "; notNa_tadsOnly=",
+                 notNa_tadsOnly, "; notNa_limmaOnly=", notNa_limmaOnly, "; notNa_intersect=", notNa_intersect)
 
 
 p <- ggdensity(plot_dt, 
@@ -380,6 +385,7 @@ p <- ggdensity(plot_dt,
                color = "signif_type", fill = "signif_type",
                add = "mean", rug = TRUE,
                palette = c(col1,col2,col3,col4,col5))
+p <- p+theme(plot.subtitle = element_text(size=10))
 
 outFile <- file.path(outFolder, paste0("all_ds_enrichedGO_IC_", file_suffix, "_density.", plotType))
 ggsave(p, file = outFile, height=myHeightGG, width=myWidthGG)
@@ -398,6 +404,7 @@ p <- ggviolin(plot_dt,
                add = "mean", rug = TRUE,
                palette = c(col1,col2,col3,col4,col5))
 p <- p + scale_y_continuous(breaks = seq(0, max(na.omit(plot_dt$go_ic)), by = 20))
+p <- p+theme(plot.subtitle = element_text(size=10))
 
 outFile <- file.path(outFolder, paste0("all_ds_enrichedGO_IC_", file_suffix, "_violin.", plotType))
 ggsave(p, file = outFile, height=myHeightGG, width=myWidthGG)
@@ -436,7 +443,14 @@ plot_dt <- rbind(
   )
 )
 
+
+
+
 # save(plot_dt, file="plot_dt2.Rdata", version=2)
+
+myLevels <- c("tad_signif", "tadOnly_signif", "limma_signif", "limmaOnly_signif", "intersect")
+plot_dt$signif_type <- factor(plot_dt$signif_type, levels=myLevels)
+stopifnot(!is.na(plot_dt$signif_type))
 
 notNa_tads <- sum(!is.na(plot_dt$nbr_GO[plot_dt$signif_type=="tad_signif"]))
 notNa_limma <- sum(!is.na(plot_dt$nbr_GO[plot_dt$signif_type=="limma_signif"]))
@@ -444,8 +458,8 @@ notNa_tadsOnly <- sum(!is.na(plot_dt$nbr_GO[plot_dt$signif_type=="tadOnly_signif
 notNa_limmaOnly <- sum(!is.na(plot_dt$nbr_GO[plot_dt$signif_type=="limmaOnly_signif"]))
 notNa_intersect <- sum(!is.na(plot_dt$nbr_GO[plot_dt$signif_type=="intersect"]))
 
-subTit <- paste0("notNa_tads=", notNa_tads, "; notNa_limma=", notNa_limma, "notNa_tadsOnly=",
-                 notNa_tadsOnly, "; notNa_limmaOnly=", notNa_limmaOnly, "notNa_intersect=", notNa_intersect)
+subTit <- paste0("notNa_tads=", notNa_tads, "; notNa_limma=", notNa_limma, "; notNa_tadsOnly=",
+                 notNa_tadsOnly, "; notNa_limmaOnly=", notNa_limmaOnly, "; notNa_intersect=", notNa_intersect)
 
 p <- ggdensity(plot_dt, 
                title = paste0("# enriched GO"),
@@ -455,7 +469,7 @@ p <- ggdensity(plot_dt,
                color = "signif_type", fill = "signif_type",
                add = "mean", rug = TRUE,
                palette = c(col1,col2,col3,col4,col5))
-
+p <- p+theme(plot.subtitle = element_text(size=10))
 
 outFile <- file.path(outFolder, paste0("all_ds_nbr_enrichedGO_", file_suffix, "_density.", plotType))
 ggsave(p, file = outFile, height=myHeightGG, width=myWidthGG)
@@ -474,11 +488,79 @@ p <- ggviolin(plot_dt,
               add = "mean", rug = TRUE,
               palette = c(col1,col2,col3,col4,col5))
 p <- p + scale_y_continuous(breaks = seq(0, max(na.omit(plot_dt$nbr_GO)), by = 20))
-
+p <- p+theme(plot.subtitle = element_text(size=10))
 
 outFile <- file.path(outFolder, paste0("all_ds_nbr_enrichedGO_", file_suffix, "_violin.", plotType))
 ggsave(p, file = outFile, height=myHeightGG, width=myWidthGG)
 cat(paste0("... written: ", outFile,"\n"))
+
+######################################################################################
+stopifnot(names(all_nGO_signif_tads) == names(all_nGO_signif_limma))
+stopifnot(names(all_nGO_signif_tads) == names(all_nGO_signif_limmaOnly))
+stopifnot(names(all_nGO_signif_tads) == names(all_nGO_signif_tadsOnly))
+stopifnot(names(all_nGO_signif_tads) == names(all_nGO_signif_intersect))
+
+source("../Yuanlong_Cancer_HiC_data_TAD_DA/subtype_cols.R")
+
+plot_dt <- as.data.frame(cbind(all_nGO_signif_tads, all_nGO_signif_limma, all_nGO_signif_tadsOnly, all_nGO_signif_limmaOnly, all_nGO_signif_intersect))
+plot_dt$exprds <- basename(rownames(plot_dt))
+
+plot_dt$hicds <- gsub("\\.", "/", rownames(plot_dt))
+
+plot_dt$hicds <- basename(dirname(plot_dt$hicds))
+
+plot_dt$ds_label <- paste0(plot_dt$hicds, "\n", plot_dt$exprds)
+
+stopifnot(plot_dt$exprds %in% names(all_cmps))
+
+plot_dt$cmpType <- all_cmps[paste0(plot_dt$exprds)]
+# plot_dt$cmpType <- factor(plot_dt$cmpType)
+plot_dt$cmpTypeCol <- ifelse(plot_dt$cmpType == "wt_vs_mut", "red", 
+                             ifelse(plot_dt$cmpType == "norm_vs_tumor", "blue",
+                                    ifelse(plot_dt$cmpType == "subtypes", "green", NA )))
+stopifnot(!is.na(plot_dt$cmpTypeCol))
+
+plot_dt$all_nGO_signif_tads_log10 <- log10(plot_dt$all_nGO_signif_tads)
+plot_dt$all_nGO_signif_tadsOnly_log10 <- log10(plot_dt$all_nGO_signif_tadsOnly)
+
+
+plot_dt$all_nGO_signif_limma_log10 <- log10(plot_dt$all_nGO_signif_limma)
+plot_dt$all_nGO_signif_limmaOnly_log10 <- log10(plot_dt$all_nGO_signif_limmaOnly)
+
+plot_dt$all_nGO_signif_intersect_log10 <- log10(plot_dt$all_nGO_signif_intersect)
+
+
+all_x <- c("all_nGO_signif_tads", "all_nGO_signif_tadsOnly", "all_nGO_signif_tads_log10", "all_nGO_signif_tadsOnly_log10")
+all_y <- c("all_nGO_signif_limma", "all_nGO_signif_limmaOnly", "all_nGO_signif_limma_log10", "all_nGO_signif_limmaOnly_log10")
+myx=all_x[1]
+myy=all_y[1]
+for(myx in all_x) {
+  for(myy in all_y) {
+    # p <- ggscatter(plot_dt, x =myx, y = myy)
+    p <- ggscatter(plot_dt, x =myx, y = myy, color = "cmpType", label="ds_label", palette=c("wt_vs_mut" = "red", "norm_vs_tumor"="blue", "subtypes"="green"))
+    p <- p + rremove("legend")
+    # p
+    outFile <- file.path(outFolder, paste0("all_ds_", myy, "_vs_", myx, "_scatterplot.", plotType))
+    ggsave(p, file = outFile, height=myHeightGG, width=myWidthGG)
+    cat(paste0("... written: ", outFile,"\n"))
+  }
+}
+
+all_x <- c(all_x, all_y)
+all_y <- c("all_nGO_signif_intersect", "all_nGO_signif_intersect_log10")
+
+for(myx in all_x) {
+  for(myy in all_y) {
+    # p <- ggscatter(plot_dt, x =myx, y = myy)
+    p <- ggscatter(plot_dt, x =myx, y = myy, color = "cmpType", label="ds_label", palette=c("wt_vs_mut" = "red", "norm_vs_tumor"="blue", "subtypes"="green"))
+    p <- p + rremove("legend")
+    outFile <- file.path(outFolder, paste0("all_ds_", myy, "_vs_", myx, "_scatterplot.", plotType))
+    ggsave(p, file = outFile, height=myHeightGG, width=myWidthGG)
+    cat(paste0("... written: ", outFile,"\n"))
+  }
+}
+
+
 
 
 ######################################################################################

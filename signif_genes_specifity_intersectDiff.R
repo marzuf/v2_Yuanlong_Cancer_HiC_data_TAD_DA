@@ -10,7 +10,7 @@ require(reshape2)
 
 require(ggpubr)
 
-buildTable <- TRUE
+buildTable <- FALSE
 
 printAndLog <- function(txt, logFile=NULL) {
   cat(txt)
@@ -366,6 +366,9 @@ plot_dt <- rbind(
     ic_values=unlist(lapply(all_signif_genes_ic_ul, function(x) x[["ic_signif_intersect_genes"]])),
     stringsAsFactors=FALSE)
   )
+myLevels <- c("tad", "tadOnly", "limma", "limmaOnly", "intersect")
+plot_dt$signif_type <- factor(plot_dt$signif_type, levels=myLevels)
+stopifnot(!is.na(plot_dt$signif_type))
 
 
 nLimma <- sum(!is.na(plot_dt$ic_values[plot_dt$signif_type=="limma"]))
@@ -397,7 +400,8 @@ p <- ggviolin(plot_dt,
                x="signif_type",
               title = paste0("signif. gene GO IC"),
               subtitle=paste0(subTit),
-               color = "signif_type", fill = "signif_type",
+               color = "signif_type", 
+              # fill = "signif_type",
                add = "mean", rug = TRUE,
                xlab = "signif. genes IC",
                palette = c(col1,col2,col3,col4,col5))
@@ -432,6 +436,11 @@ plot_dt <- rbind(
     stringsAsFactors=FALSE)    
 )
 
+myLevels <- c("tad", "tadOnly", "limma", "limmaOnly", "intersect")
+plot_dt$signif_type <- factor(plot_dt$signif_type, levels=myLevels)
+stopifnot(!is.na(plot_dt$signif_type))
+
+
 
 nLimma <- sum(!is.na(plot_dt$freq_values[plot_dt$signif_type=="limma"]))
 nTAD <- sum(!is.na(plot_dt$freq_values[plot_dt$signif_type=="tad"]))
@@ -444,7 +453,7 @@ subTit <- paste0("# values: TAD=", nTAD,"; limma=", nLimma, "; tadOnly=", nTADon
 
 p <- ggdensity(plot_dt, 
                title = paste0("signif. gene GO freq"),
-               subtitle=paste0(subTit)
+               subtitle=paste0(subTit),
                x = "freq_values", 
                color = "signif_type", fill = "signif_type",
                add = "mean", rug = TRUE,
@@ -461,7 +470,8 @@ p <- ggviolin(plot_dt,
               x="signif_type",
               title = paste0("signif. gene GO freq"),
               subtitle=paste0(subTit),
-              color = "signif_type", fill = "signif_type",
+              color = "signif_type",
+              # fill = "signif_type",
               add = "mean", rug = TRUE,
               xlab = "signif. genes freq",
               palette = c(col1,col2,col3,col4,col5))

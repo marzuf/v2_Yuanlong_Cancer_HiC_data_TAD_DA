@@ -37,7 +37,7 @@ myWidthGG <- myHeightGG*1.2
 limmaCol <- "#00AFBB"
 tadCol <- "#FC4E07"
 
-buildTable <- TRUE
+buildTable <- FALSE
 
 mainFolder <- file.path(".")
 stopifnot(dir.exists(mainFolder))
@@ -55,7 +55,9 @@ args <- commandArgs(trailingOnly = TRUE)
 tads_signifThresh <- args[1]
 genes_signifTresh <- args[2]
 
-outFolder <- file.path("GO_SPECIFICITY_CONSERVED_NOTCONSERVED", paste0("tadPvalThresh", tads_signifThresh, "_genePvalThresh", genes_signifTresh))
+cmpType <- ""
+
+outFolder <- file.path("GO_SPECIFICITY_CONSERVED_NOTCONSERVED", cmpType, paste0("tadPvalThresh", tads_signifThresh, "_genePvalThresh", genes_signifTresh))
 dir.create(outFolder, recursive = TRUE)
 
 logFile <- file.path(outFolder, "go_specificity_conserved_notConserved_logFile.txt")
@@ -103,71 +105,71 @@ if(buildTable) {
       
       cat(paste0("... start: ", hicds, " - ", exprds, "\n"))
       
-      go_signif_limma_dt <- all_go_enrich_list[[file.path(hicds, exprds)]][["limma_signif_enrich_resultDT"]]
+      go_signif_conserved_dt <- all_go_enrich_list[[file.path(hicds, exprds)]][["conserved_signif_tads_genes_resultDT"]]
       
-      if(!is.null(go_signif_limma_dt)) {
-        txt <- paste0(hicds, " - ", exprds, " - limma signif.: # annot. GO:\t", nrow(go_signif_limma_dt), "\n")
+      if(!is.null(go_signif_conserved_dt)) {
+        txt <- paste0(hicds, " - ", exprds, " - signif conserved.: # annot. GO:\t", nrow(go_signif_conserved_dt), "\n")
         printAndLog(txt, logFile)
-        go_signif_limma_dt <- go_signif_limma_dt[go_signif_limma_dt[,paste0(go_signif_col)] <= go_signifThresh,]
-        txt <- paste0(hicds, " - ", exprds, " - limma signif.: # signif. annot. GO:\t", nrow(go_signif_limma_dt), "\n")
+        go_signif_conserved_dt <- go_signif_conserved_dt[go_signif_conserved_dt[,paste0(go_signif_col)] <= go_signifThresh,]
+        txt <- paste0(hicds, " - ", exprds, " - signif conserved.: # signif. annot. GO:\t", nrow(go_signif_conserved_dt), "\n")
         printAndLog(txt, logFile)
         
-        nEnrichedGO_signif_limma <- nrow(go_signif_limma_dt)
+        nEnrichedGO_signif_conserved <- nrow(go_signif_conserved_dt)
         
-        signif_limma_go_terms <- rownames(go_signif_limma_dt)
+        signif_conserved_go_terms <- rownames(go_signif_conserved_dt)
   
-        signif_limma_go_ids <- my_GO2TERM$go_id[my_GO2TERM$term %in% signif_limma_go_terms]
-        txt <- paste0(hicds, " - ", exprds, " - ... limma signif.: found GO ids matching GO terms:\t", length(signif_limma_go_ids), "/", length(signif_limma_go_terms), "\n")
+        signif_conserved_go_ids <- my_GO2TERM$go_id[my_GO2TERM$term %in% signif_conserved_go_terms]
+        txt <- paste0(hicds, " - ", exprds, " - ... signif conserved.: found GO ids matching GO terms:\t", length(signif_conserved_go_ids), "/", length(signif_conserved_go_terms), "\n")
         printAndLog(txt, logFile)
         
-        signif_limma_go_ic <- GO_IC[names(GO_IC) %in% signif_limma_go_ids]
-        txt <- paste0(hicds, " - ", exprds, " - ... limma signif.: found GO information content matching GO ids:\t", length(signif_limma_go_ic), "/", length(signif_limma_go_ids), "\n")
+        signif_conserved_go_ic <- GO_IC[names(GO_IC) %in% signif_conserved_go_ids]
+        txt <- paste0(hicds, " - ", exprds, " - ... signif conserved.: found GO information content matching GO ids:\t", length(signif_conserved_go_ic), "/", length(signif_conserved_go_ids), "\n")
         printAndLog(txt, logFile)
-        txt <- paste0(hicds, " - ", exprds, " - ... limma signif.: total retrieved data:\t", length(signif_limma_go_terms), " -> ", length(signif_limma_go_ic), "\n")
+        txt <- paste0(hicds, " - ", exprds, " - ... signif conserved.: total retrieved data:\t", length(signif_conserved_go_terms), " -> ", length(signif_conserved_go_ic), "\n")
         printAndLog(txt, logFile)
         
         
       } else {
-        txt <- paste0(hicds, " - ", exprds, " - ... limma signif.: NULL \n")
+        txt <- paste0(hicds, " - ", exprds, " - ... signif conserved.: NULL \n")
         printAndLog(txt, logFile)
         
-        signif_limma_go_ic <- NULL
+        signif_conserved_go_ic <- NULL
       }
-      go_signif_tads_dt <- all_go_enrich_list[[file.path(hicds, exprds)]][["tad_signif_enrich_resultDT"]]
+      go_signif_not_conserved_dt <- all_go_enrich_list[[file.path(hicds, exprds)]][["not_conserved_signif_tads_genes_resultDT"]]
       
-      if(!is.null(go_signif_tads_dt)) {
-        txt <- paste0(hicds, " - ", exprds, " - TAD signif: # annot. GO:\t", nrow(go_signif_tads_dt), "\n")
+      if(!is.null(go_signif_not_conserved_dt)) {
+        txt <- paste0(hicds, " - ", exprds, " - signif not conserved: # annot. GO:\t", nrow(go_signif_not_conserved_dt), "\n")
         printAndLog(txt, logFile)
-        go_signif_tads_dt <- go_signif_tads_dt[go_signif_tads_dt[,paste0(go_signif_col)] <= go_signifThresh,]
-        txt <- paste0(hicds, " - ", exprds, " - TAD signif: # signif. annot. GO:\t", nrow(go_signif_tads_dt), "\n")
-        printAndLog(txt, logFile)
-        
-        nEnrichedGO_signif_tads <- nrow(go_signif_tads_dt)
-        
-        signif_tad_go_terms <- rownames(go_signif_tads_dt)
-        
-        signif_tad_go_ids <- my_GO2TERM$go_id[my_GO2TERM$term %in% signif_tad_go_terms]
-        txt <- paste0(hicds, " - ", exprds, " - ... TAD signif: found GO ids matching GO terms:\t", length(signif_tad_go_ids), "/", length(signif_tad_go_terms), "\n")
+        go_signif_not_conserved_dt <- go_signif_not_conserved_dt[go_signif_not_conserved_dt[,paste0(go_signif_col)] <= go_signifThresh,]
+        txt <- paste0(hicds, " - ", exprds, " - signif not conserved: # signif. annot. GO:\t", nrow(go_signif_not_conserved_dt), "\n")
         printAndLog(txt, logFile)
         
-        signif_tad_go_ic <- GO_IC[names(GO_IC) %in% signif_tad_go_ids]
-        txt <- paste0(hicds, " - ", exprds, " - ... TAD signif: found GO information content matching GO ids:\t", length(signif_tad_go_ic), "/", length(signif_tad_go_ids), "\n")
+        nEnrichedGO_signif_not_conserved <- nrow(go_signif_not_conserved_dt)
+        
+        signif_not_conserved_go_terms <- rownames(go_signif_not_conserved_dt)
+        
+        signif_not_conserved_go_ids <- my_GO2TERM$go_id[my_GO2TERM$term %in% signif_not_conserved_go_terms]
+        txt <- paste0(hicds, " - ", exprds, " - ... signif not conserved: found GO ids matching GO terms:\t", length(signif_not_conserved_go_ids), "/", length(signif_not_conserved_go_terms), "\n")
         printAndLog(txt, logFile)
-        txt <- paste0(hicds, " - ", exprds, " - ... TAD signif: total retrieved data:\t", length(signif_tad_go_terms), " -> ", length(signif_tad_go_ic), "\n")
+        
+        signif_not_conserved_go_ic <- GO_IC[names(GO_IC) %in% signif_not_conserved_go_ids]
+        txt <- paste0(hicds, " - ", exprds, " - ... signif not conserved: found GO information content matching GO ids:\t", length(signif_not_conserved_go_ic), "/", length(signif_not_conserved_go_ids), "\n")
+        printAndLog(txt, logFile)
+        txt <- paste0(hicds, " - ", exprds, " - ... signif not conserved: total retrieved data:\t", length(signif_not_conserved_go_terms), " -> ", length(signif_not_conserved_go_ic), "\n")
         printAndLog(txt, logFile)
         
         
         
       } else {
-        txt <- paste0(hicds, " - ", exprds, " - ... TAD signif.: NULL \n")
+        txt <- paste0(hicds, " - ", exprds, " - ... signif not conserved.: NULL \n")
         printAndLog(txt, logFile)
-        signif_tad_go_ic <- NULL
+        signif_not_conserved_go_ic <- NULL
       }
       list(
-        nEnrichedGO_signif_limma = nEnrichedGO_signif_limma,
-        nEnrichedGO_signif_tads = nEnrichedGO_signif_tads,
-        signif_limma_go_ic = signif_limma_go_ic,
-        signif_tad_go_ic = signif_tad_go_ic
+        nEnrichedGO_signif_conserved = nEnrichedGO_signif_conserved,
+        nEnrichedGO_signif_not_conserved = nEnrichedGO_signif_not_conserved,
+        signif_conserved_go_ic = signif_conserved_go_ic,
+        signif_not_conserved_go_ic = signif_not_conserved_go_ic
       )
     } # end-foreach iterating over exprds
     names(exprds_list) <- file.path(hicds, all_exprds[[paste0(hicds)]])
@@ -184,12 +186,12 @@ if(buildTable) {
   all_go_ic_list <- get(load(outFile))
 }
 
-all_nGO_signif_tads <- unlist(lapply(all_go_ic_list, function(sublist) lapply(sublist, function(x) x[["nEnrichedGO_signif_tads"]])))
-all_nGO_signif_limma <- unlist(lapply(all_go_ic_list, function(sublist) lapply(sublist, function(x) x[["nEnrichedGO_signif_limma"]])))
+all_nGO_signif_not_conserved <- unlist(lapply(all_go_ic_list, function(sublist) lapply(sublist, function(x) x[["nEnrichedGO_signif_not_conserved"]])))
+all_nGO_signif_conserved <- unlist(lapply(all_go_ic_list, function(sublist) lapply(sublist, function(x) x[["nEnrichedGO_signif_conserved"]])))
 
 
-all_ic_signif_tads <- unlist(lapply(all_go_ic_list, function(sublist) lapply(sublist, function(x) x[["signif_tad_go_ic"]])))
-all_ic_signif_limma <- unlist(lapply(all_go_ic_list, function(sublist) lapply(sublist, function(x) x[["signif_limma_go_ic"]])))
+all_ic_signif_not_conserved <- unlist(lapply(all_go_ic_list, function(sublist) lapply(sublist, function(x) x[["signif_not_conserved_go_ic"]])))
+all_ic_signif_conserved <- unlist(lapply(all_go_ic_list, function(sublist) lapply(sublist, function(x) x[["signif_conserved_go_ic"]])))
 
 
 
@@ -197,25 +199,27 @@ all_ic_signif_limma <- unlist(lapply(all_go_ic_list, function(sublist) lapply(su
 
 plot_dt <- rbind(
   data.frame(
-    signif_type="tad_signif",
-    go_ic = as.numeric(all_ic_signif_tads),
+    signif_type="signif_not_conserved",
+    go_ic = as.numeric(all_ic_signif_not_conserved),
     stringsAsFactors = FALSE
   ),
   data.frame(
-    signif_type="limma_signif",
-  go_ic = as.numeric(all_ic_signif_limma),
+    signif_type="signif_conserved",
+  go_ic = as.numeric(all_ic_signif_conserved),
     stringsAsFactors = FALSE
   )
 )
 
 # save(plot_dt, file="plot_dt1.Rdata", version=2)
 
-notNa_tads <- sum(!is.na(plot_dt$go_ic[plot_dt$signif_type=="tad_signif"]))
-notNa_limma <- sum(!is.na(plot_dt$go_ic[plot_dt$signif_type=="limma_signif"]))
+notNa_signif_conserved <- sum(!is.na(plot_dt$go_ic[plot_dt$signif_type=="signif_conserved"]))
+notNa_signif_not_conserved <- sum(!is.na(plot_dt$go_ic[plot_dt$signif_type=="signif_not_conserved"]))
+
+subTit <- paste0("notNa_signif_conserved=", notNa_signif_conserved, "; notNa_signif_not_conserved=", notNa_signif_not_conserved)
 
 p <- ggdensity(plot_dt, 
                title = paste0("enriched GO IC"),
-               subtitle=paste0("notNa_tads=", notNa_tads, "; notNa_limma=", notNa_limma),
+               subtitle=paste0(subTit),
                x = "go_ic", 
                xlab="enriched GO IC",
                color = "signif_type", fill = "signif_type",
@@ -229,7 +233,7 @@ cat(paste0("... written: ", outFile,"\n"))
 
 p <- ggviolin(plot_dt, 
               title = paste0("enriched GO IC"),
-              subtitle=paste0("notNa_tads=", notNa_tads, "; notNa_limma=", notNa_limma),
+              subtitle=paste0(subTit),
               x="signif_type",
                y = "go_ic", 
                ylab="enriched GO IC",
@@ -251,25 +255,27 @@ cat(paste0("... written: ", outFile,"\n"))
 
 plot_dt <- rbind(
   data.frame(
-    signif_type="tad_signif",
-    nbr_GO = as.numeric(all_nGO_signif_tads),
+    signif_type="signif_not_conserved",
+    nbr_GO = as.numeric(all_nGO_signif_not_conserved),
     stringsAsFactors = FALSE
   ),
   data.frame(
-    signif_type="limma_signif",
-    nbr_GO = as.numeric(all_nGO_signif_limma),
+    signif_type="signif_conserved",
+    nbr_GO = as.numeric(all_nGO_signif_conserved),
     stringsAsFactors = FALSE
   )
 )
 
 # save(plot_dt, file="plot_dt2.Rdata", version=2)
 
-notNa_tads <- sum(!is.na(plot_dt$nbr_GO[plot_dt$signif_type=="tad_signif"]))
-notNa_limma <- sum(!is.na(plot_dt$nbr_GO[plot_dt$signif_type=="limma_signif"]))
+notNa_signif_conserved <- sum(!is.na(plot_dt$nbr_GO[plot_dt$signif_type=="signif_conserved"]))
+notNa_signif_not_conserved <- sum(!is.na(plot_dt$nbr_GO[plot_dt$signif_type=="signif_not_conserved"]))
+
+subTit <- paste0("notNa_signif_conserved=", notNa_signif_conserved, "; notNa_signif_not_conserved=", notNa_signif_not_conserved)
 
 p <- ggdensity(plot_dt, 
                title = paste0("# enriched GO"),
-               subtitle=paste0("notNa_tads=", notNa_tads, "; notNa_limma=", notNa_limma),
+               subtitle=paste0(subTit),
                x = "nbr_GO", 
                xlab="# enriched GO",
                color = "signif_type", fill = "signif_type",
@@ -284,7 +290,7 @@ cat(paste0("... written: ", outFile,"\n"))
 
 p <- ggviolin(plot_dt, 
               title = paste0("# enriched GO"),
-              subtitle=paste0("notNa_tads=", notNa_tads, "; notNa_limma=", notNa_limma),
+               subtitle=paste0(subTit),
               x="signif_type",
               y = "nbr_GO", 
               ylab="# enriched GO",
@@ -299,6 +305,53 @@ p <- p + scale_y_continuous(breaks = seq(0, max(na.omit(plot_dt$nbr_GO)), by = 2
 outFile <- file.path(outFolder, paste0("all_ds_nbr_enrichedGO_", file_suffix, "_violin.", plotType))
 ggsave(p, file = outFile, height=myHeightGG, width=myWidthGG)
 cat(paste0("... written: ", outFile,"\n"))
+
+
+######################################################################################
+stopifnot(names(all_nGO_signif_not_conserved) == names(all_nGO_signif_conserved))
+
+source("../Yuanlong_Cancer_HiC_data_TAD_DA/subtype_cols.R")
+
+plot_dt <- as.data.frame(cbind(all_nGO_signif_conserved, all_nGO_signif_not_conserved))
+plot_dt$exprds <- basename(rownames(plot_dt))
+
+plot_dt$hicds <- gsub("\\.", "/", rownames(plot_dt))
+
+plot_dt$hicds <- basename(dirname(plot_dt$hicds))
+
+plot_dt$ds_label <- paste0(plot_dt$hicds, "\n", plot_dt$exprds)
+
+stopifnot(plot_dt$exprds %in% names(all_cmps))
+
+plot_dt$cmpType <- all_cmps[paste0(plot_dt$exprds)]
+# plot_dt$cmpType <- factor(plot_dt$cmpType)
+plot_dt$cmpTypeCol <- ifelse(plot_dt$cmpType == "wt_vs_mut", "red", 
+                             ifelse(plot_dt$cmpType == "norm_vs_tumor", "blue",
+                                    ifelse(plot_dt$cmpType == "subtypes", "green", NA )))
+stopifnot(!is.na(plot_dt$cmpTypeCol))
+
+plot_dt$all_nGO_signif_conserved_log10 <- log10(plot_dt$all_nGO_signif_conserved)
+plot_dt$all_nGO_signif_not_conserved_log10 <- log10(plot_dt$all_nGO_signif_not_conserved)
+
+
+
+
+all_x <- c("all_nGO_signif_conserved", "all_nGO_signif_conserved_log10")
+all_y <- c("all_nGO_signif_not_conserved", "all_nGO_signif_not_conserved_log10")
+myx=all_x[1]
+myy=all_y[1]
+for(myx in all_x) {
+  for(myy in all_y) {
+    # p <- ggscatter(plot_dt, x =myx, y = myy)
+    p <- ggscatter(plot_dt, x =myx, y = myy, color = "cmpType", label="ds_label", palette=c("wt_vs_mut" = "red", "norm_vs_tumor"="blue", "subtypes"="green"))
+    p <- p + rremove("legend")
+    # p
+    outFile <- file.path(outFolder, paste0("all_ds_", myy, "_vs_", myx, "_scatterplot.", plotType))
+    ggsave(p, file = outFile, height=myHeightGG, width=myWidthGG)
+    cat(paste0("... written: ", outFile,"\n"))
+  }
+}
+
 
 
 ######################################################################################

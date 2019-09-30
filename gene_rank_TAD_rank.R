@@ -21,12 +21,12 @@ require(reshape2)
 registerDoMC(4)
 source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 
-buildTable <- TRUE
+buildTable <- FALSE
 
 plotType <- "png"
 myHeight <- ifelse(plotType=="png", 400, 7)
 myWidth <- myHeight
-axisCex <- 1.4
+axisCex <- 1.2
 
 myHeightHeat <- myHeight * 1.8
 myWidthHeat <- myWidth * 1.8
@@ -160,12 +160,98 @@ if(buildTable) {
   save(all_gene_tad_signif_dt, file = outFile, version=2)
   cat(paste0("... written: ", outFile, "\n"))
 } else {
+  # outFile <- "GENE_RANK_TAD_RANK/all_gene_tad_signif_dt.Rdata"
   outFile <- file.path(outFolder, paste0( "all_gene_tad_signif_dt.Rdata"))
   cat("... load data\n")
   all_gene_tad_signif_dt <- get(load(outFile))
 }
 
 
+
+###################################################################################### start plotting
+
+all_gene_tad_signif_dt$adj.P.Val_log10 <- -log10(all_gene_tad_signif_dt$adj.P.Val)
+all_gene_tad_signif_dt$tad_adjCombPval_log10 <- -log10(all_gene_tad_signif_dt$tad_adjCombPval)
+
+all_y <- c("logFC", "adj.P.Val",  "adj.P.Val_log10", "gene_rank")
+all_x <- c("tad_adjCombPval", "tad_adjCombPval_log10", "tad_rank")
+
+stopifnot(all_y %in% colnames(all_gene_tad_signif_dt))
+stopifnot(all_x %in% colnames(all_gene_tad_signif_dt))
+
+nDS <- length(unique(file.path(all_gene_tad_signif_dt$hicds, all_gene_tad_signif_dt$exprds)))
+
+xvar=all_x[1]
+yvar=all_y[1]
+for(xvar in all_x) {
+  for(yvar in all_y) {
+    
+    myx <- all_gene_tad_signif_dt[,paste0(xvar)]
+    myy <- all_gene_tad_signif_dt[,paste0(yvar)]
+    
+    outFile <- file.path(outFolder, paste0("allDS_", yvar, "_vs_", xvar, "_densplot.", plotType))    
+    do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+    densplot(
+      x = myx,
+      y = myy,
+      xlab = paste0(xvar),
+      ylab = paste0(yvar),
+      main = paste0(yvar, " vs. ", xvar),
+      cex.lab = axisCex,
+      cex.axis = axisCex
+    )
+    mtext(side=3, text=paste0("all DS; n = ", nDS))
+    addCorr(x=myx, y=myy, legPos = "topleft", bty="n")
+    foo <- dev.off()
+    cat(paste0("... written: ", outFile, "\n"))  
+  }  
+  
+
+    
+  
+  
+}
+
+
+tad_pval_thresh <- -log10(0.01)
+gene_pval_thresh <- -log10(0.05)
+
+xvar="tad_adjCombPval_log10"
+yvar="adj.P.Val_log10"
+
+myx <- all_gene_tad_signif_dt[,paste0(xvar)]
+myy <- all_gene_tad_signif_dt[,paste0(yvar)]
+
+all_gene_tad_signif_dt$dotCols <- ifelse( all_gene_tad_signif_dt[,paste0(xvar)] >= tad_pval_thresh & all_gene_tad_signif_dt[,paste0(yvar)] >= gene_pval_thresh, "red", 
+                                          ifelse( all_gene_tad_signif_dt[,paste0(xvar)] >= tad_pval_thresh & all_gene_tad_signif_dt[,paste0(yvar)] < gene_pval_thresh, "green", "grey"))
+
+outFile <- file.path(outFolder, paste0("allDS_", yvar, "_vs_", xvar, "_withThresh_densplot.", plotType))    
+do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+plot(
+  x = myx,
+  y = myy,
+  xlab = paste0(xvar),
+  ylab = paste0(yvar),
+  main = paste0(yvar, " vs. ", xvar),
+  col = all_gene_tad_signif_dt$dotCols,
+  pch=16,
+  cex=0.7,
+  cex.lab = axisCex,
+  cex.axis = axisCex
+)
+abline(h=gene_pval_thresh, lty=2, col="grey")
+abline(v=tad_pval_thresh, lty=2, col="grey")
+mtext(side=3, text=paste0("all DS; n = ", nDS))
+addCorr(x=myx, y=myy, legPos = "topleft", bty="n")
+legend("topright", 
+       legend=c(paste0("n=", sum(all_gene_tad_signif_dt$dotCols == "red")), paste0("n=", sum(all_gene_tad_signif_dt$dotCols == "green")), paste0("n=", sum(all_gene_tad_signif_dt$dotCols == "grey"))),
+       text.col = c("red", "green", "grey"),
+       bty="n"
+       )
+foo <- dev.off()
+cat(paste0("... written: ", outFile, "\n"))  
+
+  
 
 ######################################################################################
 ######################################################################################

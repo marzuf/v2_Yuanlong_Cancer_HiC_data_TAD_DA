@@ -41,6 +41,11 @@ if(length(args) == 0) {
   stop("error\n") 
 }
 
+
+tads_signifThresh <- 0.01
+genes_signifTresh <- 0.05
+
+
 buildTable <- TRUE
 
 plotType <- "png"
@@ -88,7 +93,7 @@ stopifnot(dir.exists(file.path(mainFolder, all_hicds)))
 all_exprds <- lapply(all_hicds, function(x) list.files(file.path(pipFolder, x)))
 names(all_exprds) <- all_hicds
 
-outFolder <- file.path("GO_SIGNIF_CONSERVED_NOTCONSERVED", data_cmpType)
+outFolder <- file.path("GO_SIGNIF_CONSERVED_NOTCONSERVED", data_cmpType, paste0("tadPvalThresh", tads_signifThresh, "_genePvalThresh", genes_signifTresh))
 dir.create(outFolder, recursive = TRUE)
 
 all_datasets <- unlist(lapply(1:length(all_exprds), function(x) file.path(names(all_exprds)[x], all_exprds[[x]])))
@@ -137,12 +142,49 @@ stopifnot(all_conserved_signif_tads %in% signif_tads)
 
 all_not_conserved_signif_tads <- signif_tads[! signif_tads %in% all_conserved_signif_tads]
 
+
+padjVarGO <- "p.adjust" # p.adjust or qvalue ???
+
+logFile <- file.path(outFolder, "go_signif_conserved_notConserved_logFile.txt")
+if(buildData) file.remove(logFile)
+
+barplot_vars <- c("foldEnrichment", "geneRatio", "log10_pval")
+barplot_vars_tit <- setNames(c("Fold enrichment", "Gene ratio", paste0("-log10(", padjVarGO,  ")")), barplot_vars)
+
+plotMaxBars <- 10
+
+padjVarGO_plotThresh <- 0.05
+
+
+
+# GO for BP nad MF [do not take c5_CC]
+if(enricher_ontologyType == "BP" | enricher_ontologyType == "MF" | enricher_ontologyType == "BP_MF"){
+  gmtFile <- file.path(setDir, "/mnt/ed4/marie/scripts/TAD_DE_pipeline_v2", paste0("c5.", tolower(enricher_ontologyType), ".v6.1.entrez.gmt"))
+} else {
+  stop(paste0(enricher_ontologyType, " is not a valid ontologyType\n"))
+}
+stopifnot(file.exists(gmtFile))
+c5_msigdb <- read.gmt(gmtFile)
+
+
+printAndLog <- function(txt, logFile=NULL) {
+  cat(txt)
+  cat(txt, file=logFile, append=T)
+}
+
+
+
+
+
+
+
+
 ####################################################################################################################################### >>> prepare the data
 if(buildTable) {
   cat("... start preparing data before matching \n")
   
   hicds = all_hicds[1]
-  all_gene_list <- foreach(hicds = all_hicds) %dopar% {
+  all_go_enrich_list <- foreach(hicds = all_hicds) %dopar% {
     
     hicds_file <- file.path(mainFolder, hicds, "genes2tad", "all_assigned_regions.txt")
     stopifnot(file.exists(hicds_file))
@@ -216,7 +258,7 @@ if(buildTable) {
       
       #***** 1) not_conserved_signif_tads_genes
       
-      cat(paste0("> start enricher for not_not_conserved_signif \n"))
+      cat(paste0("> start enricher for not_conserved_signif \n"))
       
       
       if(length(go_not_conserved_signif_tads_genes) > 0) {
@@ -331,8 +373,8 @@ if(buildTable) {
       
       
       list(
-        conserved_signif_enrich_resultDT=conserved_signif_enrich_resultDT,
-        not_conserved_signif_enrich_resultDT=not_conserved_signif_enrich_resultDT
+        conserved_signif_tads_genes_resultDT=conserved_signif_tads_genes_resultDT,
+        not_conserved_signif_tads_genes_resultDT=not_conserved_signif_tads_genes_resultDT
       )
     } # end-foreach iterating over exprds
     names(exprds_list) <- file.path(hicds, all_exprds[[paste0(hicds)]])

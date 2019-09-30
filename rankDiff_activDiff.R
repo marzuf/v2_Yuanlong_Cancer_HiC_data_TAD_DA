@@ -50,6 +50,10 @@ pipFolder <- file.path("PIPELINE", "OUTPUT_FOLDER")
 stopifnot(dir.exists(pipFolder))
 
 
+final_table_file <- file.path("CREATE_FINAL_TABLE/all_result_dt.Rdata")
+stopifnot(file.exists(final_table_file))
+final_table_DT <- get(load(final_table_file))
+
 
 ######################### PREPARE NORM DATA
 
@@ -81,12 +85,18 @@ norm_assigned_region_withRank_DT <- foreach(i=1:nrow(norm_assigned_region_DT),.c
   stopifnot(length(kpIdx) > 0)
   stopifnot(length(kpIdx) <= 2)
   curr_TADvalue <- mean(allChr_norm_rankDT$rankValue[kpIdx])
+  
+  curr_meanFC <- final_table_DT$meanLogFC[final_table_DT$hicds == hicds_norm & final_table_DT$exprds == exprds & final_table_DT$region == curr_region]
+  stopifnot(length(curr_meanFC) == 1)
+  stopifnot(!is.na(curr_meanFC) )
+  
   data.frame(
     chromo=curr_chromo,
     region=curr_region,
     start=curr_TADstart,
     end=curr_TADend,
     regionRank = curr_TADvalue,
+    normMeanFC = curr_meanFC,
     stringsAsFactors = FALSE
   )
 }
@@ -144,12 +154,20 @@ tumor_assigned_region_withRank_DT <- foreach(i=1:nrow(tumor_assigned_region_DT),
   stopifnot(length(kpIdx) > 0)
   stopifnot(length(kpIdx) <= 2)
   curr_TADvalue <- mean(allChr_tumor_rankDT$rankValue[kpIdx])
+  
+  
+  curr_meanFC <- final_table_DT$meanLogFC[final_table_DT$hicds == hicds_tumor & final_table_DT$exprds == exprds & final_table_DT$region == curr_region]
+  stopifnot(length(curr_meanFC) == 1)
+  stopifnot(!is.na(curr_meanFC) )
+  
+  
   data.frame(
     chromo=curr_chromo,
     region=curr_region,
     start=curr_TADstart,
     end=curr_TADend,
     regionRank = curr_TADvalue,
+    tumorMeanFC = curr_meanFC,
     stringsAsFactors = FALSE
   )
 }
@@ -203,6 +221,25 @@ foo <- dev.off()
 cat(paste0("... written: ", outFile, "\n"))
 
 
+outFile <- file.path(outFolder, paste0(hicds_norm, "_withMatching_", hicds_tumor, "_normMeanFC_vs_pval_", exprds, "_densplot.", plotType ))
+do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+densplot(
+  x = norm_matching_pval_tadRank_dt$normMeanFC,
+  y = norm_matching_pval_tadRank_dt$rankDiff,
+  main=paste0(exprds),
+  sub=paste0("norm as refDS"),
+  xlab=paste0("mean TAD logFC"),
+  ylab=paste0("best matching TAD rank diff."),
+  cex.axis=axisCex,
+  cex.lab=axisCex
+)
+abline(h=0, lty=2, col="grey")
+mtext(side=3, paste0(hicds_norm, " matching ", hicds_tumor))
+foo <- dev.off()
+cat(paste0("... written: ", outFile, "\n"))
+
+
+
 ###### MERGE RANK AND PVALS - tumor
 tumor_matching_pval_dt <- tumor_matching_pval_dt[,c("ref_hicds", "ref_exprds", "matching_hicds", "matching_exprds", "refID", matchingCol, "adjPval")]
 colnames(tumor_assigned_region_withRank_DT)[colnames(tumor_assigned_region_withRank_DT)==paste0(matchingCol)] <- "refID" # was matchingcol because of above
@@ -232,5 +269,36 @@ abline(h=0, lty=2, col="grey")
 mtext(side=3, paste0(hicds_tumor, " matching ", hicds_norm))
 foo <- dev.off()
 cat(paste0("... written: ", outFile, "\n"))
+
+
+
+outFile <- file.path(outFolder, paste0(hicds_tumor, "_withMatching_", hicds_norm, "_normMeanFC_vs_pval_", exprds, "_densplot.", plotType ))
+do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+densplot(
+  x = tumor_matching_pval_tadRank_dt$tumorMeanFC,
+  y = tumor_matching_pval_tadRank_dt$rankDiff,
+  main=paste0(exprds),
+  sub=paste0("tumor as refDS"),
+  xlab=paste0("mean TAD logFC"),
+  ylab=paste0("best matching TAD rank diff."),
+  cex.axis=axisCex,
+  cex.lab=axisCex
+)
+abline(h=0, lty=2, col="grey")
+mtext(side=3, paste0(hicds_tumor, " matching ", hicds_norm))
+foo <- dev.off()
+cat(paste0("... written: ", outFile, "\n"))
+
+
+
+
+######################################################################################
+######################################################################################
+######################################################################################
+cat(paste0("... written: ", logFile, "\n"))
+######################################################################################
+cat("*** DONE\n")
+cat(paste0(startTime, "\n", Sys.time(), "\n"))
+
 
 
