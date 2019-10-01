@@ -5,8 +5,10 @@ SSHFS=F
 
 cat("> START ", script_name, "\n")
 
-# Rscript go_specificity_conserved_notConserved.R 0.05 0.05
-# Rscript go_specificity_conserved_notConserved.R 0.01 0.05
+# Rscript go_specificity_conserved_notConserved.R 
+# Rscript go_specificity_conserved_notConserved.R norm_vs_tumor
+# Rscript go_specificity_conserved_notConserved.R subtypes
+# Rscript go_specificity_conserved_notConserved.R wt_vs_mut
 
 library(clusterProfiler)
 library(ontologySimilarity)
@@ -37,7 +39,7 @@ myWidthGG <- myHeightGG*1.2
 limmaCol <- "#00AFBB"
 tadCol <- "#FC4E07"
 
-buildTable <- FALSE
+buildTable <- TRUE
 
 mainFolder <- file.path(".")
 stopifnot(dir.exists(mainFolder))
@@ -52,12 +54,25 @@ names(all_exprds) <- all_hicds
 
 args <- commandArgs(trailingOnly = TRUE)
 
-tads_signifThresh <- args[1]
-genes_signifTresh <- args[2]
+cmpType <- "norm_vs_tumor"
+#tads_signifThresh <- args[1]
+#genes_signifTresh <- args[2]
+if(length(args) == 1) {
+  cmpType <- args[1]
+} else {
+  cmpType <- ""
+}
 
-cmpType <- ""
 
-outFolder <- file.path("GO_SPECIFICITY_CONSERVED_NOTCONSERVED", cmpType, paste0("tadPvalThresh", tads_signifThresh, "_genePvalThresh", genes_signifTresh))
+signif_column <- "adjPvalComb"
+signifThresh <- 0.01
+minOverlapBpRatio <- 0.8
+minIntersectGenes <- 3
+
+
+file_suffix <- paste0(signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes)
+
+outFolder <- file.path("GO_SPECIFICITY_CONSERVED_NOTCONSERVED", cmpType, file_suffix)
 dir.create(outFolder, recursive = TRUE)
 
 logFile <- file.path(outFolder, "go_specificity_conserved_notConserved_logFile.txt")
@@ -88,9 +103,8 @@ printAndLog(txt, logFile)
 txt <- paste0("... go_signifThresh\t=\t", go_signifThresh, "\n")
 printAndLog(txt, logFile)
 
-file_suffix <- paste0("tadPvalThresh", tads_signifThresh, "_genePvalThresh", genes_signifTresh)
 
-inFile <- file.path("GO_SIGNIF_CONSERVED_NOTCONSERVED", paste0("tadPvalThresh", tads_signifThresh, "_genePvalThresh", genes_signifTresh), "all_go_enrich_list.Rdata")
+inFile <- file.path("GO_SIGNIF_CONSERVED_NOTCONSERVED", cmpType, file_suffix, "all_go_enrich_list.Rdata")
 stopifnot(file.exists(inFile))
 all_go_enrich_list <- get(load(inFile))
 
@@ -133,6 +147,7 @@ if(buildTable) {
         txt <- paste0(hicds, " - ", exprds, " - ... signif conserved.: NULL \n")
         printAndLog(txt, logFile)
         
+        nEnrichedGO_signif_conserved <- 0
         signif_conserved_go_ic <- NULL
       }
       go_signif_not_conserved_dt <- all_go_enrich_list[[file.path(hicds, exprds)]][["not_conserved_signif_tads_genes_resultDT"]]
@@ -163,6 +178,7 @@ if(buildTable) {
       } else {
         txt <- paste0(hicds, " - ", exprds, " - ... signif not conserved.: NULL \n")
         printAndLog(txt, logFile)
+        nEnrichedGO_signif_not_conserved <- 0
         signif_not_conserved_go_ic <- NULL
       }
       list(

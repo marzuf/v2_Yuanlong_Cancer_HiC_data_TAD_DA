@@ -93,8 +93,7 @@ stopifnot(dir.exists(file.path(mainFolder, all_hicds)))
 all_exprds <- lapply(all_hicds, function(x) list.files(file.path(pipFolder, x)))
 names(all_exprds) <- all_hicds
 
-outFolder <- file.path("GO_SIGNIF_CONSERVED_NOTCONSERVED", data_cmpType, paste0("tadPvalThresh", tads_signifThresh, "_genePvalThresh", genes_signifTresh))
-dir.create(outFolder, recursive = TRUE)
+
 
 all_datasets <- unlist(lapply(1:length(all_exprds), function(x) file.path(names(all_exprds)[x], all_exprds[[x]])))
 
@@ -125,6 +124,9 @@ cat(paste0("> minOverlapBpRatio\t=\t", minOverlapBpRatio, "\n"))
 cat(paste0("> minIntersectGenes\t=\t", minIntersectGenes, "\n"))
 cat(paste0("> nRegionLolli\t=\t", nRegionLolli, "\n"))
 
+outFolder <- file.path("GO_SIGNIF_CONSERVED_NOTCONSERVED", data_cmpType, paste0(signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes))
+dir.create(outFolder, recursive = TRUE)
+
 
 inFolder <- file.path("TAD_MATCHING_SIGNIF_ACROSS_HICDS_ALLMATCH_v2", data_cmpType)
 stopifnot(dir.exists(inFolder))
@@ -136,6 +138,7 @@ conserved_signif_tads <- get(load(inFile))
 inFile <- file.path(inFolder, paste0(file_prefix, "signif_tads", signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, ".Rdata"))
 stopifnot(file.exists(inFile))
 signif_tads <- get(load(inFile))
+
 
 all_conserved_signif_tads <- unique(unlist(conserved_signif_tads))
 stopifnot(all_conserved_signif_tads %in% signif_tads)

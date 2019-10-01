@@ -2,6 +2,9 @@ options(scipen=100)
 
 SSHFS=F
 
+setDir <- "/media/electron"
+setDir <- ""
+
 # Rscript gene_rank_TAD_rank.R
 
 hicds="K562_40kb"
@@ -20,6 +23,13 @@ require(reshape2)
 # require(gplots)
 registerDoMC(4)
 source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
+
+entrez2symb_dt <- read.delim(file.path(setDir,
+                                       "/mnt/ed4/marie/entrez2synonym/entrez/ENTREZ_POS/gff_entrez_position_GRCh37p13_nodup.txt"),
+                             header=T, stringsAsFactors = FALSE)
+entrez2symb_dt$entrezID <- as.character(entrez2symb_dt$entrezID)
+entrez2symb <- setNames(entrez2symb_dt$symbol, entrez2symb_dt$entrezID)
+
 
 buildTable <- FALSE
 
@@ -59,9 +69,6 @@ all_datasets <- unlist(lapply(1:length(all_exprds), function(x) file.path(names(
 
 cat(paste0("n allDS = ", length(all_datasets), "\n"))
 
-
-
-
 outFolder <- file.path("GENE_RANK_TAD_RANK")
 dir.create(outFolder, recursive = TRUE)
 logFile <- file.path(outFolder, "gene_rank_TAD_rank_logFile.txt")
@@ -72,6 +79,15 @@ printAndLog <- function(txt, logFile=NULL) {
   cat(txt, file=logFile, append=T)
 }
 
+tad_signif_col <- "tad_adjCombPval"
+gene_signif_col <- "adj.P.Val"
+
+
+tad_pval_thresh <- 0.01
+gene_pval_thresh <- 0.05
+tad_pval_thresh_log10 <- -log10(tad_pval_thresh)
+gene_pval_thresh_log10 <- -log10(gene_pval_thresh)
+file_suffix <- paste0("tad_pval_thresh", tad_pval_thresh, "_gene_pval_thresh", gene_pval_thresh)
 
 
 ####################################################################################################################################### >>> prepare the data
@@ -170,11 +186,11 @@ if(buildTable) {
 
 ###################################################################################### start plotting
 
-all_gene_tad_signif_dt$adj.P.Val_log10 <- -log10(all_gene_tad_signif_dt$adj.P.Val)
-all_gene_tad_signif_dt$tad_adjCombPval_log10 <- -log10(all_gene_tad_signif_dt$tad_adjCombPval)
+all_gene_tad_signif_dt[, paste0(gene_signif_col, "_log10")] <- -log10(all_gene_tad_signif_dt[, paste0(gene_signif_col)])
+all_gene_tad_signif_dt[, paste0(tad_signif_col, "_log10")] <- -log10(all_gene_tad_signif_dt[, paste0(tad_signif_col)])
 
-all_y <- c("logFC", "adj.P.Val",  "adj.P.Val_log10", "gene_rank")
-all_x <- c("tad_adjCombPval", "tad_adjCombPval_log10", "tad_rank")
+all_y <- c("logFC", paste0(gene_signif_col), paste0(gene_signif_col, "_log10"), "gene_rank")
+all_x <- c(paste0(tad_signif_col), paste0(tad_signif_col, "_log10"), "tad_rank")
 
 stopifnot(all_y %in% colnames(all_gene_tad_signif_dt))
 stopifnot(all_x %in% colnames(all_gene_tad_signif_dt))
@@ -207,17 +223,11 @@ for(xvar in all_x) {
   }  
   
 
-    
-  
-  
 }
 
 
-tad_pval_thresh <- -log10(0.01)
-gene_pval_thresh <- -log10(0.05)
-
-xvar="tad_adjCombPval_log10"
-yvar="adj.P.Val_log10"
+xvar <- paste0(tad_signif_col, "_log10")
+yvar <- paste0(gene_signif_col, "_log10")
 
 myx <- all_gene_tad_signif_dt[,paste0(xvar)]
 myy <- all_gene_tad_signif_dt[,paste0(yvar)]
@@ -252,6 +262,80 @@ foo <- dev.off()
 cat(paste0("... written: ", outFile, "\n"))  
 
   
+###################################################################################### ZOOM PLOT SEPARATELY FOR EACH DATASET
+
+
+limmaMissed_dt <- all_gene_tad_signif_dt[all_gene_tad_signif_dt[,paste0(tad_signif_col)] <= tad_pval_thresh & all_gene_tad_signif_dt[,paste0(gene_signif_col)] > gene_pval_thresh,]
+limmaMissed_dt$dataset <- file.path(limmaMissed_dt$hicds, limmaMissed_dt$exprds)
+limmaMissed_dt$cmpType <- all_cmps[paste0(limmaMissed_dt$exprds)]
+stopifnot(!is.na(limmaMissed_dt$cmpType))
+stopifnot(limmaMissed_dt$entrezID %in% names(entrez2symb))
+all_entrez <- unique(as.character(limmaMissed_dt$entrezID))
+
+ds_collapse_dt <- aggregate(dataset ~ entrezID, data=limmaMissed_dt, FUN=function(x) paste0(sort(x), collapse=","))
+entrez2ds <- setNames(ds_collapse_dt$dataset, ds_collapse_dt$entrezID)
+
+entrez2nmiss <- setNames(as.numeric(table(limmaMissed_dt$entrezID)), names(table(limmaMissed_dt$entrezID)) )
+
+stopifnot(setequal(all_entrez, names(entrez2nmiss)))
+stopifnot(setequal(all_entrez, names(entrez2ds)))
+
+nLimmaMissed_dt <- data.frame(
+  entrezID = all_entrez,
+  gene_symbol = entrez2symb[paste0(all_entrez)],
+  nMissed = entrez2nmiss[paste0(all_entrez)],
+  dsMissed = entrez2ds[paste0(all_entrez)],
+  stringsAsFactors = FALSE
+)
+
+stopifnot(!is.na(nLimmaMissed_dt))
+
+nLimmaMissed_dt <- nLimmaMissed_dt[order(nLimmaMissed_dt$nMissed, decreasing=TRUE),]
+
+outFile <- file.path(outFolder, paste0(file_suffix, "_nLimaMissed_dt.txt"))
+write.table(nLimmaMissed_dt, col.names=TRUE, row.names=FALSE, sep="\t", quote=F, append=F, file=outFile)
+cat(paste0("... written: ", outFile, "\n"))
+
+
+all_cmpTypes <- unique(as.character(all_cmps))
+ct = all_cmpTypes[1]
+for(ct in all_cmpTypes) {
+  
+  ct_limmaMissed_dt <- limmaMissed_dt[limmaMissed_dt$cmpType == ct,]
+
+  ct_all_entrez <- unique(as.character(ct_limmaMissed_dt$entrezID))
+  
+  ct_ds_collapse_dt <- aggregate(dataset ~ entrezID, data=ct_limmaMissed_dt, FUN=function(x) paste0(sort(x), collapse=","))
+  ct_entrez2ds <- setNames(ct_ds_collapse_dt$dataset, ct_ds_collapse_dt$entrezID)
+  
+  ct_entrez2nmiss <- setNames(as.numeric(table(ct_limmaMissed_dt$entrezID)), names(table(ct_limmaMissed_dt$entrezID)) )
+  
+  stopifnot(setequal(ct_all_entrez, names(ct_entrez2nmiss)))
+  stopifnot(setequal(ct_all_entrez, names(ct_entrez2ds)))
+  
+  ct_nLimmaMissed_dt <- data.frame(
+    entrezID = ct_all_entrez,
+    gene_symbol = entrez2symb[paste0(ct_all_entrez)],
+    nMissed = ct_entrez2nmiss[paste0(ct_all_entrez)],
+    dsMissed = ct_entrez2ds[paste0(ct_all_entrez)],
+    stringsAsFactors = FALSE
+  )
+  stopifnot(!is.na(ct_nLimmaMissed_dt))
+  
+  ct_nLimmaMissed_dt <- ct_nLimmaMissed_dt[order(ct_nLimmaMissed_dt$nMissed, decreasing=TRUE),]
+
+  outFile <- file.path(outFolder, paste0(file_suffix, "_nLimaMissed_dt_", ct, ".txt"))
+  write.table(ct_nLimmaMissed_dt, col.names=TRUE, row.names=FALSE, sep="\t", quote=F, append=F, file=outFile)
+  cat(paste0("... written: ", outFile, "\n"))
+  
+
+  
+    
+  
+}
+
+
+
 
 ######################################################################################
 ######################################################################################
