@@ -98,6 +98,11 @@ for(dt in all_dt) {
   foo <- dev.off()
   cat(paste0("... written: ", outFile, "\n"))
   
+  outFile <- file.path(outFolder,paste0("all_ds_", dt, "_intersect_",padjVarGO, "_textTable", ".", "txt"))
+  write.table(data.frame(go=names(go_categories_count),count=go_categories_count,stringsAsFactors = FALSE), 
+              file = outFile, col.names=FALSE, row.names=FALSE, sep="\t", quote=F, append=F)
+  cat(paste0("... written: ", outFile, "\n"))
+  
 }
 
 all_cmp_names <- unique(all_cmps)
@@ -125,6 +130,12 @@ for(cmp in all_cmp_names){
     )
     mtext(side=3, text=paste0(padjVarGO, "<=",padjVarGO_plotThresh, " (top ", topCommonBars, ")"))
     foo <- dev.off()
+    cat(paste0("... written: ", outFile, "\n"))
+    
+    
+    outFile <- file.path(outFolder,paste0("all_ds_",cmp, "_", dt, "_intersect_",padjVarGO, "_textTable", ".", "txt"))
+    write.table(data.frame(go=names(go_categories_count),count=go_categories_count,stringsAsFactors = FALSE), 
+                file = outFile, col.names=FALSE, row.names=FALSE, sep="\t", quote=F, append=F)
     cat(paste0("... written: ", outFile, "\n"))
     
   }

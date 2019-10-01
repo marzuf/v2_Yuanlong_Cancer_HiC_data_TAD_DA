@@ -263,7 +263,109 @@ cat(paste0("... written: ", outFile, "\n"))
 
   
 ###################################################################################### ZOOM PLOT SEPARATELY FOR EACH DATASET
+limmaMissed_dt <- all_gene_tad_signif_dt[all_gene_tad_signif_dt[,paste0(tad_signif_col)] <= tad_pval_thresh & all_gene_tad_signif_dt[,paste0(gene_signif_col)] > gene_pval_thresh,]
 
+limmaMissed_dt$gene_symbol <- entrez2symb[paste0(limmaMissed_dt$entrezID)]
+stopifnot(!is.na(limmaMissed_dt$gene_symbol))
+
+all_y <- c("logFC", paste0(gene_signif_col), paste0(gene_signif_col, "_log10"), "gene_rank")
+all_x <- c(paste0(tad_signif_col), paste0(tad_signif_col, "_log10"), "tad_rank")
+
+stopifnot(all_y %in% colnames(limmaMissed_dt))
+stopifnot(all_x %in% colnames(limmaMissed_dt))
+
+nDS <- length(unique(file.path(limmaMissed_dt$hicds, limmaMissed_dt$exprds)))
+
+xvar=all_x[1]
+yvar=all_y[1]
+for(xvar in all_x) {
+  for(yvar in all_y) {
+    myx <- limmaMissed_dt[,paste0(xvar)]
+    myy <- limmaMissed_dt[,paste0(yvar)]
+    outFile <- file.path(outFolder, paste0("allDS_", yvar, "_vs_", xvar, "_subMissed_densplot.", plotType))    
+    do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+    densplot(
+      x = myx,
+      y = myy,
+      xlab = paste0(xvar),
+      ylab = paste0(yvar),
+      main = paste0(yvar, " vs. ", xvar),
+      cex.lab = axisCex,
+      cex.axis = axisCex
+    )
+    mtext(side=3, text=paste0("all DS; n = ", nDS))
+    addCorr(x=myx, y=myy, legPos = "topleft", bty="n")
+    foo <- dev.off()
+    cat(paste0("... written: ", outFile, "\n"))  
+  }  
+}
+
+
+
+yvar <- paste0(gene_signif_col, "_log10")
+xvar <- paste0(tad_signif_col, "_log10")
+nDS <- length(unique(file.path(limmaMissed_dt$hicds, limmaMissed_dt$exprds)))
+myx <- limmaMissed_dt[,paste0(xvar)]
+myy <- limmaMissed_dt[,paste0(yvar)]
+limmaMissed_dt$ds <- paste0(limmaMissed_dt$hicds,"_",limmaMissed_dt$exprds)
+outFile <- file.path(outFolder, paste0("allDS_", yvar, "_vs_", xvar, "_subMissed_label_scatter.", plotType))    
+do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+plot(
+  x = myx,
+  y = myy,
+  xlab = paste0(xvar),
+  ylab = paste0(yvar),
+  main = paste0(yvar, " vs. ", xvar),
+  col = "grey",
+  pch = 16,
+  cex=0.6,
+  cex.lab = axisCex,
+  cex.axis = axisCex
+)
+text(x=myx, y=myy, labels = limmaMissed_dt$gene_symbol, cex=0.6)
+mtext(side=3, text=paste0("all DS; n = ", nDS))
+addCorr(x=myx, y=myy, legPos = "topleft", bty="n")
+foo <- dev.off()
+cat(paste0("... written: ", outFile, "\n"))  
+
+
+yvar <- paste0(gene_signif_col, "_log10")
+xvar <- paste0(tad_signif_col, "_log10")
+ds = unique(limmaMissed_dt$ds)[1]
+for(ds in unique(limmaMissed_dt$ds)) {
+  sub_limmaMissed_dt <- limmaMissed_dt[limmaMissed_dt$ds == ds,]
+  nDS <- length(unique(file.path(sub_limmaMissed_dt$hicds, sub_limmaMissed_dt$exprds)))
+  stopifnot(nDS==1)
+  myx <- sub_limmaMissed_dt[,paste0(xvar)]
+  myy <- sub_limmaMissed_dt[,paste0(yvar)]
+  
+  outFile <- file.path(outFolder, paste0(ds, "_", yvar, "_vs_", xvar, "_subMissed_label_scatter.", plotType))    
+  do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+  plot(
+    x = myx,
+    y = myy,
+    xlab = paste0(xvar),
+    ylab = paste0(yvar),
+    main = paste0(yvar, " vs. ", xvar),
+    col = "grey",
+    pch = 16,
+    cex=0.6,
+    cex.lab = axisCex,
+    cex.axis = axisCex
+  )
+  text(x=myx, y=myy, labels = sub_limmaMissed_dt$gene_symbol, cex=0.6)
+  mtext(side=3, text=paste0(ds))
+  # addCorr(x=myx, y=myy, legPos = "topleft", bty="n")
+  foo <- dev.off()
+  cat(paste0("... written: ", outFile, "\n"))  
+  
+  
+}
+
+
+
+
+###################################################################################### TEXT TABLE
 
 limmaMissed_dt <- all_gene_tad_signif_dt[all_gene_tad_signif_dt[,paste0(tad_signif_col)] <= tad_pval_thresh & all_gene_tad_signif_dt[,paste0(gene_signif_col)] > gene_pval_thresh,]
 limmaMissed_dt$dataset <- file.path(limmaMissed_dt$hicds, limmaMissed_dt$exprds)
