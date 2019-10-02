@@ -1,7 +1,11 @@
 startTime <- Sys.time()
-cat(paste0("> Rscript cmp_GO_geneLevel_tadLevel_intersectDiff.R\n"))
+cat(paste0("> Rscript cmp_GO_conserved_notConserved_MF.R\n"))
 
-# Rscript cmp_GO_geneLevel_tadLevel_intersectDiff.R 0.01 0.05
+# Rscript cmp_GO_conserved_notConserved_MF.R 
+# Rscript cmp_GO_conserved_notConserved_MF.R norm_vs_tumor
+# Rscript cmp_GO_conserved_notConserved_MF.R subtypes
+# Rscript cmp_GO_conserved_notConserved_MF.R wt_vs_mut
+
 
 options(scipen=100)
 
@@ -12,9 +16,6 @@ registerDoMC(40)
 
 source("../Yuanlong_Cancer_HiC_data_TAD_DA/subtype_cols.R")
 
-
-outFolder <- file.path("CMP_GO_GENELEVEL_TADLEVEL_INTERSECTDIFF")
-dir.create(outFolder, recursive = TRUE)
 
 pipFolder <- file.path(".")
 
@@ -34,39 +35,39 @@ myWidth <- myHeight
 padjVarGO <- "p.adjust" # p.adjust or qvalue ???
 
 
-
-TAD_pvalThresh <- 0.01
-gene_pvalThresh <- 0.05
 args <- commandArgs(trailingOnly = TRUE)
-stopifnot(length(args) >= 2)
-TAD_pvalThresh <- args[1]
-gene_pvalThresh <- args[2]
-if(length(args) == 3) {
-  cmpType <- args[3]  
+if(length(args) == 1) {
+  cmpType <- args[1]
 } else {
   cmpType <- ""
 }
-
-
 
 setDir <- "/media/electron"
 setDir <- ""
 
 
-inFile <- file.path("GO_SIGNIF_GENELEVEL_TADLEVEL_INTERSECTDIFF", paste0("tadPvalThresh", TAD_pvalThresh, "_genePvalThresh", gene_pvalThresh), "all_go_enrich_list.Rdata")
-all_go_enrich_list <- get(load(inFile))
+signif_column <- "adjPvalComb"
+signifThresh <- 0.01
+minOverlapBpRatio <- 0.8
+minIntersectGenes <- 3
+file_suffix <- paste0(signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes)
 
+outFolder <- file.path("CMP_GO_CONSERVED_NOTCONSERVED_MF", cmpType, file_suffix)
+dir.create(outFolder, recursive = TRUE)
+
+
+
+inFile <- file.path("GO_SIGNIF_CONSERVED_NOTCONSERVED_MF", cmpType, file_suffix, "all_go_enrich_list.Rdata")
+stopifnot(file.exists(inFile))
+all_go_enrich_list <- get(load(inFile))
 
 signif_go_pvalThresh <- -log10(0.05)
 
 padjVarGO_plotThresh <- 0.05
 
 all_dt=c(
-"tadsOnly_signif_enrich_resultDT",
-"limmaOnly_signif_enrich_resultDT",
-"tad_signif_enrich_resultDT",
-"limma_signif_enrich_resultDT",
-"intersect_signif_enrich_resultDT"
+"conserved_signif_tads_genes_resultDT",
+"not_conserved_signif_tads_genes_resultDT"
 )
 
 dt = all_dt[1]
@@ -75,7 +76,9 @@ topCommonBars <- 10
 
 curr_dataset = names(all_go_enrich_list)[1]
 
-############################################################################################################################################################################ barplot count GO across ds
+
+###################################################################################### barplot signif count enriched GO across datasets conserved and not conserved
+
 
 all_types_signifGO <- foreach(dt = all_dt) %do% {
   all_go_categories <- foreach(curr_dataset = names(all_go_enrich_list)) %dopar% {
@@ -100,14 +103,11 @@ all_types_signifGO <- foreach(dt = all_dt) %do% {
   foo <- dev.off()
   cat(paste0("... written: ", outFile, "\n"))
   
-  
   outFile <- file.path(outFolder,paste0("all_ds_", dt, "_intersect_",padjVarGO, "_textTable", ".", "txt"))
   write.table(data.frame(go=names(go_categories_count),count=go_categories_count,stringsAsFactors = FALSE), 
               file = outFile, col.names=FALSE, row.names=FALSE, sep="\t", quote=F, append=F)
   cat(paste0("... written: ", outFile, "\n"))
-  
-  all_go_categories
-  
+  all_go_categories 
 }
 names(all_types_signifGO) <- all_dt
 
@@ -115,13 +115,11 @@ outFile <- file.path(outFolder,"all_types_signifGO.Rdata")
 save(all_types_signifGO, file = outFile, version=2)
 cat(paste0("... written: ", outFile, "\n"))
 
-
-############################################################################################################################################################################ same by cmpType
+###################################################################################### the same by cmpType
 
 if(cmpType == "") {
-  
   all_cmp_names <- unique(all_cmps)
-  cmp=all_cmp_names[2]
+  cmp=all_cmp_names[1]
   for(cmp in all_cmp_names){
     
     toKeepDS <- names(all_go_enrich_list)[basename(names(all_go_enrich_list)) %in% names(all_cmps)[all_cmps==cmp]]
@@ -153,93 +151,52 @@ if(cmpType == "") {
                   file = outFile, col.names=FALSE, row.names=FALSE, sep="\t", quote=F, append=F)
       cat(paste0("... written: ", outFile, "\n"))
       
-      
     }
   }
-  
+    
 }
-
-
 
 ###################################################################################### count common and intersect GO
 
 all_ds <- names(all_types_signifGO[[1]])
 stopifnot(setequal(names(all_types_signifGO[[1]]), names(all_types_signifGO[[2]])))
 
-# "tadsOnly_signif_enrich_resultDT",
-# "limmaOnly_signif_enrich_resultDT",
-# "tad_signif_enrich_resultDT",
-# "limma_signif_enrich_resultDT",
-# "intersect_signif_enrich_resultDT"
-
-
 
 all_ds_GOtypes_dt <- foreach(ds = all_ds, .combine='rbind') %dopar% {
   
   
-  tad_signif_go <- all_types_signifGO[["tad_signif_enrich_resultDT"]][[paste0(ds)]]
-  limma_signif_go <- all_types_signifGO[["limma_signif_enrich_resultDT"]][[paste0(ds)]]
+  conserved_signif_go <- all_types_signifGO[["conserved_signif_tads_genes_resultDT"]][[paste0(ds)]]
+  not_conserved_signif_go <- all_types_signifGO[["not_conserved_signif_tads_genes_resultDT"]][[paste0(ds)]]
   
+  conservedOnlyGO <- setdiff(conserved_signif_go, not_conserved_signif_go)
+  notConservedOnlyGO <- setdiff(not_conserved_signif_go, conserved_signif_go)
+  intersectGO <- intersect(conserved_signif_go, not_conserved_signif_go)
   
-  tadsOnly_signif_go <- all_types_signifGO[["tadsOnly_signif_enrich_resultDT"]][[paste0(ds)]]
-  limmaOnly_signif_go <- all_types_signifGO[["limmaOnly_signif_enrich_resultDT"]][[paste0(ds)]]
-  
-  tad_vs_limma_tadOnlyGO <- setdiff(tad_signif_go, limma_signif_go)
-  tad_vs_limma_limmaOnlyGO <- setdiff(limma_signif_go, tad_signif_go)
-  tad_vs_limma_intersectGO <- intersect(tad_signif_go, limma_signif_go)
-  
-  tadOnly_vs_limmaOnly_tadOnlyOnlyGO <- setdiff(tadsOnly_signif_go, limmaOnly_signif_go)
-  tadOnly_vs_limmaOnly_limmaOnlyOnlyGO <- setdiff(limmaOnly_signif_go, tadsOnly_signif_go)
-  tadOnly_vs_limmaOnly_intersectGO <- intersect(tadsOnly_signif_go, limmaOnly_signif_go)
-  
-  if(length(tad_vs_limma_tadOnlyGO) == 0) tad_vs_limma_tadOnlyGO <- NA
-  if(length(tad_vs_limma_limmaOnlyGO) == 0) tad_vs_limma_limmaOnlyGO <- NA
-  if(length(tad_vs_limma_intersectGO) == 0) tad_vs_limma_intersectGO <- NA
-  
-  if(length(tadOnly_vs_limmaOnly_tadOnlyOnlyGO) == 0) tadOnly_vs_limmaOnly_tadOnlyOnlyGO <- NA
-  if(length(tadOnly_vs_limmaOnly_limmaOnlyOnlyGO) == 0) tadOnly_vs_limmaOnly_limmaOnlyOnlyGO <- NA
-  if(length(tadOnly_vs_limmaOnly_intersectGO) == 0) tadOnly_vs_limmaOnly_intersectGO <- NA
-  
-  
+  if(length(intersectGO) == 0) intersectGO <- NA
+  if(length(notConservedOnlyGO) == 0) notConservedOnlyGO <- NA
+  if(length(conservedOnlyGO) == 0) conservedOnlyGO <- NA
   
   rbind(
     data.frame(
-      dataset = ds,
-      GO_type = "tad_vs_limma_tadOnlyGO",
-      GO_term = tad_vs_limma_tadOnlyGO,
-      stringsAsFactors = FALSE
-    ),
-    data.frame(
-      dataset = ds,
-      GO_type = "tad_vs_limma_limmaOnlyGO",
-      GO_term = tad_vs_limma_limmaOnlyGO,
-      stringsAsFactors = FALSE
-    ),
-    data.frame(
-      dataset = ds,
-      GO_type = "tad_vs_limma_intersectGO",
-      GO_term = tad_vs_limma_intersectGO,
-      stringsAsFactors = FALSE
-    ),
-    data.frame(
-      dataset = ds,
-      GO_type = "tadOnly_vs_limmaOnly_tadOnlyOnlyGO",
-      GO_term = tadOnly_vs_limmaOnly_tadOnlyOnlyGO,
-      stringsAsFactors = FALSE
-    ),
-    data.frame(
-      dataset = ds,
-      GO_type = "tadOnly_vs_limmaOnly_limmaOnlyOnlyGO",
-      GO_term = tadOnly_vs_limmaOnly_limmaOnlyOnlyGO,
-      stringsAsFactors = FALSE
-    ),
-    data.frame(
-      dataset = ds,
-      GO_type = "tadOnly_vs_limmaOnly_intersectGO",
-      GO_term = tadOnly_vs_limmaOnly_intersectGO,
-      stringsAsFactors = FALSE
-    )
+    dataset = ds,
+    GO_type = "conservedOnly",
+    GO_term = conservedOnlyGO,
+    stringsAsFactors = FALSE
+  ),
+  data.frame(
+    dataset = ds,
+    GO_type = "notConservedOnly",
+    GO_term = notConservedOnlyGO,
+    stringsAsFactors = FALSE
+  ),
+  data.frame(
+    dataset = ds,
+    GO_type = "intersectConservedNotConserved",
+    GO_term = intersectGO,
+    stringsAsFactors = FALSE
   )
+  )
+  
 }
 outFile <- file.path(outFolder,"all_ds_GOtypes_dt.Rdata")
 save(all_ds_GOtypes_dt, file = outFile, version=2)
@@ -269,9 +226,9 @@ for(gotype in unique(all_ds_GOtypes_dt_countDS$GO_type)) {
   foo <- dev.off()
   cat(paste0("... written: ", outFile, "\n"))
   
+
   
-  
-  
+    
   
 }
 
@@ -318,7 +275,7 @@ if(cmpType == "") {
       
       
     }
-  
+    
   }
   
 }

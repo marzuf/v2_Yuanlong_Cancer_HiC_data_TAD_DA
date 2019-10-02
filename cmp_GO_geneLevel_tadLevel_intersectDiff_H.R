@@ -1,7 +1,7 @@
 startTime <- Sys.time()
-cat(paste0("> Rscript cmp_GO_geneLevel_tadLevel_intersectDiff.R\n"))
+cat(paste0("> Rscript cmp_GO_geneLevel_tadLevel_intersectDiff_H.R\n"))
 
-# Rscript cmp_GO_geneLevel_tadLevel_intersectDiff.R 0.01 0.05
+# Rscript cmp_GO_geneLevel_tadLevel_intersectDiff_H.R 0.01 0.05
 
 options(scipen=100)
 
@@ -13,7 +13,7 @@ registerDoMC(40)
 source("../Yuanlong_Cancer_HiC_data_TAD_DA/subtype_cols.R")
 
 
-outFolder <- file.path("CMP_GO_GENELEVEL_TADLEVEL_INTERSECTDIFF")
+outFolder <- file.path("CMP_GO_GENELEVEL_TADLEVEL_INTERSECTDIFF_H")
 dir.create(outFolder, recursive = TRUE)
 
 pipFolder <- file.path(".")
@@ -53,7 +53,7 @@ setDir <- "/media/electron"
 setDir <- ""
 
 
-inFile <- file.path("GO_SIGNIF_GENELEVEL_TADLEVEL_INTERSECTDIFF", paste0("tadPvalThresh", TAD_pvalThresh, "_genePvalThresh", gene_pvalThresh), "all_go_enrich_list.Rdata")
+inFile <- file.path("GO_SIGNIF_GENELEVEL_TADLEVEL_INTERSECTDIFF_H", paste0("tadPvalThresh", TAD_pvalThresh, "_genePvalThresh", gene_pvalThresh), "all_go_enrich_list.Rdata")
 all_go_enrich_list <- get(load(inFile))
 
 
@@ -134,6 +134,7 @@ if(cmpType == "") {
       go_categories <- unlist(all_go_categories)
       go_categories_count <- setNames(as.numeric(table(go_categories)), names(table(go_categories)))
       go_categories_count <- sort(go_categories_count, decreasing = TRUE)
+if(length(go_categories_count) == 0) next
       outFile <- file.path(outFolder,paste0("all_ds_",cmp, "_", dt, "_intersect_",padjVarGO, "_barplot", ".", plotType))
       do.call(plotType, list(outFile, height = myHeight*1.2, width = myWidth*1.2))    
       par(oma=c(10,1,1,1))
@@ -254,6 +255,8 @@ for(gotype in unique(all_ds_GOtypes_dt_countDS$GO_type)) {
   sub_dt <- all_ds_GOtypes_dt_countDS[all_ds_GOtypes_dt_countDS$GO_type == gotype,]
   stopifnot(!duplicated(sub_dt$GO_term))
   go_categories_count <- setNames(sub_dt$dataset, sub_dt$GO_term)
+
+if(length(go_categories_count) == 0) next
   
   go_categories_count <- sort(go_categories_count, decreasing = TRUE)
   outFile <- file.path(outFolder,paste0("all_ds_count","_", gotype, "_", padjVarGO, "_barplot", ".", plotType))
@@ -298,6 +301,8 @@ if(cmpType == "") {
       sub_dt <- all_ds_GOtypes_dt_countDS[all_ds_GOtypes_dt_countDS$GO_type == gotype,]
       stopifnot(!duplicated(sub_dt$GO_term))
       go_categories_count <- setNames(sub_dt$dataset, sub_dt$GO_term)
+
+if(length(go_categories_count) == 0) next
       
       go_categories_count <- sort(go_categories_count, decreasing = TRUE)
       outFile <- file.path(outFolder,paste0("all_ds_count","_",cmp, "_",  gotype, "_", padjVarGO, "_barplot", ".", plotType))
