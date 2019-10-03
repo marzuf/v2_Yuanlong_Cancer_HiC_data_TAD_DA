@@ -300,7 +300,7 @@ for(xvar in all_x) {
   }  
 }
 
-
+###################################################################################### ZOOM PLOT SEPARATELY FOR EACH DATASET - signif. tad vs. signif. gene
 
 yvar <- paste0(gene_signif_col, "_log10")
 xvar <- paste0(tad_signif_col, "_log10")
@@ -316,6 +316,7 @@ plot(
   xlab = paste0(xvar),
   ylab = paste0(yvar),
   main = paste0(yvar, " vs. ", xvar),
+  sub=paste0("(n=",length(myx), ")"),
   col = "grey",
   pch = 16,
   cex=0.6,
@@ -347,6 +348,7 @@ for(ds in unique(limmaMissed_dt$ds)) {
     xlab = paste0(xvar),
     ylab = paste0(yvar),
     main = paste0(yvar, " vs. ", xvar),
+    sub=paste0("(n=",length(myx), ")"),
     col = "grey",
     pch = 16,
     cex=0.6,
@@ -358,9 +360,87 @@ for(ds in unique(limmaMissed_dt$ds)) {
   # addCorr(x=myx, y=myy, legPos = "topleft", bty="n")
   foo <- dev.off()
   cat(paste0("... written: ", outFile, "\n"))  
-  
-  
 }
+
+###################################################################################### ZOOM PLOT SEPARATELY FOR EACH DATASET - signif. tad vs. signif. gene - SAME BUT ONLY IF SIGN gene FC == sign TAD FC
+
+limmaMissed_dt <- all_gene_tad_signif_dt[all_gene_tad_signif_dt[,paste0(tad_signif_col)] <= tad_pval_thresh & all_gene_tad_signif_dt[,paste0(gene_signif_col)] > gene_pval_thresh,]
+
+final_dt <- get(load("CREATE_FINAL_TABLE/all_result_dt.Rdata"))
+
+fc_limmaMissed_dt <- merge(limmaMissed_dt, final_dt[,c("hicds", "exprds","region", "meanLogFC" )], by=c("hicds", "exprds",  "region"), all.x=TRUE, all.y=FALSE)
+stopifnot(!is.na(fc_limmaMissed_dt$meanLogFC))
+stopifnot(!is.na(fc_limmaMissed_dt$logFC))
+
+fc_limmaMissed_dt <- fc_limmaMissed_dt[sign(fc_limmaMissed_dt$meanLogFC) == sign(fc_limmaMissed_dt$logFC),]
+
+fc_limmaMissed_dt$gene_symbol <- entrez2symb[paste0(fc_limmaMissed_dt$entrezID)]
+stopifnot(!is.na(fc_limmaMissed_dt$gene_symbol))
+
+
+yvar <- paste0(gene_signif_col, "_log10")
+xvar <- paste0(tad_signif_col, "_log10")
+nDS <- length(unique(file.path(fc_limmaMissed_dt$hicds, fc_limmaMissed_dt$exprds)))
+myx <- fc_limmaMissed_dt[,paste0(xvar)]
+myy <- fc_limmaMissed_dt[,paste0(yvar)]
+fc_limmaMissed_dt$ds <- paste0(fc_limmaMissed_dt$hicds,"_",fc_limmaMissed_dt$exprds)
+outFile <- file.path(outFolder, paste0("allDS_", yvar, "_vs_", xvar, "_subMissed_label_scatter_sameFCsign.", plotType))    
+do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+plot(
+  x = myx,
+  y = myy,
+  xlab = paste0(xvar),
+  ylab = paste0(yvar),
+  main = paste0(yvar, " vs. ", xvar),
+  sub=paste0("(n=",length(myx), ") - gene FC sign == TAD FC sign"),
+  # sub = paste0("! only gene FC sign == TAD FC sign !"),
+  col = "grey",
+  pch = 16,
+  cex=0.6,
+  cex.lab = axisCex,
+  cex.axis = axisCex
+)
+text(x=myx, y=myy, labels = fc_limmaMissed_dt$gene_symbol, cex=0.6)
+mtext(side=3, text=paste0("all DS; n = ", nDS))
+addCorr(x=myx, y=myy, legPos = "topleft", bty="n")
+foo <- dev.off()
+cat(paste0("... written: ", outFile, "\n"))  
+
+
+yvar <- paste0(gene_signif_col, "_log10")
+xvar <- paste0(tad_signif_col, "_log10")
+ds = unique(fc_limmaMissed_dt$ds)[1]
+for(ds in unique(fc_limmaMissed_dt$ds)) {
+  sub_limmaMissed_dt <- fc_limmaMissed_dt[fc_limmaMissed_dt$ds == ds,]
+  nDS <- length(unique(file.path(sub_limmaMissed_dt$hicds, sub_limmaMissed_dt$exprds)))
+  stopifnot(nDS==1)
+  myx <- sub_limmaMissed_dt[,paste0(xvar)]
+  myy <- sub_limmaMissed_dt[,paste0(yvar)]
+  
+  outFile <- file.path(outFolder, paste0(ds, "_", yvar, "_vs_", xvar, "_subMissed_label_scatter_sameFCsign.", plotType))    
+  do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+  plot(
+    x = myx,
+    y = myy,
+    xlab = paste0(xvar),
+    ylab = paste0(yvar),
+    main = paste0(yvar, " vs. ", xvar),
+    sub=paste0("(n=",length(myx), ") - gene FC sign == TAD FC sign"),
+    # sub = paste0("! only gene FC sign == TAD FC sign !"),
+    col = "grey",
+    pch = 16,
+    cex=0.6,
+    cex.lab = axisCex,
+    cex.axis = axisCex
+  )
+  text(x=myx, y=myy, labels = sub_limmaMissed_dt$gene_symbol, cex=0.6)
+  mtext(side=3, text=paste0(ds))
+  # addCorr(x=myx, y=myy, legPos = "topleft", bty="n")
+  foo <- dev.off()
+  cat(paste0("... written: ", outFile, "\n"))  
+}
+
+
 
 
 
@@ -436,6 +516,91 @@ for(ct in all_cmpTypes) {
   
 }
 
+
+###################################################################################### TEXT TABLE - same sign only
+
+limmaMissed_dt <- all_gene_tad_signif_dt[all_gene_tad_signif_dt[,paste0(tad_signif_col)] <= tad_pval_thresh & all_gene_tad_signif_dt[,paste0(gene_signif_col)] > gene_pval_thresh,]
+
+
+final_dt <- get(load("CREATE_FINAL_TABLE/all_result_dt.Rdata"))
+
+limmaMissed_dt <- merge(limmaMissed_dt, final_dt[,c("hicds", "exprds","region", "meanLogFC" )], by=c("hicds", "exprds",  "region"), all.x=TRUE, all.y=FALSE)
+stopifnot(!is.na(limmaMissed_dt$meanLogFC))
+stopifnot(!is.na(limmaMissed_dt$logFC))
+
+limmaMissed_dt <- limmaMissed_dt[sign(limmaMissed_dt$meanLogFC) == sign(limmaMissed_dt$logFC),]
+
+limmaMissed_dt$gene_symbol <- entrez2symb[paste0(limmaMissed_dt$entrezID)]
+stopifnot(!is.na(limmaMissed_dt$gene_symbol))
+
+
+limmaMissed_dt$dataset <- file.path(limmaMissed_dt$hicds, limmaMissed_dt$exprds)
+limmaMissed_dt$cmpType <- all_cmps[paste0(limmaMissed_dt$exprds)]
+stopifnot(!is.na(limmaMissed_dt$cmpType))
+stopifnot(limmaMissed_dt$entrezID %in% names(entrez2symb))
+all_entrez <- unique(as.character(limmaMissed_dt$entrezID))
+
+ds_collapse_dt <- aggregate(dataset ~ entrezID, data=limmaMissed_dt, FUN=function(x) paste0(sort(x), collapse=","))
+entrez2ds <- setNames(ds_collapse_dt$dataset, ds_collapse_dt$entrezID)
+
+entrez2nmiss <- setNames(as.numeric(table(limmaMissed_dt$entrezID)), names(table(limmaMissed_dt$entrezID)) )
+
+stopifnot(setequal(all_entrez, names(entrez2nmiss)))
+stopifnot(setequal(all_entrez, names(entrez2ds)))
+
+nLimmaMissed_dt <- data.frame(
+  entrezID = all_entrez,
+  gene_symbol = entrez2symb[paste0(all_entrez)],
+  nMissed = entrez2nmiss[paste0(all_entrez)],
+  dsMissed = entrez2ds[paste0(all_entrez)],
+  stringsAsFactors = FALSE
+)
+
+stopifnot(!is.na(nLimmaMissed_dt))
+
+nLimmaMissed_dt <- nLimmaMissed_dt[order(nLimmaMissed_dt$nMissed, decreasing=TRUE),]
+
+outFile <- file.path(outFolder, paste0(file_suffix, "_nLimaMissed_dt_sameFCsign.txt"))
+write.table(nLimmaMissed_dt, col.names=TRUE, row.names=FALSE, sep="\t", quote=F, append=F, file=outFile)
+cat(paste0("... written: ", outFile, "\n"))
+
+
+all_cmpTypes <- unique(as.character(all_cmps))
+ct = all_cmpTypes[1]
+for(ct in all_cmpTypes) {
+  
+  ct_limmaMissed_dt <- limmaMissed_dt[limmaMissed_dt$cmpType == ct,]
+  
+  ct_all_entrez <- unique(as.character(ct_limmaMissed_dt$entrezID))
+  
+  ct_ds_collapse_dt <- aggregate(dataset ~ entrezID, data=ct_limmaMissed_dt, FUN=function(x) paste0(sort(x), collapse=","))
+  ct_entrez2ds <- setNames(ct_ds_collapse_dt$dataset, ct_ds_collapse_dt$entrezID)
+  
+  ct_entrez2nmiss <- setNames(as.numeric(table(ct_limmaMissed_dt$entrezID)), names(table(ct_limmaMissed_dt$entrezID)) )
+  
+  stopifnot(setequal(ct_all_entrez, names(ct_entrez2nmiss)))
+  stopifnot(setequal(ct_all_entrez, names(ct_entrez2ds)))
+  
+  ct_nLimmaMissed_dt <- data.frame(
+    entrezID = ct_all_entrez,
+    gene_symbol = entrez2symb[paste0(ct_all_entrez)],
+    nMissed = ct_entrez2nmiss[paste0(ct_all_entrez)],
+    dsMissed = ct_entrez2ds[paste0(ct_all_entrez)],
+    stringsAsFactors = FALSE
+  )
+  stopifnot(!is.na(ct_nLimmaMissed_dt))
+  
+  ct_nLimmaMissed_dt <- ct_nLimmaMissed_dt[order(ct_nLimmaMissed_dt$nMissed, decreasing=TRUE),]
+  
+  outFile <- file.path(outFolder, paste0(file_suffix, "_nLimaMissed_dt_", ct, "_sameFCsign.txt"))
+  write.table(ct_nLimmaMissed_dt, col.names=TRUE, row.names=FALSE, sep="\t", quote=F, append=F, file=outFile)
+  cat(paste0("... written: ", outFile, "\n"))
+  
+  
+  
+  
+  
+}
 
 
 

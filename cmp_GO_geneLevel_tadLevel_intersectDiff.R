@@ -201,7 +201,6 @@ all_ds_GOtypes_dt <- foreach(ds = all_ds, .combine='rbind') %dopar% {
   if(length(tadOnly_vs_limmaOnly_intersectGO) == 0) tadOnly_vs_limmaOnly_intersectGO <- NA
   
   
-  
   rbind(
     data.frame(
       dataset = ds,
@@ -269,11 +268,90 @@ for(gotype in unique(all_ds_GOtypes_dt_countDS$GO_type)) {
   foo <- dev.off()
   cat(paste0("... written: ", outFile, "\n"))
   
-  
-  
-  
+
   
 }
+
+
+# PLOT THE GO IC
+require(clusterProfiler)
+my_GO2TERM <- clusterProfiler:::get_GO2TERM_table()
+my_GO2TERM$term <- paste0("GO_", toupper(gsub(" ", "_", my_GO2TERM$Term)))
+require(ontologySimilarity)
+data(GO_IC)
+
+require(ggpubr)
+
+col1 <- get_palette("Dark2", 6)[1]
+col2 <- get_palette("Dark2", 6)[2]
+col3 <- get_palette("Dark2", 6)[3]
+col4 <- get_palette("Dark2", 6)[4]
+col5 <- get_palette("Dark2", 6)[5]
+col6 <- get_palette("Dark2", 6)[6]
+
+GO_term_id <- setNames(my_GO2TERM$term, my_GO2TERM$go_id)
+
+my_GO_IC <- GO_IC[names(GO_IC) %in% my_GO2TERM$go_id]
+stopifnot(names(my_GO_IC) %in% names(GO_term_id))
+names(my_GO_IC) <- GO_term_id[paste0(names(my_GO_IC))]
+
+all_ds_GOtypes_dt_ic <- all_ds_GOtypes_dt[all_ds_GOtypes_dt$GO_term %in% names(my_GO_IC),]
+all_ds_GOtypes_dt_ic$IC <- my_GO_IC[paste0(all_ds_GOtypes_dt_ic$GO_term)]
+stopifnot(!is.na(all_ds_GOtypes_dt_ic$IC))
+
+all_ds_GOtypes_dt_ic_count <- aggregate(GO_term ~ dataset+GO_type, data=all_ds_GOtypes_dt_ic, FUN=length)
+
+
+notNa_tadOnly <- sum(all_ds_GOtypes_dt_ic$GO_type=="tad_vs_limma_tadOnlyGO")
+notNa_limmaOnly <- sum(all_ds_GOtypes_dt_ic$GO_type=="tad_vs_limma_limmaOnlyGO")
+notNa_intersect <- sum(all_ds_GOtypes_dt_ic$GO_type=="tad_vs_limma_intersectGO")
+notNa_only_tadOnly <- sum(all_ds_GOtypes_dt_ic$GO_type=="tadOnly_vs_limmaOnly_tadOnlyOnlyGO")
+notNa_only_limmaOnly <- sum(all_ds_GOtypes_dt_ic$GO_type=="tadOnly_vs_limmaOnly_limmaOnlyOnlyGO")
+notNa_only_intersect <- sum(all_ds_GOtypes_dt_ic$GO_type=="tadOnly_vs_limmaOnly_intersectGO")
+
+
+subTit <- paste0("notNa_tadOnly=", notNa_tadOnly, "; notNa_limmaOnly=", notNa_limmaOnly, "; notNa_intersect=", notNa_intersect,
+                 "notNa_only_tadOnly=", notNa_only_tadOnly, "; notNa_only_limmaOnly=", notNa_only_limmaOnly, "; notNa_only_intersect=", notNa_only_intersect)
+                 
+p <- ggdensity(all_ds_GOtypes_dt_ic, 
+               title = paste0("enriched GO IC"),
+               subtitle=paste0(subTit),
+               x = "IC", 
+               xlab="enriched GO IC",
+               color = "GO_type", fill = "GO_type",
+               # add = "mean", rug = TRUE,
+               palette = c(col1, col2, col3, col4,col5,col6))
+
+outFile <- file.path(outFolder, paste0("all_ds_enrichedGO_IC_byGOtype_density.", "png"))
+ggsave(p, file = outFile, height=myHeightGG, width=myWidthGG)
+cat(paste0("... written: ", outFile,"\n"))
+
+notNa_tadOnly <- sum(all_ds_GOtypes_dt_ic_count$GO_type=="tad_vs_limma_tadOnlyGO")
+notNa_limmaOnly <- sum(all_ds_GOtypes_dt_ic_count$GO_type=="tad_vs_limma_limmaOnlyGO")
+notNa_intersect <- sum(all_ds_GOtypes_dt_ic_count$GO_type=="tad_vs_limma_intersectGO")
+notNa_only_tadOnly <- sum(all_ds_GOtypes_dt_ic_count$GO_type=="tadOnly_vs_limmaOnly_tadOnlyOnlyGO")
+notNa_only_limmaOnly <- sum(all_ds_GOtypes_dt_ic_count$GO_type=="tadOnly_vs_limmaOnly_limmaOnlyOnlyGO")
+notNa_only_intersect <- sum(all_ds_GOtypes_dt_ic_count$GO_type=="tadOnly_vs_limmaOnly_intersectGO")
+
+subTit <- paste0("notNa_tadOnly=", notNa_tadOnly, "; notNa_limmaOnly=", notNa_limmaOnly, "; notNa_intersect=", notNa_intersect,
+                 "notNa_only_tadOnly=", notNa_only_tadOnly, "; notNa_only_limmaOnly=", notNa_only_limmaOnly, "; notNa_only_intersect=", notNa_only_intersect)
+
+
+p <- ggdensity(all_ds_GOtypes_dt_ic_count, 
+               title = paste0("# enriched GO IC"),
+               subtitle=paste0(subTit),
+               x = "GO_term", 
+               xlab="# enriched GO IC",
+               color = "GO_type", fill = "GO_type",
+               # add = "mean", rug = TRUE,
+               palette = c(col1, col2, col3, col4,col5,col6))
+
+outFile <- file.path(outFolder, paste0("all_ds_nbrEnrichedGO_IC_byGOtype_density.", "png"))
+ggsave(p, file = outFile, height=myHeightGG, width=myWidthGG)
+cat(paste0("... written: ", outFile,"\n"))
+
+
+
 
 
 
@@ -318,6 +396,69 @@ if(cmpType == "") {
       
       
     }
+    
+    
+    
+    cmp_all_ds_GOtypes_dt_ic <- cmp_all_ds_GOtypes_dt[cmp_all_ds_GOtypes_dt$GO_term %in% names(my_GO_IC),]
+    cmp_all_ds_GOtypes_dt_ic$IC <- my_GO_IC[paste0(cmp_all_ds_GOtypes_dt_ic$GO_term)]
+    stopifnot(!is.na(cmp_all_ds_GOtypes_dt_ic$IC))
+    
+    cmp_all_ds_GOtypes_dt_ic_count <- aggregate(GO_term ~ dataset+GO_type, data=cmp_all_ds_GOtypes_dt_ic, FUN=length)
+    
+    
+    notNa_tadOnly <- sum(cmp_all_ds_GOtypes_dt_ic$GO_type=="tad_vs_limma_tadOnlyGO")
+    notNa_limmaOnly <- sum(cmp_all_ds_GOtypes_dt_ic$GO_type=="tad_vs_limma_limmaOnlyGO")
+    notNa_intersect <- sum(cmp_all_ds_GOtypes_dt_ic$GO_type=="tad_vs_limma_intersectGO")
+    notNa_only_tadOnly <- sum(cmp_all_ds_GOtypes_dt_ic$GO_type=="tadOnly_vs_limmaOnly_tadOnlyOnlyGO")
+    notNa_only_limmaOnly <- sum(cmp_all_ds_GOtypes_dt_ic$GO_type=="tadOnly_vs_limmaOnly_limmaOnlyOnlyGO")
+    notNa_only_intersect <- sum(cmp_all_ds_GOtypes_dt_ic$GO_type=="tadOnly_vs_limmaOnly_intersectGO")
+    
+    
+    subTit <- paste0("notNa_tadOnly=", notNa_tadOnly, "; notNa_limmaOnly=", notNa_limmaOnly, "; notNa_intersect=", notNa_intersect,
+                     "notNa_only_tadOnly=", notNa_only_tadOnly, "; notNa_only_limmaOnly=", notNa_only_limmaOnly, "; notNa_only_intersect=", notNa_only_intersect)
+    
+    p <- ggdensity(cmp_all_ds_GOtypes_dt_ic, 
+                   title = paste0("enriched GO IC - ", cmp),
+                   subtitle=paste0(subTit),
+                   x = "IC", 
+                   xlab="enriched GO IC",
+                   color = "GO_type", fill = "GO_type",
+                   # add = "mean", rug = TRUE,
+                   palette = c(col1, col2, col3, col4,col5,col6))
+    
+    outFile <- file.path(outFolder, paste0(cmp, "_enrichedGO_IC_byGOtype_density.", plotType))
+    ggsave(p, file = outFile, height=myHeightGG, width=myWidthGG)
+    cat(paste0("... written: ", outFile,"\n"))
+    
+    notNa_tadOnly <- sum(cmp_all_ds_GOtypes_dt_ic_count$GO_type=="tad_vs_limma_tadOnlyGO")
+    notNa_limmaOnly <- sum(cmp_all_ds_GOtypes_dt_ic_count$GO_type=="tad_vs_limma_limmaOnlyGO")
+    notNa_intersect <- sum(cmp_all_ds_GOtypes_dt_ic_count$GO_type=="tad_vs_limma_intersectGO")
+    notNa_only_tadOnly <- sum(cmp_all_ds_GOtypes_dt_ic_count$GO_type=="tadOnly_vs_limmaOnly_tadOnlyOnlyGO")
+    notNa_only_limmaOnly <- sum(cmp_all_ds_GOtypes_dt_ic_count$GO_type=="tadOnly_vs_limmaOnly_limmaOnlyOnlyGO")
+    notNa_only_intersect <- sum(cmp_all_ds_GOtypes_dt_ic_count$GO_type=="tadOnly_vs_limmaOnly_intersectGO")
+    
+    subTit <- paste0("notNa_tadOnly=", notNa_tadOnly, "; notNa_limmaOnly=", notNa_limmaOnly, "; notNa_intersect=", notNa_intersect,
+                     "notNa_only_tadOnly=", notNa_only_tadOnly, "; notNa_only_limmaOnly=", notNa_only_limmaOnly, "; notNa_only_intersect=", notNa_only_intersect)
+    
+    
+    p <- ggdensity(cmp_all_ds_GOtypes_dt_ic_count, 
+                   title = paste0("# enriched GO IC - ", cmp),
+                   subtitle=paste0(subTit),
+                   x = "GO_term", 
+                   xlab="# enriched GO IC",
+                   color = "GO_type", fill = "GO_type",
+                   # add = "mean", rug = TRUE,
+                   palette = c(col1, col2, col3, col4,col5,col6))
+    
+    outFile <- file.path(outFolder, paste0(cmp, "_nbrEnrichedGO_IC_byGOtype_density.", plotType))
+    ggsave(p, file = outFile, height=myHeightGG, width=myWidthGG)
+    cat(paste0("... written: ", outFile,"\n"))
+    
+    
+    
+    
+    
+    
   
   }
   
