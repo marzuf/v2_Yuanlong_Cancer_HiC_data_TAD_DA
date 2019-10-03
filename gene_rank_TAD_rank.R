@@ -20,6 +20,7 @@ require(foreach)
 require(doMC)
 require(RColorBrewer)
 require(reshape2)
+require(ggplot2)
 # require(gplots)
 registerDoMC(4)
 source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
@@ -42,7 +43,7 @@ myHeightHeat <- myHeight * 1.8
 myWidthHeat <- myWidth * 1.8
 
 myWidthGG <- 12
-myHeightGG <- 12
+myHeightGG <- 7
 
 source("../Yuanlong_Cancer_HiC_data_TAD_DA/subtype_cols.R")
 
@@ -601,6 +602,82 @@ for(ct in all_cmpTypes) {
   
   
 }
+
+
+
+
+###################################################################################### boxplot missed
+
+limmaMissed_dt <- all_gene_tad_signif_dt[all_gene_tad_signif_dt[,paste0(tad_signif_col)] <= tad_pval_thresh & all_gene_tad_signif_dt[,paste0(gene_signif_col)] > gene_pval_thresh,]
+
+final_dt <- get(load("CREATE_FINAL_TABLE/all_result_dt.Rdata"))
+
+limmaMissed_dt <- merge(limmaMissed_dt, final_dt[,c("hicds", "exprds","region", "meanLogFC" )], by=c("hicds", "exprds",  "region"), all.x=TRUE, all.y=FALSE)
+stopifnot(!is.na(limmaMissed_dt$meanLogFC))
+stopifnot(!is.na(limmaMissed_dt$logFC))
+
+limmaMissed_dt$sameGeneTADsign <- sign(limmaMissed_dt$meanLogFC) == sign(limmaMissed_dt$logFC)
+
+limmaMissed_dt$dataset <- paste0(limmaMissed_dt$hicds, "\n", limmaMissed_dt$exprds)
+
+count_limmaMissed_dt <- aggregate(entrezID ~ dataset + sameGeneTADsign, data=limmaMissed_dt, FUN=length)
+
+tmp <- count_limmaMissed_dt[count_limmaMissed_dt$sameGeneTADsign,]
+tmp <- tmp[order(tmp$entrezID, decreasing = TRUE),]
+ds_lev <- as.character(tmp$dataset)
+
+count_limmaMissed_dt$dataset <- factor(count_limmaMissed_dt$dataset, levels=ds_lev)
+stopifnot(!is.na(count_limmaMissed_dt$dataset))
+
+mycols <- all_cols[all_cmps[gsub(".+\n(.+)", "\\1", ds_lev)]]
+
+# ggbarplot(data=count_limmaMissed_dt, x = "dataset", y="entrezID", fill="sameGeneTADsign")
+# 
+# 
+# boxplot(entrezID~dataset+sameGeneTADsign, data=count_limmaMissed_dt)
+
+p_var <-  ggplot(count_limmaMissed_dt, aes(x = dataset, y = entrezID, fill = sameGeneTADsign)) + 
+  geom_bar(position="dodge", stat="identity") +
+  coord_cartesian(expand = FALSE) +
+  ggtitle("# limma missed genes", subtitle = paste0())+
+  scale_x_discrete(name="")+
+  # labs(fill="")+
+  scale_y_continuous(name=paste0("# genes"),
+                     breaks = scales::pretty_breaks(n = 10))+
+  # scale_fill_manual(values=c(fcc_auc=fcc_col, coexpr_auc=coexpr_col), labels=c("FCC", "coexpr."))+
+  # geom_hline(yintercept=1, linetype=2)+
+  theme( # Increase size of axis lines
+    # strip.text = element_text(size = 12),
+    # top, right, bottom and left
+    # plot.margin = unit(c(1, 1, 4.5, 1), "lines"),
+    plot.title = element_text(hjust = 0.5, face = "bold", size=16),
+    plot.subtitle = element_text(hjust = 0.5, face = "italic", size = 14),
+    panel.grid = element_blank(),
+    panel.grid.major.y = element_line(colour = "grey"),
+    panel.grid.minor.y = element_line(colour = "grey"),
+    # strip.text.x = element_text(size = 10),
+    axis.line.x = element_line(size = .2, color = "black"),
+    axis.line.y = element_line(size = .2, color = "black"),
+    axis.text.y = element_text(color="black", hjust=1,vjust = 0.5),
+    axis.text.x = element_text(color=mycols, hjust=1,vjust = 0.5, size=7, angle=90),
+    axis.ticks.x = element_blank(),
+    axis.title.y = element_text(color="black", size=12),
+    axis.title.x = element_blank(),
+    panel.border = element_blank(),
+    panel.background = element_rect(fill = "transparent"),
+    legend.background =  element_rect(),
+    # legend.key = element_blank(),
+    legend.title = element_text(face="bold")
+  )
+
+outFile <- file.path(outFolder, paste0("all_ds_nbr_limma_missed_genes_barplot.", plotType))
+ggsave(plot = p_var, filename = outFile, height=myHeightGG, width = myWidthGG)
+cat(paste0("... written: ", outFile, "\n"))
+
+
+
+
+
 
 
 
