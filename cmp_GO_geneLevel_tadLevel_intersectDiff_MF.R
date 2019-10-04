@@ -100,14 +100,12 @@ all_types_signifGO <- foreach(dt = all_dt) %do% {
   foo <- dev.off()
   cat(paste0("... written: ", outFile, "\n"))
   
-  
   outFile <- file.path(outFolder,paste0("all_ds_", dt, "_intersect_",padjVarGO, "_textTable", ".", "txt"))
   write.table(data.frame(go=names(go_categories_count),count=go_categories_count,stringsAsFactors = FALSE), 
               file = outFile, col.names=FALSE, row.names=FALSE, sep="\t", quote=F, append=F)
   cat(paste0("... written: ", outFile, "\n"))
   
   all_go_categories
-  
 }
 names(all_types_signifGO) <- all_dt
 
@@ -148,18 +146,13 @@ if(length(go_categories_count) == 0) next
       foo <- dev.off()
       cat(paste0("... written: ", outFile, "\n"))
       
-      
       outFile <- file.path(outFolder,paste0("all_ds_",cmp, "_", dt, "_intersect_",padjVarGO, "_textTable", ".", "txt"))
       write.table(data.frame(go=names(go_categories_count),count=go_categories_count,stringsAsFactors = FALSE), 
                   file = outFile, col.names=FALSE, row.names=FALSE, sep="\t", quote=F, append=F)
       cat(paste0("... written: ", outFile, "\n"))
-      
-      
     }
   }
-  
 }
-
 
 
 ###################################################################################### count common and intersect GO
@@ -173,14 +166,10 @@ stopifnot(setequal(names(all_types_signifGO[[1]]), names(all_types_signifGO[[2]]
 # "limma_signif_enrich_resultDT",
 # "intersect_signif_enrich_resultDT"
 
-
-
 all_ds_GOtypes_dt <- foreach(ds = all_ds, .combine='rbind') %dopar% {
-  
   
   tad_signif_go <- all_types_signifGO[["tad_signif_enrich_resultDT"]][[paste0(ds)]]
   limma_signif_go <- all_types_signifGO[["limma_signif_enrich_resultDT"]][[paste0(ds)]]
-  
   
   tadsOnly_signif_go <- all_types_signifGO[["tadsOnly_signif_enrich_resultDT"]][[paste0(ds)]]
   limmaOnly_signif_go <- all_types_signifGO[["limmaOnly_signif_enrich_resultDT"]][[paste0(ds)]]
@@ -200,8 +189,6 @@ all_ds_GOtypes_dt <- foreach(ds = all_ds, .combine='rbind') %dopar% {
   if(length(tadOnly_vs_limmaOnly_tadOnlyOnlyGO) == 0) tadOnly_vs_limmaOnly_tadOnlyOnlyGO <- NA
   if(length(tadOnly_vs_limmaOnly_limmaOnlyOnlyGO) == 0) tadOnly_vs_limmaOnly_limmaOnlyOnlyGO <- NA
   if(length(tadOnly_vs_limmaOnly_intersectGO) == 0) tadOnly_vs_limmaOnly_intersectGO <- NA
-  
-  
   
   rbind(
     data.frame(
@@ -246,8 +233,6 @@ outFile <- file.path(outFolder,"all_ds_GOtypes_dt.Rdata")
 save(all_ds_GOtypes_dt, file = outFile, version=2)
 cat(paste0("... written: ", outFile, "\n"))
 
-
-
 all_ds_GOtypes_dt_countDS <- aggregate(dataset ~ GO_type + GO_term, FUN=function(x) length(unique(x)), data=all_ds_GOtypes_dt)
 gotype = unique(all_ds_GOtypes_dt_countDS$GO_type)[1]
 for(gotype in unique(all_ds_GOtypes_dt_countDS$GO_type)) {
@@ -257,7 +242,6 @@ for(gotype in unique(all_ds_GOtypes_dt_countDS$GO_type)) {
   go_categories_count <- setNames(sub_dt$dataset, sub_dt$GO_term)
 
 if(length(go_categories_count) == 0) next
-  
   go_categories_count <- sort(go_categories_count, decreasing = TRUE)
   outFile <- file.path(outFolder,paste0("all_ds_count","_", gotype, "_", padjVarGO, "_barplot", ".", plotType))
   do.call(plotType, list(outFile, height = myHeight*1.2, width = myWidth*1.2))    
@@ -271,13 +255,7 @@ if(length(go_categories_count) == 0) next
   mtext(side=3, text=paste0(padjVarGO, "<=",padjVarGO_plotThresh, " (top ", topCommonBars, ")"))
   foo <- dev.off()
   cat(paste0("... written: ", outFile, "\n"))
-  
-  
-  
-  
-  
 }
-
 
 # PLOT THE GO IC
 require(clusterProfiler)
@@ -307,14 +285,12 @@ stopifnot(!is.na(all_ds_GOtypes_dt_ic$IC))
 
 all_ds_GOtypes_dt_ic_count <- aggregate(GO_term ~ dataset+GO_type, data=all_ds_GOtypes_dt_ic, FUN=length)
 
-
 notNa_tadOnly <- sum(all_ds_GOtypes_dt_ic$GO_type=="tad_vs_limma_tadOnlyGO")
 notNa_limmaOnly <- sum(all_ds_GOtypes_dt_ic$GO_type=="tad_vs_limma_limmaOnlyGO")
 notNa_intersect <- sum(all_ds_GOtypes_dt_ic$GO_type=="tad_vs_limma_intersectGO")
 notNa_only_tadOnly <- sum(all_ds_GOtypes_dt_ic$GO_type=="tadOnly_vs_limmaOnly_tadOnlyOnlyGO")
 notNa_only_limmaOnly <- sum(all_ds_GOtypes_dt_ic$GO_type=="tadOnly_vs_limmaOnly_limmaOnlyOnlyGO")
 notNa_only_intersect <- sum(all_ds_GOtypes_dt_ic$GO_type=="tadOnly_vs_limmaOnly_intersectGO")
-
 
 subTit <- paste0("notNa_tadOnly=", notNa_tadOnly, "; notNa_limmaOnly=", notNa_limmaOnly, "; notNa_intersect=", notNa_intersect,
                  "notNa_only_tadOnly=", notNa_only_tadOnly, "; notNa_only_limmaOnly=", notNa_only_limmaOnly, "; notNa_only_intersect=", notNa_only_intersect)
@@ -342,7 +318,6 @@ notNa_only_intersect <- sum(all_ds_GOtypes_dt_ic_count$GO_type=="tadOnly_vs_limm
 subTit <- paste0("notNa_tadOnly=", notNa_tadOnly, "; notNa_limmaOnly=", notNa_limmaOnly, "; notNa_intersect=", notNa_intersect,
                  "notNa_only_tadOnly=", notNa_only_tadOnly, "; notNa_only_limmaOnly=", notNa_only_limmaOnly, "; notNa_only_intersect=", notNa_only_intersect)
 
-
 p <- ggdensity(all_ds_GOtypes_dt_ic_count, 
                title = paste0("# enriched GO IC"),
                subtitle=paste0(subTit),
@@ -355,11 +330,6 @@ p <- ggdensity(all_ds_GOtypes_dt_ic_count,
 outFile <- file.path(outFolder, paste0("all_ds_nbrEnrichedGO_IC_byGOtype_density.", "png"))
 ggsave(p, file = outFile, height=myHeightGG, width=myWidthGG)
 cat(paste0("... written: ", outFile,"\n"))
-
-
-
-
-
 
 ############################################################################################################################################################################ same by cmpType
 
@@ -374,8 +344,6 @@ if(cmpType == "") {
     cmp_all_ds_GOtypes_dt <- all_ds_GOtypes_dt[all_ds_GOtypes_dt$dataset %in% toKeepDS,]
     
     all_ds_GOtypes_dt_countDS <- aggregate(dataset ~ GO_type + GO_term, FUN=function(x) length(unique(x)), data=cmp_all_ds_GOtypes_dt)
-    
-    
     
     for(gotype in unique(all_ds_GOtypes_dt_countDS$GO_type)) {
       
@@ -398,22 +366,12 @@ if(length(go_categories_count) == 0) next
       mtext(side=3, text=paste0(padjVarGO, "<=",padjVarGO_plotThresh, " (top ", topCommonBars, ")"))
       foo <- dev.off()
       cat(paste0("... written: ", outFile, "\n"))
-      
-      
-      
-      
-      
     }
-    
-    
-    
-    
     cmp_all_ds_GOtypes_dt_ic <- cmp_all_ds_GOtypes_dt[cmp_all_ds_GOtypes_dt$GO_term %in% names(my_GO_IC),]
     cmp_all_ds_GOtypes_dt_ic$IC <- my_GO_IC[paste0(cmp_all_ds_GOtypes_dt_ic$GO_term)]
     stopifnot(!is.na(cmp_all_ds_GOtypes_dt_ic$IC))
     
     cmp_all_ds_GOtypes_dt_ic_count <- aggregate(GO_term ~ dataset+GO_type, data=cmp_all_ds_GOtypes_dt_ic, FUN=length)
-    
     
     notNa_tadOnly <- sum(cmp_all_ds_GOtypes_dt_ic$GO_type=="tad_vs_limma_tadOnlyGO")
     notNa_limmaOnly <- sum(cmp_all_ds_GOtypes_dt_ic$GO_type=="tad_vs_limma_limmaOnlyGO")
@@ -421,7 +379,6 @@ if(length(go_categories_count) == 0) next
     notNa_only_tadOnly <- sum(cmp_all_ds_GOtypes_dt_ic$GO_type=="tadOnly_vs_limmaOnly_tadOnlyOnlyGO")
     notNa_only_limmaOnly <- sum(cmp_all_ds_GOtypes_dt_ic$GO_type=="tadOnly_vs_limmaOnly_limmaOnlyOnlyGO")
     notNa_only_intersect <- sum(cmp_all_ds_GOtypes_dt_ic$GO_type=="tadOnly_vs_limmaOnly_intersectGO")
-    
     
     subTit <- paste0("notNa_tadOnly=", notNa_tadOnly, "; notNa_limmaOnly=", notNa_limmaOnly, "; notNa_intersect=", notNa_intersect,
                      "notNa_only_tadOnly=", notNa_only_tadOnly, "; notNa_only_limmaOnly=", notNa_only_limmaOnly, "; notNa_only_intersect=", notNa_only_intersect)
@@ -449,7 +406,6 @@ if(length(go_categories_count) == 0) next
     subTit <- paste0("notNa_tadOnly=", notNa_tadOnly, "; notNa_limmaOnly=", notNa_limmaOnly, "; notNa_intersect=", notNa_intersect,
                      "notNa_only_tadOnly=", notNa_only_tadOnly, "; notNa_only_limmaOnly=", notNa_only_limmaOnly, "; notNa_only_intersect=", notNa_only_intersect)
     
-    
     p <- ggdensity(cmp_all_ds_GOtypes_dt_ic_count, 
                    title = paste0("# enriched GO IC - ", cmp),
                    subtitle=paste0(subTit),
@@ -462,13 +418,7 @@ if(length(go_categories_count) == 0) next
     outFile <- file.path(outFolder, paste0(cmp, "_nbrEnrichedGO_IC_byGOtype_density.", plotType))
     ggsave(p, file = outFile, height=myHeightGG, width=myWidthGG)
     cat(paste0("... written: ", outFile,"\n"))
-    
-    
-    
-    
-  
   }
-  
 }
 
 
