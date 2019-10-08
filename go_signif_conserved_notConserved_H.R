@@ -93,8 +93,6 @@ stopifnot(dir.exists(file.path(mainFolder, all_hicds)))
 all_exprds <- lapply(all_hicds, function(x) list.files(file.path(pipFolder, x)))
 names(all_exprds) <- all_hicds
 
-
-
 all_datasets <- unlist(lapply(1:length(all_exprds), function(x) file.path(names(all_exprds)[x], all_exprds[[x]])))
 
 cat(paste0("n allDS = ", length(all_datasets), "\n"))
@@ -127,7 +125,6 @@ cat(paste0("> nRegionLolli\t=\t", nRegionLolli, "\n"))
 outFolder <- file.path("GO_SIGNIF_CONSERVED_NOTCONSERVED_H", data_cmpType, paste0(signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes))
 dir.create(outFolder, recursive = TRUE)
 
-
 inFolder <- file.path("TAD_MATCHING_SIGNIF_ACROSS_HICDS_ALLMATCH_v2", data_cmpType)
 stopifnot(dir.exists(inFolder))
 
@@ -139,12 +136,10 @@ inFile <- file.path(inFolder, paste0(file_prefix, "signif_tads", signif_column, 
 stopifnot(file.exists(inFile))
 signif_tads <- get(load(inFile))
 
-
 all_conserved_signif_tads <- unique(unlist(conserved_signif_tads))
 stopifnot(all_conserved_signif_tads %in% signif_tads)
 
 all_not_conserved_signif_tads <- signif_tads[! signif_tads %in% all_conserved_signif_tads]
-
 
 padjVarGO <- "p.adjust" # p.adjust or qvalue ???
 
@@ -158,8 +153,6 @@ plotMaxBars <- 10
 
 padjVarGO_plotThresh <- 0.05
 
-
-
 # GO for BP nad MF [do not take c5_CC]
 enricher_ontologyType = "H"
 if(enricher_ontologyType == "BP" | enricher_ontologyType == "MF" | enricher_ontologyType == "BP_MF"){
@@ -172,18 +165,10 @@ if(enricher_ontologyType == "BP" | enricher_ontologyType == "MF" | enricher_onto
 stopifnot(file.exists(gmtFile))
 c5_msigdb <- read.gmt(gmtFile)
 
-
 printAndLog <- function(txt, logFile=NULL) {
   cat(txt)
   cat(txt, file=logFile, append=T)
 }
-
-
-
-
-
-
-
 
 ####################################################################################################################################### >>> prepare the data
 if(buildTable) {
@@ -209,7 +194,6 @@ if(buildTable) {
     exprds = all_exprds[[paste0(hicds)]][1]
     exprds_list <- foreach(exprds = all_exprds[[paste0(hicds)]]) %do% {
       
-      
       signif_tads <- final_dt$region[final_dt$hicds == hicds & final_dt$exprds == exprds & final_dt[, paste0(signifcol)] ]
       
       gene_file <- file.path(pipFolder, hicds, exprds, script0_name, "pipeline_geneList.Rdata")
@@ -232,17 +216,11 @@ if(buildTable) {
       # take only the data from signif TADs
       stopifnot(setequal(ref_g2t_dt$entrezID, geneList))
       
-      
       all_gene_tads <- setNames(file.path(hicds, exprds, ref_g2t_dt$region), ref_g2t_dt$entrezID)
-      
       conserved_signif_tads_genes <- names(all_gene_tads[all_gene_tads %in% all_conserved_signif_tads]) 
-      
       not_conserved_signif_tads_genes <- names(all_gene_tads[all_gene_tads %in% all_not_conserved_signif_tads]) 
-      
       stopifnot(length(intersect(conserved_signif_tads_genes, not_conserved_signif_tads_genes)) == 0)
-      
       not_signif_tads_genes <- geneList[!geneList %in% c(conserved_signif_tads_genes, not_conserved_signif_tads_genes) ]
-      
       length(conserved_signif_tads_genes) + length(not_conserved_signif_tads_genes) + length(not_signif_tads_genes) == length(geneList)
       
       # list(
@@ -265,7 +243,6 @@ if(buildTable) {
       #***** 1) not_conserved_signif_tads_genes
       
       cat(paste0("> start enricher for not_conserved_signif \n"))
-      
       
       if(length(go_not_conserved_signif_tads_genes) > 0) {
         
@@ -309,17 +286,12 @@ if(buildTable) {
         not_conserved_signif_tads_genes_resultDT <- data.frame(not_conserved_signif_tads_genes_resultDT)
         # not_conserved_signif_tads_genes_resultDT$hicds <- hicds
         # not_conserved_signif_tads_genes_resultDT$exprds <- exprds
-        
-        
       } else {
         not_conserved_signif_tads_genes_resultDT <- NULL
       }
-      
-      
       #***** 2) conserved_signif_tads_genes
       
       cat(paste0("> start enricher for not_conserved_signif \n"))
-      
       
       if(length(go_conserved_signif_tads_genes) > 0) {
         
@@ -363,21 +335,9 @@ if(buildTable) {
         conserved_signif_tads_genes_resultDT <- data.frame(conserved_signif_tads_genes_resultDT)
         # conserved_signif_tads_genes_resultDT$hicds <- hicds
         # conserved_signif_tads_genes_resultDT$exprds <- exprds
-        
-        
       } else {
         conserved_signif_tads_genes_resultDT <- NULL
       }
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
       list(
         conserved_signif_tads_genes_resultDT=conserved_signif_tads_genes_resultDT,
         not_conserved_signif_tads_genes_resultDT=not_conserved_signif_tads_genes_resultDT

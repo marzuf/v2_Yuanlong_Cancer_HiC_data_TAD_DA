@@ -3,7 +3,7 @@ options(scipen=100)
 SSHFS=F
 
 buildData <- TRUE
-
+# FOCUS OSN TAD !
 # Rscript rankDiff_activDiff.R <hicds_norm> <hicds_tumor> <exprds>
 # Rscript rankDiff_activDiff.R LI_40kb GSE105381_HepG2_40kb TCGAlihc_norm_lihc
 
@@ -22,7 +22,14 @@ hicds_norm <- "LI_40kb"
 hicds_tumor <- "GSE105381_HepG2_40kb"
 exprds <- "TCGAlihc_norm_lihc"
 
+hicds_norm <- "LG1_40kb"
+hicds_tumor <- "ENCSR489OCU_NCI-H460_40kb"
+exprds <- "TCGAlusc_norm_lusc"
+
 source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
+
+source("plot_lolliTAD_funct.R")
+source("my_heatmap.2.R")
 
 script0_name <- "0_prepGeneData"
 script11same_name <- "11sameNbr_runEmpPvalCombined"
@@ -53,6 +60,13 @@ stopifnot(dir.exists(pipFolder))
 final_table_file <- file.path("CREATE_FINAL_TABLE/all_result_dt.Rdata")
 stopifnot(file.exists(final_table_file))
 final_table_DT <- get(load(final_table_file))
+
+tadSignifThresh <- 0.01
+
+nPlotted <- 10
+
+
+matchingCol <- "matchingID_maxOverlapBp"
 
 
 ######################### PREPARE NORM DATA
@@ -111,7 +125,7 @@ norm_TAD_adjPvals_dt <- data.frame(refID = names(norm_TAD_adjPvals), adjPval=as.
 matching_dt$ref_hicds <- dirname(matching_dt$ref_dataset)
 matching_dt$ref_exprds <- basename(matching_dt$ref_dataset)
 matching_dt$matching_hicds <- dirname(matching_dt$matching_dataset)
-matching_dt$matching_exprds <- basename(matching_dt$ref_dataset)
+matching_dt$matching_exprds <- basename(matching_dt$matching_dataset)
 
 
 norm_matching_dt <- matching_dt[matching_dt$ref_exprds == exprds & 
@@ -122,7 +136,10 @@ norm_matching_dt <- matching_dt[matching_dt$ref_exprds == exprds &
 norm_matching_pval_dt <- merge(norm_matching_dt, norm_TAD_adjPvals_dt, by="refID")
 
 
-
+norm_matching_pval_dt <- norm_matching_pval_dt[!is.na(norm_matching_pval_dt[,paste0(matchingCol)]),]
+norm_matching_pval_dt <- norm_matching_pval_dt[order(norm_matching_pval_dt[, paste0(matchingCol)], decreasing = TRUE),]
+# nrow(norm_matching_pval_dt)
+stopifnot(!duplicated(norm_matching_pval_dt$refID))
 
 ######################### PREPARE TUMOR DATA
 
@@ -188,7 +205,12 @@ tumor_matching_dt <- matching_dt[matching_dt$ref_exprds == exprds &
 
 tumor_matching_pval_dt <- merge(tumor_matching_dt, tumor_TAD_adjPvals_dt, by="refID")
 
-matchingCol <- "matchingID_maxOverlapBp"
+tumor_matching_pval_dt <- tumor_matching_pval_dt[!is.na(tumor_matching_pval_dt[,paste0(matchingCol)]),]
+tumor_matching_pval_dt <- tumor_matching_pval_dt[order(tumor_matching_pval_dt[, paste0(matchingCol)], decreasing = TRUE),]
+# nrow(tumor_matching_pval_dt)
+stopifnot(!duplicated(tumor_matching_pval_dt$refID))
+
+
 
 ###### MERGE RANK AND PVALS - norm
 norm_matching_pval_dt <- norm_matching_pval_dt[,c("ref_hicds", "ref_exprds", "matching_hicds", "matching_exprds", "refID", matchingCol, "adjPval")]
@@ -202,42 +224,6 @@ colnames(norm_matching_pval_tadRank_dt)[colnames(norm_matching_pval_tadRank_dt) 
 norm_matching_pval_tadRank_dt <- unique(norm_matching_pval_tadRank_dt)
 
 norm_matching_pval_tadRank_dt$rankDiff <- norm_matching_pval_tadRank_dt$refID_rank - norm_matching_pval_tadRank_dt$matchingID_rank
-
-outFile <- file.path(outFolder, paste0(hicds_norm, "_withMatching_", hicds_tumor, "_rankDiff_vs_pval_", exprds, "_densplot.", plotType ))
-do.call(plotType, list(outFile, height=myHeight, width=myWidth))
-densplot(
-  x = -log10(norm_matching_pval_tadRank_dt$adjPval),
-  y = norm_matching_pval_tadRank_dt$rankDiff,
-  main=paste0(exprds),
-  sub=paste0("norm as refDS"),
-  xlab=paste0("-log10 TAD adj. pval"),
-  ylab=paste0("best matching TAD rank diff."),
-  cex.axis=axisCex,
-  cex.lab=axisCex
-)
-abline(h=0, lty=2, col="grey")
-mtext(side=3, paste0(hicds_norm, " matching ", hicds_tumor))
-foo <- dev.off()
-cat(paste0("... written: ", outFile, "\n"))
-
-
-outFile <- file.path(outFolder, paste0(hicds_norm, "_withMatching_", hicds_tumor, "_normMeanFC_vs_pval_", exprds, "_densplot.", plotType ))
-do.call(plotType, list(outFile, height=myHeight, width=myWidth))
-densplot(
-  x = norm_matching_pval_tadRank_dt$normMeanFC,
-  y = norm_matching_pval_tadRank_dt$rankDiff,
-  main=paste0(exprds),
-  sub=paste0("norm as refDS"),
-  xlab=paste0("mean TAD logFC"),
-  ylab=paste0("best matching TAD rank diff."),
-  cex.axis=axisCex,
-  cex.lab=axisCex
-)
-abline(h=0, lty=2, col="grey")
-mtext(side=3, paste0(hicds_norm, " matching ", hicds_tumor))
-foo <- dev.off()
-cat(paste0("... written: ", outFile, "\n"))
-
 
 
 ###### MERGE RANK AND PVALS - tumor
@@ -253,41 +239,168 @@ tumor_matching_pval_tadRank_dt <- unique(tumor_matching_pval_tadRank_dt)
 
 tumor_matching_pval_tadRank_dt$rankDiff <- tumor_matching_pval_tadRank_dt$refID_rank - tumor_matching_pval_tadRank_dt$matchingID_rank
 
-outFile <- file.path(outFolder, paste0(hicds_tumor, "_withMatching_", hicds_norm, "_rankDiff_vs_pval_", exprds, "_densplot.", plotType ))
-do.call(plotType, list(outFile, height=myHeight, width=myWidth))
-densplot(
-  x = -log10(tumor_matching_pval_tadRank_dt$adjPval),
-  y = tumor_matching_pval_tadRank_dt$rankDiff,
-  main=paste0(exprds),
-  sub=paste0("tumor as refDS"),
-  xlab=paste0("-log10 TAD adj. pval"),
-  ylab=paste0("best matching TAD rank diff."),
-  cex.axis=axisCex,
-  cex.lab=axisCex
-)
-abline(h=0, lty=2, col="grey")
-mtext(side=3, paste0(hicds_tumor, " matching ", hicds_norm))
-foo <- dev.off()
-cat(paste0("... written: ", outFile, "\n"))
 
+# save(tumor_matching_pval_tadRank_dt, file="")
 
+all_refs <- c("norm", "tumor")
+curr_ref <- "norm"
 
-outFile <- file.path(outFolder, paste0(hicds_tumor, "_withMatching_", hicds_norm, "_normMeanFC_vs_pval_", exprds, "_densplot.", plotType ))
-do.call(plotType, list(outFile, height=myHeight, width=myWidth))
-densplot(
-  x = tumor_matching_pval_tadRank_dt$tumorMeanFC,
-  y = tumor_matching_pval_tadRank_dt$rankDiff,
-  main=paste0(exprds),
-  sub=paste0("tumor as refDS"),
-  xlab=paste0("mean TAD logFC"),
-  ylab=paste0("best matching TAD rank diff."),
-  cex.axis=axisCex,
-  cex.lab=axisCex
-)
-abline(h=0, lty=2, col="grey")
-mtext(side=3, paste0(hicds_tumor, " matching ", hicds_norm))
-foo <- dev.off()
-cat(paste0("... written: ", outFile, "\n"))
+for(curr_ref in all_refs) {
+  
+  curr_hicds <- eval(parse(text = paste0("hicds_", curr_ref)))
+  curr_match <- all_refs[all_refs != curr_ref]
+  stopifnot(length(curr_match) == 1)
+  match_hicds <- eval(parse(text = paste0("hicds_", curr_match)))
+  
+  curr_dt <- eval(parse(text=paste0(curr_ref, "_matching_pval_tadRank_dt")))
+  
+  myx <- -log10(curr_dt$adjPval)
+  myy <- curr_dt$rankDiff
+  
+  outFile <- file.path(outFolder, paste0(curr_hicds, "_withMatching_", match_hicds, "_rankDiff_vs_pval_", exprds, "_densplot.", plotType ))
+  do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+  densplot(
+    x = myx,
+    y = myy,
+    main=paste0(exprds),
+    sub=paste0(curr_ref, " as refDS"),
+    xlab=paste0("-log10 TAD adj. pval"),
+    ylab=paste0("best matching TAD rank diff. (", curr_ref, "-", curr_match, ")"),
+    cex.axis=axisCex,
+    cex.lab=axisCex
+  )
+  addCorr(x = myx, y=myy, bty="n")
+  abline(h=0, lty=2, col="grey")
+  mtext(side=3, paste0(curr_hicds, " matching ", match_hicds))
+  foo <- dev.off()
+  cat(paste0("... written: ", outFile, "\n"))
+  
+  
+  myx <- curr_dt[, paste0(curr_ref, "MeanFC")]
+  
+  outFile <- file.path(outFolder, paste0(curr_hicds, "_withMatching_", match_hicds, "_", curr_ref, "MeanFC_vs_pval_", exprds, "_densplot.", plotType ))
+  do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+  densplot(
+    x = myx,
+    y = myy,
+    main=paste0(exprds),
+    sub=paste0(curr_ref, " as refDS"),
+    xlab=paste0("mean TAD logFC"),
+    ylab=paste0("best matching TAD rank diff. (", curr_ref, " - ", curr_match, ")"),
+    cex.axis=axisCex,
+    cex.lab=axisCex
+  )
+  addCorr(x = myx, y=myy, bty="n")
+  abline(h=0, lty=2, col="grey")
+  mtext(side=3, paste0(curr_hicds, " matching ", match_hicds))
+  foo <- dev.off()
+  cat(paste0("... written: ", outFile, "\n"))
+  
+  ###################################################################################### plot only signif TADs  
+  
+  signif_dt <- curr_dt[curr_dt$adjPval <= tadSignifThresh,]
+  
+  signif_dt <- signif_dt[order(abs(signif_dt$rankDiff), decreasing = TRUE),]
+  
+  myx <- -log10(signif_dt$adjPval)
+  myy <- signif_dt$rankDiff
+  
+  outFile <- file.path(outFolder, paste0(curr_hicds, "_withMatching_", match_hicds, "_rankDiff_vs_pval_", exprds, "_densplot_signifTADsOnly.", plotType ))
+  do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+  densplot(
+    x = myx,
+    y = myy,
+    main=paste0(exprds),
+    sub=paste0(curr_ref, " as refDS (tadPval<=", tadSignifThresh, ")" ),
+    xlab=paste0("-log10 TAD adj. pval"),
+    ylab=paste0("best matching TAD rank diff. (", curr_ref, "-", curr_match, ")"),
+    cex.axis=axisCex,
+    cex.lab=axisCex
+  )
+  text(x=myx[1:nPlotted], y=myy[1:nPlotted], labels = signif_dt$refID[1:nPlotted], cex=0.6)
+  
+  addCorr(x = myx, y=myy, bty="n")
+  abline(h=0, lty=2, col="grey")
+  mtext(side=3, paste0(curr_hicds, " matching ", match_hicds))
+  foo <- dev.off()
+  cat(paste0("... written: ", outFile, "\n"))
+  
+  
+  myx <- signif_dt[, paste0(curr_ref, "MeanFC")]
+  
+  outFile <- file.path(outFolder, paste0(curr_hicds, "_withMatching_", match_hicds, "_", curr_ref, "MeanFC_vs_pval_", exprds, "_densplot_siginfTADsOnly.", plotType ))
+  do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+  densplot(
+    x = myx,
+    y = myy,
+    main=paste0(exprds),
+    sub=paste0(curr_ref, " as refDS (tadPval<=", tadSignifThresh, ")" ),
+    xlab=paste0("mean TAD logFC"),
+    ylab=paste0("best matching TAD rank diff. (", curr_ref, " - ", curr_match, ")"),
+    cex.axis=axisCex,
+    cex.lab=axisCex
+  )
+  text(x=myx[1:nPlotted], y=myy[1:nPlotted], labels = signif_dt$refID[1:nPlotted], cex=0.6)
+  addCorr(x = myx, y=myy, bty="n")
+  abline(h=0, lty=2, col="grey")
+  mtext(side=3, paste0(curr_hicds, " matching ", match_hicds))
+  foo <- dev.off()
+  cat(paste0("... written: ", outFile, "\n"))
+  
+  
+  # save the file
+  out_signif_dt <- signif_dt[order(abs(signif_dt$rankDiff), decreasing=TRUE),]
+  
+
+  outCols <- c("ref_hicds", "matching_hicds", "ref_exprds", "refID", "rankDiff", "adjPval")
+  
+  out_signif_dt <- out_signif_dt[,outCols]
+  
+  out_signif_dt$rankDiff <- round(out_signif_dt$rankDiff, 4)
+  out_signif_dt$adjPval <- round(out_signif_dt$adjPval, 4)
+  
+  out_signif_dt$adjPval_rank <- rank(out_signif_dt$adjPval, ties="min")
+  
+  outFile <- file.path(outFolder, paste0(curr_hicds, "_withMatching_", match_hicds, "_", exprds, "_signifDT.txt" ))
+  write.table(out_signif_dt, col.names=TRUE, row.names=FALSE, sep="\t", quote=F, append=F, file =outFile)
+  cat(paste0("... written: ", outFile, "\n"))
+  
+  
+  plotList <- list()
+  
+  toplot_tads <- out_signif_dt$refID[1:nPlotted]
+  
+  # foo <- foreach(i_tad = 1:nPlotted) %dopar% {
+  for(i_tad in 1:nPlotted) {
+    
+
+    tad <- toplot_tads[i_tad]
+    
+    mytit <- paste0( curr_hicds, " - ", exprds, " - ", tad, "\n", "rankDiff=", round(out_signif_dt$rankDiff[i_tad], 2)," (adj. pval rank: ", out_signif_dt$adjPval_rank[i_tad], "/", max(out_signif_dt$adjPval_rank), ")")
+    
+    
+    plotList[[i_tad]] <- plot_lolliTAD_ds(exprds = exprds,
+                                          hicds = curr_hicds,
+                                          all_TADs = tad,
+                                          orderByLolli = "startPos", mytitle=mytit)
+  } # end-for iterating over TADs to plot
+  
+  outFile <- file.path(outFolder, paste0(curr_hicds, "_withMatching_", match_hicds, "_", exprds, "_rankDiff_top", nPlotted, ".", plotType))
+  
+  
+  mytit <- paste0("Top ", nPlotted, " rankDiff signif. TADs (<=",tadSignifThresh , ") - ", curr_hicds, " matching ", match_hicds, " (", exprds, ")")
+  all_plots <- do.call(grid.arrange, c(plotList,  list(ncol=ifelse(nPlotted == 1, 1, 2), top=textGrob(mytit, gp=gpar(fontsize=20,font=2)))))
+  outHeightGG <- min(c(7 * nPlotted/2, 49))
+  outHeightGG <- ifelse(nPlotted < 3, outHeightGG*1.5,outHeightGG)
+  outWidthGG <- ifelse(nPlotted == 1, 20/2, 20)
+  
+  ggsave(filename = outFile, all_plots, width=outWidthGG, height = outHeightGG)
+  cat("... written: ", outFile, "\n")
+  
+  # stop("--ok\n")
+  
+  
+}
 
 
 
@@ -295,7 +408,7 @@ cat(paste0("... written: ", outFile, "\n"))
 ######################################################################################
 ######################################################################################
 ######################################################################################
-cat(paste0("... written: ", logFile, "\n"))
+# cat(paste0("... written: ", logFile, "\n"))
 ######################################################################################
 cat("*** DONE\n")
 cat(paste0(startTime, "\n", Sys.time(), "\n"))

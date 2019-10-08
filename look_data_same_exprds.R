@@ -97,18 +97,18 @@ toKeepExprds <- xx$exprds[lengths(xx$hicds_can) > 1 ]
 
 # 39430        GSE118514_22Rv1_40kb TCGAprad_norm_prad         1
 # 38235        GSE118514_RWPE1_40kb TCGAprad_norm_prad         0
-
+# 
 
 # Rscript rankDiff_activDiff.R <hicds_norm> <hicds_tumor> <exprds>
-# Rscript rankDiff_activDiff.R LI_40kb GSE105381_HepG2_40kb TCGAlihc_norm_lihc
-# Rscript rankDiff_activDiff.R LG1_40kb ENCSR444WCZ_A549_40kb TCGAluad_norm_luad
-# Rscript rankDiff_activDiff.R LG2_40kb ENCSR444WCZ_A549_40kb TCGAluad_norm_luad
-# Rscript rankDiff_activDiff.R LG1_40kb ENCSR489OCU_NCI-H460_40kb TCGAluad_norm_luad
-# Rscript rankDiff_activDiff.R LG2_40kb ENCSR489OCU_NCI-H460_40kb TCGAluad_norm_luad
-# Rscript rankDiff_activDiff.R LG1_40kb ENCSR444WCZ_A549_40kb TCGAlusc_norm_lusc
-# Rscript rankDiff_activDiff.R LG2_40kb ENCSR444WCZ_A549_40kb TCGAlusc_norm_lusc
-# Rscript rankDiff_activDiff.R LG1_40kb ENCSR489OCU_NCI-H460_40kb TCGAlusc_norm_lusc
-# Rscript rankDiff_activDiff.R LG2_40kb ENCSR489OCU_NCI-H460_40kb TCGAlusc_norm_lusc
-# Rscript rankDiff_activDiff.R GSE118514_RWPE1_40kb ENCSR346DCU_LNCaP_40kb TCGAprad_norm_prad
-# Rscript rankDiff_activDiff.R GSE118514_RWPE1_40kb GSE118514_22Rv1_40kb TCGAprad_norm_prad
+ Rscript rankDiff_activDiff.R LI_40kb GSE105381_HepG2_40kb TCGAlihc_norm_lihc => ok
+ Rscript rankDiff_activDiff.R LG1_40kb ENCSR444WCZ_A549_40kb TCGAluad_norm_luad => ok
+ Rscript rankDiff_activDiff.R LG2_40kb ENCSR444WCZ_A549_40kb TCGAluad_norm_luad => ok
+ Rscript rankDiff_activDiff.R LG1_40kb ENCSR489OCU_NCI-H460_40kb TCGAluad_norm_luad => ok
+ Rscript rankDiff_activDiff.R LG2_40kb ENCSR489OCU_NCI-H460_40kb TCGAluad_norm_luad => ok
+ Rscript rankDiff_activDiff.R LG1_40kb ENCSR444WCZ_A549_40kb TCGAlusc_norm_lusc => ok
+ Rscript rankDiff_activDiff.R LG2_40kb ENCSR444WCZ_A549_40kb TCGAlusc_norm_lusc => ok
+ Rscript rankDiff_activDiff.R LG1_40kb ENCSR489OCU_NCI-H460_40kb TCGAlusc_norm_lusc => ok
+ Rscript rankDiff_activDiff.R LG2_40kb ENCSR489OCU_NCI-H460_40kb TCGAlusc_norm_lusc
+ Rscript rankDiff_activDiff.R GSE118514_RWPE1_40kb ENCSR346DCU_LNCaP_40kb TCGAprad_norm_prad => ok
+ Rscript rankDiff_activDiff.R GSE118514_RWPE1_40kb GSE118514_22Rv1_40kb TCGAprad_norm_prad => ok
 
