@@ -7,6 +7,7 @@ cat("> START ", script_name, "\n")
 
 # Rscript go_specificity_geneLevel_tadLevel_intersectDiff.R 0.05 0.05
 # Rscript go_specificity_geneLevel_tadLevel_intersectDiff.R 0.01 0.05
+# Rscript go_specificity_geneLevel_tadLevel_intersectDiff.R 0.01 0.01
 
 library(clusterProfiler)
 library(ontologySimilarity)
@@ -41,7 +42,7 @@ col4 <- get_palette("Dark2", 5)[4]
 col5 <- get_palette("Dark2", 5)[5]
 
 
-buildTable <- FALSE
+buildTable <- TRUE
 
 mainFolder <- file.path(".")
 stopifnot(dir.exists(mainFolder))
@@ -57,9 +58,9 @@ names(all_exprds) <- all_hicds
 args <- commandArgs(trailingOnly = TRUE)
 
 tads_signifThresh <- args[1]
-genes_signifTresh <- args[2]
+genes_signifThresh <- args[2]
 
-outFolder <- file.path("GO_SPECIFICITY_GENELEVEL_TADLEVEL_INTERSECTDIFF", paste0("tadPvalThresh", tads_signifThresh, "_genePvalThresh", genes_signifTresh))
+outFolder <- file.path("GO_SPECIFICITY_GENELEVEL_TADLEVEL_INTERSECTDIFF", paste0("tadPvalThresh", tads_signifThresh, "_genePvalThresh", genes_signifThresh))
 dir.create(outFolder, recursive = TRUE)
 
 logFile <- file.path(outFolder, "go_signif_geneLevel_tadLevel_logFile.txt")
@@ -90,9 +91,9 @@ printAndLog(txt, logFile)
 txt <- paste0("... go_signifThresh\t=\t", go_signifThresh, "\n")
 printAndLog(txt, logFile)
 
-file_suffix <- paste0("tadPvalThresh", tads_signifThresh, "_genePvalThresh", genes_signifTresh)
+file_suffix <- paste0("tadPvalThresh", tads_signifThresh, "_genePvalThresh", genes_signifThresh)
 
-inFile <- file.path("GO_SIGNIF_GENELEVEL_TADLEVEL_INTERSECTDIFF", paste0("tadPvalThresh", tads_signifThresh, "_genePvalThresh", genes_signifTresh), "all_go_enrich_list.Rdata")
+inFile <- file.path("GO_SIGNIF_GENELEVEL_TADLEVEL_INTERSECTDIFF", paste0("tadPvalThresh", tads_signifThresh, "_genePvalThresh", genes_signifThresh), "all_go_enrich_list.Rdata")
 stopifnot(file.exists(inFile))
 all_go_enrich_list <- get(load(inFile))
 
@@ -138,6 +139,8 @@ if(buildTable) {
         txt <- paste0(hicds, " - ", exprds, " - ... intersect signif.: NULL \n")
         printAndLog(txt, logFile)
         
+nEnrichedGO_signif_intersect <- NULL
+
         signif_intersect_go_ic <- NULL
       }
       
@@ -173,6 +176,8 @@ if(buildTable) {
         printAndLog(txt, logFile)
         
         signif_limmaOnly_go_ic <- NULL
+
+nEnrichedGO_signif_limmaOnly <- NULL
       }
       
       
@@ -211,6 +216,9 @@ if(buildTable) {
         txt <- paste0(hicds, " - ", exprds, " - ... TAD only signif.: NULL \n")
         printAndLog(txt, logFile)
         signif_tadOnly_go_ic <- NULL
+
+nEnrichedGO_signif_tadsOnly <- NULL
+
       }
       
       
@@ -246,6 +254,10 @@ if(buildTable) {
         printAndLog(txt, logFile)
         
         signif_limma_go_ic <- NULL
+
+nEnrichedGO_signif_limma <- NULL
+
+
       }
       
       ############# TAD
@@ -281,6 +293,9 @@ if(buildTable) {
         txt <- paste0(hicds, " - ", exprds, " - ... TAD signif.: NULL \n")
         printAndLog(txt, logFile)
         signif_tad_go_ic <- NULL
+
+nEnrichedGO_signif_tads <- NULL
+
       }
       
       

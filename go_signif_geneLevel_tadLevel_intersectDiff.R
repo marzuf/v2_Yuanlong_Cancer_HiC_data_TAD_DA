@@ -4,6 +4,8 @@ SSHFS=F
 
 # Rscript go_signif_geneLevel_tadLevel_intersectDiff.R <tadpval> <genepval>
 # Rscript go_signif_geneLevel_tadLevel_intersectDiff.R 0.01 0.05 
+# Rscript go_signif_geneLevel_tadLevel_intersectDiff.R 0.05 0.05 
+# Rscript go_signif_geneLevel_tadLevel_intersectDiff.R 0.01 0.01 
 
 hicds="K562_40kb"
 exprds="TCGAlaml_wt_mutFLT3"
@@ -27,7 +29,7 @@ source("plot_lolliTAD_funct.R")
 source("my_heatmap.2.R")
 
 
-buildTable <- FALSE
+buildTable <- TRUE
 
 plotType <- "png"
 myHeight <- ifelse(plotType=="png", 400, 7)
@@ -91,7 +93,7 @@ all_datasets <- unlist(lapply(1:length(all_exprds), function(x) file.path(names(
 cat(paste0("n allDS = ", length(all_datasets), "\n"))
 
 tads_signifThresh <- 0.05
-genes_signifTresh <- 0.05
+genes_signifThresh <- 0.05
 args <- commandArgs(trailingOnly = TRUE)
 stopifnot(length(args) == 2)
 tads_signifThresh <- as.numeric(args[1])
@@ -125,7 +127,11 @@ if(enricher_ontologyType == "BP" | enricher_ontologyType == "MF" | enricher_onto
 stopifnot(file.exists(gmtFile))
 c5_msigdb <- read.gmt(gmtFile)
 
-outFolder <- file.path("GO_SIGNIF_GENELEVEL_TADLEVEL_INTERSECTDIFF", paste0("tadPvalThresh", tads_signifThresh, "_genePvalThresh", genes_signifTresh))
+cat(paste0("tads_signifThresh = ", tads_signifThresh, "\n"))
+cat(paste0("genes_signifThresh = ", genes_signifThresh, "\n"))
+#stop("-ok\n")
+
+outFolder <- file.path("GO_SIGNIF_GENELEVEL_TADLEVEL_INTERSECTDIFF", paste0("tadPvalThresh", tads_signifThresh, "_genePvalThresh", genes_signifThresh))
 dir.create(outFolder, recursive = TRUE)
 logFile <- file.path(outFolder, "go_signif_geneLevel_tadLevel_intersectDiff_logFile.txt")
 if(buildTable) file.remove(logFile)
@@ -217,7 +223,7 @@ if(buildTable) {
       stopifnot(!is.na(topTable_DT$entrezID))
       stopifnot(!duplicated(topTable_DT$entrezID))
       
-      limma_signif_genes <- topTable_DT$entrezID[topTable_DT$adj.P.Val <= genes_signifTresh]
+      limma_signif_genes <- topTable_DT$entrezID[topTable_DT$adj.P.Val <= genes_signifThresh]
       stopifnot(limma_signif_genes %in% pipeline_geneList)
       
       
