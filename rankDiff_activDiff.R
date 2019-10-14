@@ -6,6 +6,17 @@ buildData <- TRUE
 # FOCUS OSN TAD !
 # Rscript rankDiff_activDiff.R <hicds_norm> <hicds_tumor> <exprds>
 # Rscript rankDiff_activDiff.R LI_40kb GSE105381_HepG2_40kb TCGAlihc_norm_lihc
+# Rscript rankDiff_activDiff.R LI_40kb GSE105381_HepG2_40kb TCGAlihc_norm_lihc => ok
+# Rscript rankDiff_activDiff.R LG1_40kb ENCSR444WCZ_A549_40kb TCGAluad_norm_luad => ok
+# Rscript rankDiff_activDiff.R LG2_40kb ENCSR444WCZ_A549_40kb TCGAluad_norm_luad => ok
+# Rscript rankDiff_activDiff.R LG1_40kb ENCSR489OCU_NCI-H460_40kb TCGAluad_norm_luad => ok
+# Rscript rankDiff_activDiff.R LG2_40kb ENCSR489OCU_NCI-H460_40kb TCGAluad_norm_luad => ok
+# Rscript rankDiff_activDiff.R LG1_40kb ENCSR444WCZ_A549_40kb TCGAlusc_norm_lusc => ok
+# Rscript rankDiff_activDiff.R LG2_40kb ENCSR444WCZ_A549_40kb TCGAlusc_norm_lusc => ok
+# Rscript rankDiff_activDiff.R LG1_40kb ENCSR489OCU_NCI-H460_40kb TCGAlusc_norm_lusc => ok
+# Rscript rankDiff_activDiff.R LG2_40kb ENCSR489OCU_NCI-H460_40kb TCGAlusc_norm_lusc
+# Rscript rankDiff_activDiff.R GSE118514_RWPE1_40kb ENCSR346DCU_LNCaP_40kb TCGAprad_norm_prad => ok
+# Rscript rankDiff_activDiff.R GSE118514_RWPE1_40kb GSE118514_22Rv1_40kb TCGAprad_norm_prad => ok
 
 
 script_name <- "rankDiff_activDiff.R"
@@ -30,6 +41,7 @@ source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 
 source("plot_lolliTAD_funct.R")
 source("my_heatmap.2.R")
+source("annotated_TADs.R"); stopifnot(exists("annotated_tads"))
 
 script0_name <- "0_prepGeneData"
 script11same_name <- "11sameNbr_runEmpPvalCombined"
@@ -47,7 +59,7 @@ hicds_tumor <- args[2]
 exprds <- args[3]
 
 
-inFile <- "TAD_MATCHING_ACROSS_HICDS/all_matching_dt.Rdata"
+inFile <- file.path("TAD_MATCHING_ACROSS_HICDS", "all_matching_dt.Rdata")
 matching_dt <- get(load(inFile))
 
 outFolder <- file.path("RANKDIFF_ACTIVDIFF")
@@ -239,8 +251,15 @@ tumor_matching_pval_tadRank_dt <- unique(tumor_matching_pval_tadRank_dt)
 
 tumor_matching_pval_tadRank_dt$rankDiff <- tumor_matching_pval_tadRank_dt$refID_rank - tumor_matching_pval_tadRank_dt$matchingID_rank
 
+outFile <- file.path(outFolder, "tumor_matching_pval_tadRank_dt.Rdata")
+save(tumor_matching_pval_tadRank_dt, file=outFile, version = 2)
+cat(paste0("... written: ", outFile, "\n"))
+# tumor_matching_pval_tadRank_dt <- get(load(outFile))
 
-# save(tumor_matching_pval_tadRank_dt, file="")
+outFile <- file.path(outFolder, "norm_matching_pval_tadRank_dt.Rdata")
+save(norm_matching_pval_tadRank_dt, file=outFile, version = 2)
+cat(paste0("... written: ", outFile, "\n"))
+# norm_matching_pval_tadRank_dt <- get(load(outFile))
 
 all_refs <- c("norm", "tumor")
 curr_ref <- "norm"
@@ -253,6 +272,8 @@ for(curr_ref in all_refs) {
   match_hicds <- eval(parse(text = paste0("hicds_", curr_match)))
   
   curr_dt <- eval(parse(text=paste0(curr_ref, "_matching_pval_tadRank_dt")))
+  
+  curr_dt$textCol <- ifelse( file.path(curr_dt$ref_hicds, curr_dt$ref_exprds, curr_dt$refID) %in% annotated_tads, "red", "black" )
   
   myx <- -log10(curr_dt$adjPval)
   myy <- curr_dt$rankDiff
@@ -317,11 +338,20 @@ for(curr_ref in all_refs) {
     cex.axis=axisCex,
     cex.lab=axisCex
   )
-  text(x=myx[1:nPlotted], y=myy[1:nPlotted], labels = signif_dt$refID[1:nPlotted], cex=0.6)
+  # add text label for the top rankDiff
+  text(x=myx[1:nPlotted], y=myy[1:nPlotted], labels = signif_dt$refID[1:nPlotted], cex=0.6, col = signif_dt$textCol[1:nPlotted], pos=3)
+  
   
   addCorr(x = myx, y=myy, bty="n")
   abline(h=0, lty=2, col="grey")
   mtext(side=3, paste0(curr_hicds, " matching ", match_hicds))
+  # add text label for the top pvals
+  signif_dt_sortPval <- signif_dt[order(signif_dt$adjPval),]
+  myx_sortPval <- -log10(signif_dt_sortPval$adjPval)
+  myy_sortPval <- signif_dt_sortPval$rankDiff
+  signif_dt_sortPval$textCol <- ifelse( file.path(signif_dt_sortPval$ref_hicds, signif_dt_sortPval$ref_exprds, signif_dt_sortPval$refID) %in% annotated_tads, "red", "darkgrey" )
+  text(x=myx_sortPval[1:nPlotted], y=myy_sortPval[1:nPlotted], labels = signif_dt_sortPval$refID[1:nPlotted], cex=0.6, col = signif_dt_sortPval$textCol[1:nPlotted], pos=3)
+  
   foo <- dev.off()
   cat(paste0("... written: ", outFile, "\n"))
   
@@ -340,10 +370,19 @@ for(curr_ref in all_refs) {
     cex.axis=axisCex,
     cex.lab=axisCex
   )
-  text(x=myx[1:nPlotted], y=myy[1:nPlotted], labels = signif_dt$refID[1:nPlotted], cex=0.6)
+  text(x=myx[1:nPlotted], y=myy[1:nPlotted], labels = signif_dt$refID[1:nPlotted], cex=0.6, col = signif_dt$textCol[1:nPlotted])
   addCorr(x = myx, y=myy, bty="n")
   abline(h=0, lty=2, col="grey")
   mtext(side=3, paste0(curr_hicds, " matching ", match_hicds))
+  
+  # add text label for the top pvals
+  signif_dt_sortPval <- signif_dt[order(signif_dt$adjPval),]
+  myx_sortPval <- signif_dt_sortPval[, paste0(curr_ref, "MeanFC")]
+  myy_sortPval <- signif_dt_sortPval$rankDiff
+  signif_dt_sortPval$textCol <- ifelse( file.path(signif_dt_sortPval$ref_hicds, signif_dt_sortPval$ref_exprds, signif_dt_sortPval$refID) %in% annotated_tads, "red", "darkgrey" )
+  text(x=myx_sortPval[1:nPlotted], y=myy_sortPval[1:nPlotted], labels = signif_dt_sortPval$refID[1:nPlotted], cex=0.6, col = signif_dt_sortPval$textCol[1:nPlotted], pos=3)
+  
+  
   foo <- dev.off()
   cat(paste0("... written: ", outFile, "\n"))
   
@@ -370,35 +409,55 @@ for(curr_ref in all_refs) {
   
   toplot_tads <- out_signif_dt$refID[1:nPlotted]
   
+  ############################################# LOLLIPLOT FOR THE TOP RANK DIFF
   # foo <- foreach(i_tad = 1:nPlotted) %dopar% {
   for(i_tad in 1:nPlotted) {
-    
-
     tad <- toplot_tads[i_tad]
-    
     mytit <- paste0( curr_hicds, " - ", exprds, " - ", tad, "\n", "rankDiff=", round(out_signif_dt$rankDiff[i_tad], 2)," (adj. pval rank: ", out_signif_dt$adjPval_rank[i_tad], "/", max(out_signif_dt$adjPval_rank), ")")
-    
-    
     plotList[[i_tad]] <- plot_lolliTAD_ds(exprds = exprds,
                                           hicds = curr_hicds,
                                           all_TADs = tad,
                                           orderByLolli = "startPos", mytitle=mytit)
   } # end-for iterating over TADs to plot
   
-  outFile <- file.path(outFolder, paste0(curr_hicds, "_withMatching_", match_hicds, "_", exprds, "_rankDiff_top", nPlotted, ".", plotType))
-  
+  outFile <- file.path(outFolder, paste0(curr_hicds, "_withMatching_", match_hicds, "_", exprds, "_rankDiff_top", nPlotted, "_lolli.", plotType))
   
   mytit <- paste0("Top ", nPlotted, " rankDiff signif. TADs (<=",tadSignifThresh , ") - ", curr_hicds, " matching ", match_hicds, " (", exprds, ")")
   all_plots <- do.call(grid.arrange, c(plotList,  list(ncol=ifelse(nPlotted == 1, 1, 2), top=textGrob(mytit, gp=gpar(fontsize=20,font=2)))))
   outHeightGG <- min(c(7 * nPlotted/2, 49))
   outHeightGG <- ifelse(nPlotted < 3, outHeightGG*1.5,outHeightGG)
   outWidthGG <- ifelse(nPlotted == 1, 20/2, 20)
-  
   ggsave(filename = outFile, all_plots, width=outWidthGG, height = outHeightGG)
   cat("... written: ", outFile, "\n")
-  
   # stop("--ok\n")
   
+  ############################################# LOLLIPLOT FOR THE TOP P VAL
+  out_signif_dt$adjPval_rank <- rank(out_signif_dt$adjPval, ties="min")
+  out_signif_dt <- out_signif_dt[order(out_signif_dt$adjPval),]
+  plotList <- list()
+  toplot_tads <- out_signif_dt$refID[1:nPlotted]
+  out_signif_dt$rankDiff_rank <- rank(abs(out_signif_dt$rankDiff), ties="min")
+  
+  for(i_tad in 1:nPlotted) {
+    tad <- toplot_tads[i_tad]
+    mytit <- paste0( curr_hicds, " - ", exprds, " - ", tad, "\n", 
+                     "adj. pval=", round(out_signif_dt$adjPval[i_tad], 2)," (abs. rank diff. rank: ", out_signif_dt$rankDiff_rank[i_tad], "/", max(out_signif_dt$rankDiff_rank), ")")
+    plotList[[i_tad]] <- plot_lolliTAD_ds(exprds = exprds,
+                                          hicds = curr_hicds,
+                                          all_TADs = tad,
+                                          orderByLolli = "startPos", mytitle=mytit)
+  } # end-for iterating over TADs to plot
+  
+  outFile <- file.path(outFolder, paste0(curr_hicds, "_withMatching_", match_hicds, "_", exprds, "_adjPval_top", nPlotted, "_lolli.", plotType))
+  
+  mytit <- paste0("Top ", nPlotted, " rankDiff signif. TADs (<=",tadSignifThresh , ") - ", curr_hicds, " matching ", match_hicds, " (", exprds, ")")
+  all_plots <- do.call(grid.arrange, c(plotList,  list(ncol=ifelse(nPlotted == 1, 1, 2), top=textGrob(mytit, gp=gpar(fontsize=20,font=2)))))
+  outHeightGG <- min(c(7 * nPlotted/2, 49))
+  outHeightGG <- ifelse(nPlotted < 3, outHeightGG*1.5,outHeightGG)
+  outWidthGG <- ifelse(nPlotted == 1, 20/2, 20)
+  ggsave(filename = outFile, all_plots, width=outWidthGG, height = outHeightGG)
+  cat("... written: ", outFile, "\n")
+  # stop("--ok\n")
   
 }
 

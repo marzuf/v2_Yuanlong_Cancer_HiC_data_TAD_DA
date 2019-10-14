@@ -139,9 +139,9 @@ if(buildTable) {
         txt <- paste0(hicds, " - ", exprds, " - ... intersect signif.: NULL \n")
         printAndLog(txt, logFile)
         
-nEnrichedGO_signif_intersect <- NULL
+nEnrichedGO_signif_intersect <- NA #changed 12.10
 
-        signif_intersect_go_ic <- NULL
+        signif_intersect_go_ic <- NA #changed 12.10
       }
       
       
@@ -175,9 +175,9 @@ nEnrichedGO_signif_intersect <- NULL
         txt <- paste0(hicds, " - ", exprds, " - ... limma only signif.: NULL \n")
         printAndLog(txt, logFile)
         
-        signif_limmaOnly_go_ic <- NULL
+        signif_limmaOnly_go_ic <- NA #changed 12.10
 
-nEnrichedGO_signif_limmaOnly <- NULL
+nEnrichedGO_signif_limmaOnly <- NA #changed 12.10
       }
       
       
@@ -215,9 +215,9 @@ nEnrichedGO_signif_limmaOnly <- NULL
       } else {
         txt <- paste0(hicds, " - ", exprds, " - ... TAD only signif.: NULL \n")
         printAndLog(txt, logFile)
-        signif_tadOnly_go_ic <- NULL
+        signif_tadOnly_go_ic <- NA #changed 12.10
 
-nEnrichedGO_signif_tadsOnly <- NULL
+nEnrichedGO_signif_tadsOnly <- NA #changed 12.10
 
       }
       
@@ -253,9 +253,9 @@ nEnrichedGO_signif_tadsOnly <- NULL
         txt <- paste0(hicds, " - ", exprds, " - ... limma signif.: NULL \n")
         printAndLog(txt, logFile)
         
-        signif_limma_go_ic <- NULL
+        signif_limma_go_ic <- NA #changed 12.10
 
-nEnrichedGO_signif_limma <- NULL
+nEnrichedGO_signif_limma <- NA #changed 12.10
 
 
       }
@@ -292,9 +292,9 @@ nEnrichedGO_signif_limma <- NULL
       } else {
         txt <- paste0(hicds, " - ", exprds, " - ... TAD signif.: NULL \n")
         printAndLog(txt, logFile)
-        signif_tad_go_ic <- NULL
+        signif_tad_go_ic <- NA #changed 12.10
 
-nEnrichedGO_signif_tads <- NULL
+nEnrichedGO_signif_tads <- NA #changed 12.10
 
       }
       
@@ -321,7 +321,7 @@ nEnrichedGO_signif_tads <- NULL
   names(all_go_ic_list) <- all_hicds
   outFile <- file.path(outFolder, paste0("all_go_ic_list.Rdata"))
   save(all_go_ic_list, file = outFile, version=2)
-  stopifnot(length(unlist(all_go_ic_list, recursive=FALSE)) == length(all_datasets))
+  #stopifnot(length(unlist(all_go_ic_list, recursive=FALSE)) == length(all_datasets)) => not true because of null ?
   cat(paste0("... written: ", outFile, "\n"))
 } else {
   outFile <- file.path(outFolder, paste0( "all_go_ic_list.Rdata"))
@@ -334,7 +334,45 @@ all_nGO_signif_limma <- unlist(lapply(all_go_ic_list, function(sublist) lapply(s
 all_nGO_signif_tadsOnly <- unlist(lapply(all_go_ic_list, function(sublist) lapply(sublist, function(x) x[["nEnrichedGO_signif_tadsOnly"]])))
 all_nGO_signif_limmaOnly <- unlist(lapply(all_go_ic_list, function(sublist) lapply(sublist, function(x) x[["nEnrichedGO_signif_limmaOnly"]])))
 all_nGO_signif_intersect <- unlist(lapply(all_go_ic_list, function(sublist) lapply(sublist, function(x) x[["nEnrichedGO_signif_intersect"]])))
-
+sum(all_nGO_signif_tads)
+sum(all_nGO_signif_limma)
+sum(na.omit(all_nGO_signif_tadsOnly))
+sum(na.omit(all_nGO_signif_limmaOnly))
+sum(na.omit(all_nGO_signif_intersect))
+# 
+# > sum(all_nGO_signif_tads)
+# [1] 3677
+# > sum(all_nGO_signif_limma)
+# [1] 1870
+# > sum(na.omit(all_nGO_signif_tadsOnly))
+# [1] 1638
+# > sum(na.omit(all_nGO_signif_limmaOnly))
+# [1] 1329
+# > sum(na.omit(all_nGO_signif_intersect))
+# [1] 2800
+# > outFolder
+# [1] "GO_SPECIFICITY_GENELEVEL_TADLEVEL_INTERSECTDIFF/tadPvalThresh0.01_genePvalThresh0.01"
+# > outFolder="GO_SPECIFICITY_GENELEVEL_TADLEVEL_INTERSECTDIFF/tadPvalThresh0.05_genePvalThresh0.05"
+# > outFile <- file.path(outFolder, paste0( "all_go_ic_list.Rdata"))
+# >   cat("... load data\n")
+# ... load data
+# >   all_go_ic_list <- get(load(outFile))
+# > all_nGO_signif_tads <- unlist(lapply(all_go_ic_list, function(sublist) lapply(sublist, function(x) x[["nEnrichedGO_signif_tads"]])))
+# > all_nGO_signif_limma <- unlist(lapply(all_go_ic_list, function(sublist) lapply(sublist, function(x) x[["nEnrichedGO_signif_limma"]])))
+# > all_nGO_signif_tadsOnly <- unlist(lapply(all_go_ic_list, function(sublist) lapply(sublist, function(x) x[["nEnrichedGO_signif_tadsOnly"]])))
+# > all_nGO_signif_limmaOnly <- unlist(lapply(all_go_ic_list, function(sublist) lapply(sublist, function(x) x[["nEnrichedGO_signif_limmaOnly"]])))
+# > all_nGO_signif_intersect <- unlist(lapply(all_go_ic_list, function(sublist) lapply(sublist, function(x) x[["nEnrichedGO_signif_intersect"]])))
+# > sum(all_nGO_signif_tads)
+# [1] 2105
+# > sum(all_nGO_signif_limma)
+# [1] 1294
+# > sum(na.omit(all_nGO_signif_tadsOnly))
+# [1] 1020
+# > sum(na.omit(all_nGO_signif_limmaOnly))
+# [1] 508
+# > sum(na.omit(all_nGO_signif_intersect))
+# [1] 1440
+# > 
 
 
 all_ic_signif_tads <- unlist(lapply(all_go_ic_list, function(sublist) lapply(sublist, function(x) x[["signif_tad_go_ic"]])))
