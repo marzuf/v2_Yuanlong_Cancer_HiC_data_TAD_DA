@@ -279,7 +279,7 @@ for(curr_ref in all_refs) {
   
   curr_dt <- eval(parse(text=paste0(curr_ref, "_matching_pval_tadRank_dt")))
   
-  curr_dt$textCol <- ifelse( file.path(curr_dt$ref_hicds, curr_dt$ref_exprds, curr_dt$refID) %in% annotated_tads, "red", "black" )
+  curr_dt$textCol <- ifelse( file.path(curr_dt$ref_hicds, curr_dt$matching_hicds,curr_dt$ref_exprds, curr_dt$refID) %in% annotated_tads, "red", "black" )
   
   myx <- -log10(curr_dt$adjPval)
   myy <- curr_dt$rankDiff
@@ -403,8 +403,8 @@ for(curr_ref in all_refs) {
                  title=paste0(exprds),
                  subtitle=paste0(paste0(curr_hicds, " matching ", match_hicds), "\n", curr_ref, " as refDS (tadPval<=", tadSignifThresh, ")" ),
                  col=signif_dt$textCol,
-                 ylab = mylab,
-                 xlab = paste0("-log10 TAD adj. pval"),
+                 xlab = mylab,
+                 ylab = paste0("-log10 TAD adj. pval"),
                  y="adjPval_log10", 
                  x="rankDiff")
   
@@ -413,24 +413,35 @@ for(curr_ref in all_refs) {
   p <- p + theme(plot.title = element_text(hjust=0.5, face="bold", size=16),
                  plot.subtitle = element_text(hjust=0.5, face="italic", size=14)
                  )
+  add_dt_1 <- signif_dt[order(signif_dt$adjPval), ][1:nPlotted,]
+  add_dt_2 <- signif_dt[order(abs(signif_dt$rankDiff), decreasing=TRUE),][1:nPlotted,]
+  add_dt <- rbind(add_dt_1, add_dt_2)
+  add_dt <- unique(add_dt)
   
-  
-  signif_dt <- signif_dt[order(signif_dt$adjPval),]
   p <- p+
-    geom_text_repel(data = signif_dt[1:nPlotted,],
-                    aes(y=adjPval_log10,x=rankDiff,label=refID), col=signif_dt$textCol[1:nPlotted])
-
-  signif_dt <- signif_dt[order(abs(signif_dt$rankDiff), decreasing=TRUE),]
-  p <- p+
-    geom_text_repel(data = signif_dt[1:nPlotted,],
-                    aes(y=adjPval_log10,x=rankDiff,label=refID), col=signif_dt$textCol[1:nPlotted])
+    geom_text_repel(data = add_dt,
+                    aes(y=adjPval_log10,x=rankDiff,label=refID), col=add_dt$textCol)
+  # p
+  # 
+  # 
+  # signif_dt <- signif_dt[order(signif_dt$adjPval),]
+  # p <- p+
+  #   geom_text_repel(data = signif_dt[1:nPlotted,],
+  #                   aes(y=adjPval_log10,x=rankDiff,label=refID), col=signif_dt$textCol[1:nPlotted])
+  # 
+  # signif_dt <- signif_dt[order(abs(signif_dt$rankDiff), decreasing=TRUE),]
+  # p <- p+
+  #   geom_text_repel(data = signif_dt[1:nPlotted,],
+  #                   aes(y=adjPval_log10,x=rankDiff,label=refID), col=signif_dt$textCol[1:nPlotted])
+  # 
+  # p
   
     
   outFile <- file.path(outFolder, paste0(curr_hicds, "_withMatching_", match_hicds, "_rankDiff_vs_pval_", exprds, "_ggrepel_signifTADsOnly.", plotType ))
   ggsave(plot = p, file=outFile, height=myHeightGG, width=myWidthGG)
   cat(paste0("... written: ", outFile, "\n"))
   
-  
+  stop("-ok")
   
   
   
