@@ -224,7 +224,7 @@ bar_plot_dt_noTot <- bar_plot_dt_noTot[,order(bar_plot_dt_noTot["pval_signif",],
 nGaps_noTot <- ncol(bar_plot_dt_noTot) * (nrow(bar_plot_dt_noTot)+1) - 1
 bar_plot_dt_withGroups_noTot <- as.vector(rbind(bar_plot_dt_noTot, rep(NA, ncol(bar_plot_dt_noTot))))[1:nGaps_noTot]
 
-outFile <- file.path(outFolder, paste0("nbrTADs_tot_and_signif_breakbar.", plotType))
+outFile <- file.path(outFolder, paste0("nbrTADs_signifOnly_breakbar.", plotType))
 do.call(plotType, list(outFile, height=myHeight, width=myWidth))
 par(bty="n")
 # barplot(ceiling(as.matrix(bar_plot_dt_withGroups_noTot)), 
@@ -243,7 +243,7 @@ a = gap.barplot(ceiling(as.matrix(bar_plot_dt_withGroups_noTot)),
                 gap=c(from_gap,to_gap),
                 xlab="",
                 ylab="# of TADs",
-                main = "Total # of TADs and # signif. TADs",
+                main = "# signif. TADs",
                 col=rep(c(col2,col3,col4,1), ncol(bar_plot_dt_noTot)),  # add 1 for the gap
                 ytics = pretty(as.numeric(bar_plot_dt_noTot), n=20),
                 xaxt='n') # disable the default x-axis

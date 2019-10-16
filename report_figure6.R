@@ -405,8 +405,10 @@ for(curr_ref in all_refs) {
                  col=signif_dt$textCol,
                  ylab = mylab,
                  xlab = paste0("-log10 TAD adj. pval"),
-                 x="adjPval_log10", 
-                 y="rankDiff")
+                 y="adjPval_log10", 
+                 x="rankDiff")
+  
+  p <- p + geom_vline(xintercept=0, linetype=2)
   
   p <- p + theme(plot.title = element_text(hjust=0.5, face="bold", size=16),
                  plot.subtitle = element_text(hjust=0.5, face="italic", size=14)
@@ -416,12 +418,12 @@ for(curr_ref in all_refs) {
   signif_dt <- signif_dt[order(signif_dt$adjPval),]
   p <- p+
     geom_text_repel(data = signif_dt[1:nPlotted,],
-                    aes(x=adjPval_log10,y=rankDiff,label=refID), col=signif_dt$textCol[1:nPlotted])
+                    aes(y=adjPval_log10,x=rankDiff,label=refID), col=signif_dt$textCol[1:nPlotted])
 
   signif_dt <- signif_dt[order(abs(signif_dt$rankDiff), decreasing=TRUE),]
   p <- p+
     geom_text_repel(data = signif_dt[1:nPlotted,],
-                    aes(x=adjPval_log10,y=rankDiff,label=refID), col=signif_dt$textCol[1:nPlotted])
+                    aes(y=adjPval_log10,x=rankDiff,label=refID), col=signif_dt$textCol[1:nPlotted])
   
     
   outFile <- file.path(outFolder, paste0(curr_hicds, "_withMatching_", match_hicds, "_rankDiff_vs_pval_", exprds, "_ggrepel_signifTADsOnly.", plotType ))
