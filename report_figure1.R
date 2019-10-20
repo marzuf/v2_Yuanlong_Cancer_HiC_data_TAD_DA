@@ -17,6 +17,7 @@ SSHFS <- FALSE
 require(ggplot2)
 require(ggpubr)
 require(ggforce)
+require(ggsci)
 require(reshape2)
 require(foreach)
 require(doMC)
@@ -27,10 +28,20 @@ source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 source("../2_Yuanlong_Cancer_HiC_data_TAD_DA/utils_fct.R")
 source("../Yuanlong_Cancer_HiC_data_TAD_DA/subtype_cols.R")
 
-col1 <- get_palette("Dark2", 4)[1]
-col2 <- get_palette("Dark2", 4)[2]
-col3 <- get_palette("Dark2", 4)[3]
-col4 <- get_palette("Dark2", 4)[4]
+all_cols[all_cols == "red"] <- "brown3"
+all_cols[all_cols == "blue"] <- "darkblue"
+all_cols[all_cols == "green"] <- "forestgreen"
+
+# col1 <- get_palette("Dark2", 4)[1]
+# col2 <- get_palette("Dark2", 4)[2]
+# col3 <- get_palette("Dark2", 4)[3]
+# col4 <- get_palette("Dark2", 4)[4]
+
+col1 <- pal_d3()(4)[1]
+col2 <- pal_d3()(4)[2]
+col3 <- pal_d3()(4)[3]
+col4 <- pal_d3()(4)[4]
+
 
 plotType <- "svg"
 myHeight <- ifelse(plotType=="png", 400, 7)
@@ -76,14 +87,25 @@ stopifnot(!is.na(ds_cols))
 
 
 plot_dt <- rbind(count_tot_dt_m, count_pval_dt_m, count_fdr_dt_m, count_pval_fdr_dt_m)
-plot_dt$dataset <-paste0(plot_dt$hicds, "\n", plot_dt$exprds)
+plot_dt$dataset <- paste0(plot_dt$hicds, "\n", plot_dt$exprds)
 plot_dt$dataset <- factor(plot_dt$dataset, levels = ds_levels)
 stopifnot(!is.na(plot_dt$dataset))
 
+plot_dt$variable <- as.character(plot_dt$variable)
 
-colsOrder <- c("tot", "pval_signif", "fdr_signif", "pval_fdr_signif")
+colsOrder_0 <- c("tot", "pval_signif", "fdr_signif", "pval_fdr_signif")
+pval_signif_name <- paste0("pval <= ", signifTAD_thresh)
+fdr_signif_name <- paste0("FDR <= ", signifTAD_FDR)
+colsOrder <- c("tot", 
+               pval_signif_name, 
+               fdr_signif_name,
+               paste0(pval_signif_name, "&\n",fdr_signif_name))
+plot_dt$variable[plot_dt$variable == "pval_signif"] <- pval_signif_name
+plot_dt$variable[plot_dt$variable == "fdr_signif"] <- fdr_signif_name
+plot_dt$variable[plot_dt$variable == "pval_fdr_signif"] <-   paste0(pval_signif_name, "&\n",fdr_signif_name)
 
 plot_dt$variable <- factor(plot_dt$variable, levels=colsOrder)
+
 
 nDS <- length(ds_levels)
 
@@ -126,7 +148,8 @@ cat(paste0("... written: ", outFile, "\n"))
 
 
 plot_dt2 <- plot_dt[plot_dt$variable != "tot",]
-ds_levels2 <- plot_dt2$dataset[order(plot_dt2$value[plot_dt2$variable=="pval_signif"])]
+# ds_levels2 <- plot_dt2$dataset[order(plot_dt2$value[plot_dt2$variable=="pval_signif"])]
+ds_levels2 <- plot_dt2$dataset[order(plot_dt2$value[plot_dt2$variable== pval_signif_name])]
 plot_dt2$dataset <- factor(as.character(plot_dt2$dataset), levels=ds_levels2)
 
 
@@ -173,14 +196,17 @@ to_gap <- min(plot_dt$value[plot_dt$variable == "tot"]) - 10
 stopifnot(to_gap > from_gap)
 
 
-barplot_dt <- merge(count_pval_dt, merge(count_fdr_dt, merge(count_tot_dt, count_pval_fdr_dt, by=c("hicds", "exprds")), by=c("hicds", "exprds")), by=c("hicds", "exprds"))
+barplot_dt <- merge(count_pval_dt, merge(count_fdr_dt, 
+                                         merge(count_tot_dt, count_pval_fdr_dt, by=c("hicds", "exprds")), 
+                                         by=c("hicds", "exprds")),
+                                         by=c("hicds", "exprds"))
 barplot_dt[,"hicds"] <- NULL
 barplot_dt[,"exprds"] <- NULL
 barplot_dt <- barplot_dt[order(barplot_dt$tot, decreasing = TRUE),]
 rownames(barplot_dt) <- barplot_dt$dataset
 barplot_dt$dataset <- NULL
 # barplot(t(barplot_dt), beside = TRUE)
-barplot_dt <- barplot_dt[,paste0(colsOrder)]
+barplot_dt <- barplot_dt[,paste0(colsOrder_0)]
 
 bar_plot_dt <- t(barplot_dt)
 
@@ -221,6 +247,7 @@ cat(paste0("... written: ", outFile, "\n"))
 
 bar_plot_dt_noTot <- bar_plot_dt[rownames(bar_plot_dt) != "tot", ,drop=F]
 bar_plot_dt_noTot <- bar_plot_dt_noTot[,order(bar_plot_dt_noTot["pval_signif",], decreasing = TRUE)]
+# bar_plot_dt_noTot <- bar_plot_dt_noTot[,order(bar_plot_dt_noTot[pval_signif_name,], decreasing = TRUE)]
 nGaps_noTot <- ncol(bar_plot_dt_noTot) * (nrow(bar_plot_dt_noTot)+1) - 1
 bar_plot_dt_withGroups_noTot <- as.vector(rbind(bar_plot_dt_noTot, rep(NA, ncol(bar_plot_dt_noTot))))[1:nGaps_noTot]
 

@@ -19,6 +19,7 @@ SSHFS <- FALSE
 
 require(ggplot2)
 require(ggpubr)
+require(ggsci)
 require(ggforce)
 require(reshape2)
 require(foreach)
@@ -30,6 +31,10 @@ source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 
 source("../2_Yuanlong_Cancer_HiC_data_TAD_DA/utils_fct.R")
 source("../Yuanlong_Cancer_HiC_data_TAD_DA/subtype_cols.R")
+
+all_cols[all_cols == "red"] <- "brown3"
+all_cols[all_cols == "blue"] <- "darkblue"
+all_cols[all_cols == "green"] <- "forestgreen"
 
 script0_name <- "0_prepGeneData"
 script1_name <- "1_runGeneDE"
@@ -68,9 +73,12 @@ pvalTADs001 <- 0.01
 pvalTADs005 <- 0.05
 
 
-col1 <- get_palette("Dark2", 3)[1]
-col2 <- get_palette("Dark2", 3)[2]
-col3 <- get_palette("Dark2", 3)[3]
+# col1 <- get_palette("Dark2", 3)[1]
+# col2 <- get_palette("Dark2", 3)[2]
+# col3 <- get_palette("Dark2", 3)[3]
+col1 <- pal_d3()(3)[1]
+col2 <- pal_d3()(3)[2]
+col3 <- pal_d3()(3)[3]
 
 
 final_table_file <- file.path("CREATE_FINAL_TABLE/all_result_dt.Rdata")
@@ -152,6 +160,19 @@ signif_tad_vars =  "signifAdjPvalComb_0.01"
 
 signif_gene = signif_gene_vars
 signif_tad =  signif_tad_vars
+signif_gene_thresh <- gsub("gene_signifAdjPval_", "", signif_gene)
+signif_tad_thresh <- gsub("signifAdjPvalComb_", "", signif_tad)
+bothsignifcol <- paste0(signif_tad, "_AND_", signif_gene)
+
+
+signif_geneName <- paste0("limma p-val. <= ", signif_gene_thresh)
+signif_tadName <- paste0("TAD adj. p-val <= ", signif_tad_thresh)
+bothsignifcolName <- paste0(signif_geneName, " AND\n", signif_tadName)
+newVariableNames <- setNames(c(signif_geneName, signif_tadName, bothsignifcolName),
+                               c(signif_gene, signif_tad, bothsignifcol))
+                               
+                                 
+                                 
 
 
 for(signif_gene in signif_gene_vars) {
@@ -161,7 +182,6 @@ for(signif_gene in signif_gene_vars) {
     cat(" signif_gene = ", signif_gene, "\n" )
     cat(" signif_tad = ", signif_tad, "\n" )
     
-    bothsignifcol <- paste0(signif_tad, "_AND_", signif_gene)
     
     orderCol <- signif_gene
     
@@ -195,7 +215,12 @@ for(signif_gene in signif_gene_vars) {
     nSignif_dt_m$exprds_type_col <- all_cols[all_cmps[nSignif_dt_m$exprds]]
     mycols <- nSignif_dt_m$exprds_type_col[as.character(nSignif_dt_m$variable) == signif_tad] 
     
-    nSignif_dt_m$variable <- gsub("_AND_", "_AND\n", nSignif_dt_m$variable)
+    nSignif_dt_m$variable <- as.character(nSignif_dt_m$variable)
+    nSignif_dt_m$variable <- newVariableNames[nSignif_dt_m$variable]
+    nSignif_dt_m$variable <- factor(nSignif_dt_m$variable, levels=as.character(newVariableNames))
+    stopifnot(!is.na(nSignif_dt_m$variable))
+    
+    # nSignif_dt_m$variable <- gsub("_AND_", "_AND\n", nSignif_dt_m$variable)
     
     
     p_var <-  ggplot(nSignif_dt_m, aes(x = dataset, y = value, fill = variable)) + 
@@ -258,7 +283,13 @@ for(signif_gene in signif_gene_vars) {
     nSignif_dt_m$exprds_type_col <- all_cols[all_cmps[nSignif_dt_m$exprds]]
     mycols <- nSignif_dt_m$exprds_type_col[as.character(nSignif_dt_m$variable) == signif_tad] 
     
-    nSignif_dt_m$variable <- gsub("_AND_", "_AND\n", nSignif_dt_m$variable)
+    
+    nSignif_dt_m$variable <- as.character(nSignif_dt_m$variable)
+    nSignif_dt_m$variable <- newVariableNames[nSignif_dt_m$variable]
+    nSignif_dt_m$variable <- factor(nSignif_dt_m$variable, levels=as.character(newVariableNames))
+    stopifnot(!is.na(nSignif_dt_m$variable))
+    
+    # nSignif_dt_m$variable <- gsub("_AND_", "_AND\n", nSignif_dt_m$variable)
     
     
     p_var <-  ggplot(nSignif_dt_m, aes(x = dataset, y = value, fill = variable)) + 

@@ -27,10 +27,9 @@ source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 source("../2_Yuanlong_Cancer_HiC_data_TAD_DA/utils_fct.R")
 source("../Yuanlong_Cancer_HiC_data_TAD_DA/subtype_cols.R")
 
-col1 <- get_palette("Dark2", 4)[1]
-col2 <- get_palette("Dark2", 4)[2]
-col3 <- get_palette("Dark2", 4)[3]
-col4 <- get_palette("Dark2", 4)[4]
+all_cols[all_cols == "red"] <- "brown3"
+all_cols[all_cols == "blue"] <- "darkblue"
+all_cols[all_cols == "green"] <- "forestgreen"
 
 plotType <- "png"
 myHeight <- ifelse(plotType=="png", 400, 7)
@@ -57,7 +56,9 @@ final_table_DT$pval_fdr_signif <- final_table_DT$fdr_signif & final_table_DT$pva
 final_table_DT$adjPvalComb_log10 <- -log10(final_table_DT$adjPvalComb)
 
 format_my_plot <- function(p) {
-  p <- p + gradient_color("YlOrRd") + 
+  p <- p + 
+    gradient_color("red") + 
+    # gradient_color("YlOrRd") + 
     scale_y_continuous(breaks = scales::pretty_breaks(n = 10)) + 
     scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) + 
     theme( 
@@ -75,7 +76,6 @@ format_my_plot_facet <- function(p) {
   p <- p + theme(strip.text.x = element_text(size = 14))
   return(p)
 }
-
 
 
 
@@ -150,8 +150,37 @@ ggsave(plot = arr_all, filename = outFile, height=myHeightGG*2, width = myWidthG
 cat(paste0("... written: ", outFile, "\n"))
 
 
+# density
+signif_thresh <- 0.01
+
+signif_dt <- final_table_DT[final_table_DT$adjPvalComb_log10 >= -log10(signif_thresh),]
+
+subtit1 <- paste0(paste0("# ", names(table(final_table_DT$cmpType))), "=", as.numeric(table(final_table_DT$cmpType)), collapse="; ")
+
+meanfc_p <- ggdensity(signif_dt,
+          title=paste0("Mean logFC of signif. TADs"),
+          subtitle=paste0("signif. thresh = ", signif_thresh, "\n", subtit1 ),
+          x = "meanLogFC",
+          # add = "mean", rug = TRUE,
+          color = "cmpType", fill = "cmpType",
+          palette = all_cols) + labs(fill="", color="")+
+  theme(plot.title = element_text(face="bold", size=14))
+outFile <- file.path(outFolder, paste0("signifTADs_meanFC_density.", plotType))
+ggsave(plot = meanfc_p, filename = outFile, height=myHeightGG/2, width = myWidthGG/1.8)
+cat(paste0("... written: ", outFile, "\n"))
 
 
+meancorr_p <- ggdensity(signif_dt,
+                      title=paste0("Mean corr. of signif. TADs"),
+                      subtitle=paste0("signif. thresh = ", signif_thresh, "\n", subtit1 ),
+                      x = "meanCorr",
+                      # add = "mean", rug = TRUE,
+                      color = "cmpType", fill = "cmpType",
+                      palette = all_cols) + labs(fill="", color="")+
+  theme(plot.title = element_text(face="bold", size=14))
+outFile <- file.path(outFolder, paste0("signifTADs_meanCorr_density.", plotType))
+ggsave(plot = meancorr_p, filename = outFile, height=myHeightGG/2, width = myWidthGG/1.8)
+cat(paste0("... written: ", outFile, "\n"))
 
 ##########################################################################################
 ##########################################################################################

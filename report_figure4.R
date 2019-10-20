@@ -33,7 +33,7 @@ entrez2symb_dt$entrezID <- as.character(entrez2symb_dt$entrezID)
 entrez2symb <- setNames(entrez2symb_dt$symbol, entrez2symb_dt$entrezID)
 
 
-buildTable <- TRUE
+buildTable <- FALSE
 
 plotType <- "png"
 myHeight <- ifelse(plotType=="png", 400, 7)
@@ -152,10 +152,13 @@ for(data_cmpType in c("norm_vs_tumor", "subtypes", "wt_vs_mut", "")) {
                                                                                       subtitle=paste0("# DS = ", nDS, "; n = ", nrow(countConserv_dt)),
                                                                                       x = "region", 
                                                                                       y = "conservRatio",
-                                                                                      xlab="",
+                                                                                      xlab="TADs (sorted by conserv. ratio)",
                                                                                       ylab="conserv. ratio",
                                                                                       col="darkgrey", fill="darkgrey") +
-                                                            theme(axis.text.x=element_blank(), 
+                                                            theme(
+                                                                  axis.text.x=element_text(size=14),
+                                                                  axis.text.y=element_text(size=14),
+                                                                  plot.title=element_text(size=16, face = "bold"),
                                                                   axis.ticks.x = element_blank()) + 
                                                             coord_cartesian(expand = F)
   
@@ -298,14 +301,17 @@ for(data_cmpType in c("norm_vs_tumor", "subtypes", "wt_vs_mut", "")) {
 
   
   
-  gene_plot_list[[paste0(ifelse(data_cmpType=="", "all", data_cmpType))]] <-  ggbarplot(countConserv_dt,  title=paste0("Conserv. signif. genes - ", data_cmpType),
+  gene_plot_list[[paste0(ifelse(data_cmpType=="", "all", data_cmpType))]] <-  ggbarplot(countConserv_dt, 
+                                                                                        title=paste0("Conserv. signif. genes - ", data_cmpType),
                                                                                         subtitle=paste0("# DS = ", nDS, "; n = ", nrow(countConserv_dt)),
                                                                                         x = "gene", 
                                                                                         y = "conservRatio",
-                                                                                        xlab="",
+                                                                                        xlab="genes (sorted by conserv. ratio)",
                                                                                         ylab="conserv. ratio",
                                                                                         col="darkgrey", fill="darkgrey") +
-    theme(axis.text.x=element_blank(), 
+    theme(axis.text.x=element_text(size=14),
+          axis.text.y=element_text(size=14),
+          plot.title=element_text(size=16, face = "bold"),
           axis.ticks.x = element_blank()) + 
     coord_cartesian(expand = F)
   
