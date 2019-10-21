@@ -23,7 +23,7 @@ all_pairs <- c(
 )
 
 
-script_name <- "report_figure6.R"
+script_name <- "report_figure6_all.R"
 
 plotLolli <- FALSE
 
@@ -427,8 +427,8 @@ if(buildPlotList) {
                      xtics = pretty(signif_dt[,"rankDiff"], n=20),
                      subtitle=paste0(paste0(curr_hicds, " matching ", match_hicds), "\n", curr_ref, " as refDS (tadPval<=", tadSignifThresh, ")" ),
                      col=signif_dt$textCol,
-                     ylab = mylab,
-                     xlab = paste0("-log10 TAD adj. pval"),
+                     xlab = mylab,
+                     ylab = paste0("-log10 TAD adj. pval"),
                      y="adjPval_log10", 
                      x="rankDiff")
       
