@@ -106,6 +106,10 @@ plot_dt$variable[plot_dt$variable == "pval_fdr_signif"] <-   paste0(pval_signif_
 
 plot_dt$variable <- factor(plot_dt$variable, levels=colsOrder)
 
+plot_dt <- plot_dt[order(as.numeric(plot_dt$variable)),]
+
+plot_dt$dataset_circle <- "\u25CF"
+
 
 nDS <- length(ds_levels)
 
@@ -113,8 +117,11 @@ p_var <-  ggplot(plot_dt, aes(x = dataset, y = value, fill = variable)) +
   geom_bar(position="dodge", stat="identity") +
   coord_cartesian(expand = FALSE) +
   ggtitle("Total # TADs and # signif. TADs", subtitle = paste0("# datasets = ", nDS, " (p-val. thresh. = ", signifTAD_thresh, ")"))+
-  scale_x_discrete(name="")+
+  # scale_x_discrete(name="")+
   labs(fill="")+
+  
+  scale_x_discrete(name="", labels=rep("\u25CF", length(unique(plot_dt$dataset))))+
+  
   scale_fill_manual(values=c(col1,col2, col3, col4))+
   scale_y_continuous(name=paste0("# signif. TADs"),
                      breaks = scales::pretty_breaks(n = 10))+
@@ -146,12 +153,13 @@ outFile <- file.path(outFolder, paste0("nbrTADs_tot_and_signif_ggbar.", plotType
 ggsave(plot = p_var, filename = outFile, height=myHeightGG, width = myWidthGG)
 cat(paste0("... written: ", outFile, "\n"))
 
+stop("-ok\n")
 
 plot_dt2 <- plot_dt[plot_dt$variable != "tot",]
 # ds_levels2 <- plot_dt2$dataset[order(plot_dt2$value[plot_dt2$variable=="pval_signif"])]
-ds_levels2 <- plot_dt2$dataset[order(plot_dt2$value[plot_dt2$variable== pval_signif_name])]
+ds_levels2 <- plot_dt2$dataset[order(plot_dt2$value[plot_dt2$variable== pval_signif_name], decreasing=TRUE)]
 plot_dt2$dataset <- factor(as.character(plot_dt2$dataset), levels=ds_levels2)
-
+plot_dt2 <- plot_dt2[order(as.numeric(plot_dt2$dataset)),]
 
 p_var2 <-  ggplot(plot_dt2, aes(x = dataset, y = value, fill = variable)) + 
   geom_bar(position="dodge", stat="identity") +

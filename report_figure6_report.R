@@ -644,4 +644,60 @@ Warning messages:
 *** DONE
 2019-10-21 17:46:33
 2019-10-21 17:47:08
-kmarie@electron:/mnt/etemp/marie/v2_Yuanlong_Cancer_HiC_data_TAD_DA\[0;31mmarie@electron[00m:[01;32m/mnt/etemp/marie/v2_Yuanlong_Cancer_HiC_data_TAD_DA[00m$ Rscript report_figure6_rep
+kmarie@electron:/mnt/etemp/marie/v2_Yuanlong_Cancer_HiC_data_TAD_DA\[0;31mmarie@electron[00m:[01;32m/mnt/etemp/marie/v2_Yuanlong_Cancer_HiC_data_TAD_DA[00m$ Rscript report_figure6_report.R GSE118514_RWPE1_40kb GSE118514_22Rv1_40kb TCGAprad_norm_prad 
+> START  report_figure6_report.R 
+Loading required package: foreach
+Loading required package: doMC
+Loading required package: iterators
+Loading required package: parallel
+Loading required package: ggplot2
+Loading required package: ggpubr
+Loading required package: magrittr
+Loading required package: ggrepel
+Loading required package: gtools
+Warning message:
+In dir.create(outFolder, recursive = TRUE) :
+  'REPORT_FIGURE6_REPORT' already exists
+... written: REPORT_FIGURE6_REPORT/tumor_matching_pval_tadRank_dt.Rdata
+... written: REPORT_FIGURE6_REPORT/norm_matching_pval_tadRank_dt.Rdata
+... written: REPORT_FIGURE6_REPORT/GSE118514_RWPE1_40kb_withMatching_GSE118514_22Rv1_40kb_rankDiff_vs_pval_TCGAprad_norm_prad_densplot.png
+... written: REPORT_FIGURE6_REPORT/GSE118514_RWPE1_40kb_withMatching_GSE118514_22Rv1_40kb_normMeanFC_vs_pval_TCGAprad_norm_prad_densplot.png
+... written: REPORT_FIGURE6_REPORT/GSE118514_RWPE1_40kb_withMatching_GSE118514_22Rv1_40kb_rankDiff_vs_pval_TCGAprad_norm_prad_densplot_signifTADsOnly.png
+... written: REPORT_FIGURE6_REPORT/GSE118514_RWPE1_40kb_withMatching_GSE118514_22Rv1_40kb_normMeanFC_vs_pval_TCGAprad_norm_prad_densplot_siginfTADsOnly.png
+... written: REPORT_FIGURE6_REPORT/GSE118514_RWPE1_40kb_withMatching_GSE118514_22Rv1_40kb_rankDiff_vs_pval_TCGAprad_norm_prad_ggrepel_signifTADsOnly.png
+... written: REPORT_FIGURE6_REPORT/GSE118514_RWPE1_40kb_withMatching_GSE118514_22Rv1_40kb_TCGAprad_norm_prad_signifDT.txt
+... written: REPORT_FIGURE6_REPORT/GSE118514_22Rv1_40kb_withMatching_GSE118514_RWPE1_40kb_rankDiff_vs_pval_TCGAprad_norm_prad_densplot.png
+... written: REPORT_FIGURE6_REPORT/GSE118514_22Rv1_40kb_withMatching_GSE118514_RWPE1_40kb_tumorMeanFC_vs_pval_TCGAprad_norm_prad_densplot.png
+... written: REPORT_FIGURE6_REPORT/GSE118514_22Rv1_40kb_withMatching_GSE118514_RWPE1_40kb_rankDiff_vs_pval_TCGAprad_norm_prad_densplot_signifTADsOnly.png
+... written: REPORT_FIGURE6_REPORT/GSE118514_22Rv1_40kb_withMatching_GSE118514_RWPE1_40kb_tumorMeanFC_vs_pval_TCGAprad_norm_prad_densplot_siginfTADsOnly.png
+... written: REPORT_FIGURE6_REPORT/GSE118514_22Rv1_40kb_withMatching_GSE118514_RWPE1_40kb_rankDiff_vs_pval_TCGAprad_norm_prad_ggrepel_signifTADsOnly.png
+... written: REPORT_FIGURE6_REPORT/GSE118514_22Rv1_40kb_withMatching_GSE118514_RWPE1_40kb_TCGAprad_norm_prad_signifDT.txt
+Warning messages:
+1: In if (color %in% names(data) & is.null(add.params$color)) add.params$color <- color :
+  the condition has length > 1 and only the first element will be used
+2: In if (color %in% names(data) & is.null(add.params$color)) add.params$color <- color :
+  the condition has length > 1 and only the first element will be used
+*** DONE
+2019-10-21 17:55:28
+2019-10-21 17:56:05
+kmarie@electron:/mnt/etemp/marie/v2_Yuanlong_Cancer_HiC_data_TAD_DA\[0;31mmarie@electron[00m:[01;32m/mnt/etemp/marie/v2_Yuanlong_Cancer_HiC_data_TAD_DA[00m$ git add *.R
+kmarie@electron:/mnt/etemp/marie/v2_Yuanlong_Cancer_HiC_data_TAD_DA\[0;31mmarie@electron[00m:[01;32m/mnt/etemp/marie/v2_Yuanlong_Cancer_HiC_data_TAD_DA[00m$ (reverse-i-search)`': [K[94@c': Rscript report_figure6_report.R GSE118514_RWPE1_40kb GSE118514_22Rv1_40kb TCGAprad_norm_prad[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Co': java -Xmx2g -jar  /mnt/ed2/shared/TADcompare/Software/juicer/juicer_tools.jar pre -n -d -r 25000 -c chr6 -q 0 GM12878_chr6_25kb_matrix.pre GM12878_chr6_25kb_matrix.hic chr6.size[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[1@m[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cm': git commit -m "19.10.19"[K[0;31mmarie@electron[00m:[01;32m/mnt/etemp/marie/v2_Yuanlong_Cancer_HiC_data_TAD_DA[00m$ git commit -m "19.10.19"[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[1P.10.19"2.10.19"[1P.10.19"[1P.10.19"2.10.19"1.10.19"
+[master ad3ef84] 21.10.19
+ 3 files changed, 1123 insertions(+), 3 deletions(-)
+ create mode 100644 go_specificity_geneLevel_tadLevel_intersectDiff_report.R
+ create mode 100644 report_figure6_report.R
+kmarie@electron:/mnt/etemp/marie/v2_Yuanlong_Cancer_HiC_data_TAD_DA\[0;31mmarie@electron[00m:[01;32m/mnt/etemp/marie/v2_Yuanlong_Cancer_HiC_data_TAD_DA[00m$ git push
+Username for 'https://github.com': marzuf
+Password for 'https://marzuf@github.com': 
+Counting objects: 7, done.
+Delta compression using up to 44 threads.
+Compressing objects:  20% (1/5)   Compressing objects:  40% (2/5)   Compressing objects:  60% (3/5)   Compressing objects:  80% (4/5)   Compressing objects: 100% (5/5)   Compressing objects: 100% (5/5), done.
+Writing objects:  20% (1/5)   Writing objects:  40% (2/5)   Writing objects:  60% (3/5)   Writing objects:  80% (4/5)   Writing objects: 100% (5/5)   Writing objects: 100% (5/5), 9.47 KiB | 0 bytes/s, done.
+Total 5 (delta 2), reused 0 (delta 0)
+remote: Resolving deltas:   0% (0/2)[Kremote: Resolving deltas:  50% (1/2)[Kremote: Resolving deltas: 100% (2/2)[Kremote: Resolving deltas: 100% (2/2), completed with 2 local objects.[K
+To https://github.com/marzuf/v2_Yuanlong_Cancer_HiC_data_TAD_DA.git
+   6afb45d..ad3ef84  master -> master
+kmarie@electron:/mnt/etemp/marie/v2_Yuanlong_Cancer_HiC_data_TAD_DA\[0;31mmarie@electron[00m:[01;32m/mnt/etemp/marie/v2_Yuanlong_Cancer_HiC_data_TAD_DA[00m$ exit
+exit
+
+Script done on Thu 24 Oct 2019 11:55:19 AM CEST

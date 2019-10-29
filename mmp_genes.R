@@ -161,6 +161,45 @@ unique(as.character(dt$region[dt$entrezID %in% names(ifit_genes)]))
 # Rscript plot_lolli_by_tad_dataset.R chr8_TAD209 LI_40kb TCGAlihc_norm_lihc 
 
 
+############################################################################################## GIMAP genes cancer
+# ENCSR444WCZ_A549_40kb/ GIMAP 2 4 6  7
+  # chr7_TAD553  
+# "TCGAluad_norm_luad"
+
+hicds="ENCSR444WCZ_A549_40kb"
+exprds = "TCGAluad_norm_luad"
+exprds = "TCGAlusc_norm_lusc"
+
+
+dt <- read.delim(file.path(hicds, "genes2tad", "all_genes_positions.txt"), header=F, col.names=c("entrezID", "chromo", "start", "end", "region"))
+
+
+setDir <- "/media/electron"
+# setDir <- ""
+entrezDT_file <- paste0(setDir, "/mnt/ed4/marie/entrez2synonym/entrez/ENTREZ_POS/gff_entrez_position_GRCh37p13_nodup.txt")
+gff_dt <- read.delim(entrezDT_file, header = TRUE, stringsAsFactors = FALSE)
+gff_dt$entrezID <- as.character(gff_dt$entrezID)
+stopifnot(!duplicated(gff_dt$entrezID))
+entrez2symb <- setNames(gff_dt$symbol, gff_dt$entrezID)
+
+
+gimap_genes <- entrez2symb[grepl("GIMAP", entrez2symb)]
+
+dt[dt$entrezID %in% names(gimap_genes),]
+
+unique(as.character(dt$region[dt$entrezID %in% names(gimap_genes)]))
+
+unique(as.character(dt$region[dt$entrezID %in% names(gimap_genes)]))
+# [1] "chr7_TAD552" "chr7_TAD553" "chr7_TAD554"
+
+
+# Rscript plot_lolli_by_tad_dataset.R chr7_TAD552 ENCSR444WCZ_A549_40kb TCGAluad_norm_luad 
+# Rscript plot_lolli_by_tad_dataset.R chr7_TAD553 ENCSR444WCZ_A549_40kb TCGAluad_norm_luad 
+# Rscript plot_lolli_by_tad_dataset.R chr7_TAD554 ENCSR444WCZ_A549_40kb TCGAluad_norm_luad 
+
+# Rscript plot_lolli_by_tad_dataset.R chr7_TAD552 ENCSR444WCZ_A549_40kb TCGAlusc_norm_lusc
+# Rscript plot_lolli_by_tad_dataset.R chr7_TAD553 ENCSR444WCZ_A549_40kb TCGAlusc_norm_lusc 
+# Rscript plot_lolli_by_tad_dataset.R chr7_TAD554 ENCSR444WCZ_A549_40kb TCGAlusc_norm_lusc 
 
 
 ##########

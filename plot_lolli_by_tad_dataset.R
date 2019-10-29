@@ -5,6 +5,10 @@ SSHFS=F
 # Rscript plot_lolli_by_symbol_dataset.R <tad> <hicds> <exprds>
 # Rscript plot_lolli_by_tad_dataset.R chr11_TAD389 LG1_40kb TCGAlusc_norm_lusc
 
+# Rscript plot_lolli_by_tad_dataset.R chr7_TAD560 ENCSR079VIJ_G401_40kb TCGAkich_norm_kich
+# Rscript plot_lolli_by_tad_dataset.R chr7_TAD591 LG2_40kb TCGAlusc_norm_lusc
+# Rscript plot_lolli_by_tad_dataset.R chr7_TAD515 GSE105381_HepG2_40kb TCGAlihc_norm_lihc
+
 #norm vs. tumor limma missed: JMJD8 MT1L MAPK7 FCGR2C NUP93, SORD, SLAMF7, LILRA2, ACTL10, RRP12, BRICD5, GSTM4, PGAM1, RHBDL1, FBXL16, MT1A, MT1E, MT1F, MT1G, MT1H
 gene_symbol <- "IFIT3"
 gene_symbol <- "JMJD8"
@@ -41,7 +45,7 @@ source("my_heatmap.2.R")
 
 buildTable <- TRUE
 
-plotType <- "png"
+plotType <- "svg"
 myHeight <- ifelse(plotType=="png", 400, 7)
 myWidth <- myHeight
 axisCex <- 1.4
