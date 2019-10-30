@@ -24,7 +24,7 @@ all_cols[all_cols == "red"] <- "brown3"
 all_cols[all_cols == "blue"] <- "darkblue"
 all_cols[all_cols == "green"] <- "forestgreen"
 
-plotType <- "png"
+plotType <- "svg"
 myHeight <- ifelse(plotType=="png", 400, 7)
 myWidth <- myHeight
 axisCex <- 1.4
@@ -60,89 +60,41 @@ colnames(signifNbr)[colnames(signifNbr) == "adjPvalComb"] <- "signifNbrTADs"
 
 plot_dt <- merge(totNbr, signifNbr, by=c("hicds", "exprds"))
 
-require(reshape2)
 
 plot_dt_m <- melt(plot_dt, id=c("hicds", "exprds"))
 
 plot_dt_m$value_log10 <- log10(plot_dt_m$value)
 
+outFile <- file.path(outFolder, paste0("nbrTADs_tot_signif_boxplot.", plotType))
+do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+
+
 boxplot(value_log10~variable, data=plot_dt_m,
         main=paste0("# of TADs"),
-        names=c("total", "signif.")
+        names=c("total", "signif."),
+        sub=paste0("adj. p-val <= ", signifThresh),
+        xlab = "",
+        ylab="# of TADs [log10]",
+        cex.axis =axisCex,
+        cex.lab =axisCex
         )
 mtext(side=3, text=paste0("all datasets - n=", length(unique(paste0(plot_dt$hicds, plot_dt$exprds)))))
 
-
-legend("topright", legend= c(paste0("mean tot. = ", round(mean(plot_dt$totNbrTADs),2), "\n", "mean signif. = ", round(mean(plot_dt$signifNbrTADs),2))), bty="n")
-
-
-
-
-# par(bty="l")
-# densplot(
-#   main = paste0(hicds_tit, " - ", exprds_tit),
-#   x = ex_DT$meanLogFC,
-#   y = ex_DT$meanCorr,
-#   xlab = "meanLogFC",
-#   ylab = "meanIntraCorr",
-#   cex.axis=plotCex,
-#   cex.lab=plotCex
-# )
-# mtext(side=3, text = paste0("all TADs - n = ", nrow(ex_DT)))
-
-
-# 
-# par(bty="l")
-# densplot(
-#   main = paste0(hicds_tit, " - ", exprds_tit),
-#   x = ex_DT_signif$meanLogFC,
-#   y = ex_DT_signif$meanCorr,
-#   xlab = "meanLogFC",
-#   ylab = "meanIntraCorr",
-#   cex.axis=plotCex,
-#   cex.lab=plotCex
-# )
-# mtext(side=3, text = paste0("signif. TADs - n = ", nrow(ex_DT_signif)))
-# legend("topleft", legend=paste0("adj. p-val <= ", signifThresh))
-
-
-
-
-outFile <- file.path(outFolder, paste0(ex_hicds, "_", ex_exprds, "_meanIntraCorr_meanLogFC_dotplot_with_signif.", plotType))
-do.call(plotType, list(outFile, height=myHeight, width=myWidth))
-
-ex_DT$dotcol <- ifelse(ex_DT$adjPvalComb <= signifThresh,"red", "darkgrey")
-par(bty="l")
-plot(
-  main = paste0(hicds_tit, " - ", exprds_tit),
-  x = ex_DT$meanLogFC,
-  y = ex_DT$meanCorr,
-  xlab = "meanLogFC",
-  ylab = "meanIntraCorr",
-  pch=16,
-  col = ex_DT$dotcol,
-  cex=0.7,
-  cex.axis=plotCex,
-  cex.lab=plotCex
-)
-mtext(side=3, text = paste0("# TADs = ", nrow(ex_DT), "; # signif. TADs = ", nrow(ex_DT_signif)))
-# legend("topleft", legend=paste0("adj. p-val <= ", signifThresh), pch=16, col="red", bty="n")
-legend("bottomright", legend=paste0("adj. p-val <= ", signifThresh), pch=16, col="red", bty="n")
-
+legend("topright", legend= c(paste0("mean tot. = ", round(mean(plot_dt$totNbrTADs),2), "\n", 
+                                    "mean signif. = ", round(mean(plot_dt$signifNbrTADs),2))), bty="n")
 
 
 foo <- dev.off()
 
-stop("--ok\n")
+
+cat(paste0("... written: ", outFile, "\n"))
+
+#######################################################################################################################################
+#######################################################################################################################################
+#######################################################################################################################################
+cat("***** DONE: ", script_name, "\n")
+cat(paste0(startTime, "\n", Sys.time(), "\n"))
 
 
-final_DT_signif <- final_DT[final_DT$adjPvalComb <=signifThresh,]
-
-nrow(final_DT)# 100884
-nrow(final_DT_signif) # 1453
-nrow(final_DT_signif)/58
-# [1] 25.05172
-nrow(final_DT)/58
-# [1] 1739.379
 
 
