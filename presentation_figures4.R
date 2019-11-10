@@ -82,6 +82,11 @@ final_table_DT <- get(load(final_table_file))
 final_table_DT$cmpType <- all_cmps[paste0(final_table_DT$exprds)]
 stopifnot(!is.na(final_table_DT$cmpType))
 
+xx <- final_table_DT[,c("hicds", "exprds")]
+xx <- unique(xx)
+xx <- xx[order(xx$hicds, xx$exprds),]
+xx
+
 
 
 tad_signif_col <- "tad_adjCombPval"
@@ -120,9 +125,11 @@ plotTit <- setNames(c("normal vs. tumor", "subtypes", "wild-type vs. mutant", "a
 for(data_cmpType in c("norm_vs_tumor", "subtypes", "wt_vs_mut", "")) {
   
   if(data_cmpType == "") {
-    nDS <- length(unique(paste0(final_table_DT$hicds,final_table_DT$exprds)))  
+    nDS <- length(unique(paste0(final_table_DT$hicds,final_table_DT$exprds)))
+    tmpDS<- length(unique(paste0(final_table_DT$exprds)))
   } else {
     nDS <- length(unique(paste0(final_table_DT$hicds[final_table_DT$cmpType==data_cmpType],final_table_DT$exprds[final_table_DT$cmpType==data_cmpType])))
+    tmpDS <- length(unique(paste0(final_table_DT$exprds[final_table_DT$cmpType==data_cmpType])))
   }
   stopifnot(nDS > 0)
   
@@ -136,16 +143,42 @@ for(data_cmpType in c("norm_vs_tumor", "subtypes", "wt_vs_mut", "")) {
   stopifnot(file.exists(inFile))
   conserved_signif_tads <- get(load(inFile))
   
+  tmp <- lapply(conserved_signif_tads, function(x) unique(basename(dirname(x))))
+  exprds_countConserv <- abs(sort(-lengths(tmp)))
+  stopifnot(exprds_countConserv >= 1)
+  tmp_countConserv_dt <- data.frame(exprds_countConserv)
+  tmp_countConserv_dt$region <- factor(rownames(tmp_countConserv_dt), levels=rownames(tmp_countConserv_dt))
+  tmp_countConserv_dt$conservRatio <- tmp_countConserv_dt$exprds_countConserv/tmpDS
+  stopifnot(tmp_countConserv_dt$conservRatio <= 1)
+  
+  
+  
   countConserv <- abs(sort(-lengths(conserved_signif_tads)))
   stopifnot(countConserv > 1)
-  
   countConserv_dt <- data.frame(countConserv)
   countConserv_dt$region <- factor(rownames(countConserv_dt), levels=rownames(countConserv_dt))
   countConserv_dt$conservRatio <- countConserv_dt$countConserv/nDS
   stopifnot(countConserv_dt$conservRatio <= 1)
   
   
-  
+  # > head(countConserv_dt)
+  # countConserv              region conservRatio
+  # conserved_region_22           10 conserved_region_22       0.6250
+  # conserved_region_9             7  conserved_region_9       0.4375
+  # conserved_region_10            6 conserved_region_10       0.3750
+  # conserved_region_23            6 conserved_region_23       0.3750
+  # conserved_region_17            5 conserved_region_17       0.3125
+  # conserved_region_30            5 conserved_region_30       0.3125
+  # > head(tmp_countConserv_dt)
+  # exprds_countConserv              region conservRatio
+  # conserved_region_22                   4 conserved_region_22          0.8
+  # conserved_region_36                   4 conserved_region_36          0.8
+  # conserved_region_9                    3  conserved_region_9          0.6
+  # conserved_region_16                   3 conserved_region_16          0.6
+  # conserved_region_17                   3 conserved_region_17          0.6
+  # conserved_region_30                   3 conserved_region_30          0.6
+  # > 
+    
   outFile <- file.path(outFolder, paste0(data_cmpType, "_count_conserved_regions.", plotType))
   
   do.call(plotType, list(outFile, height=myHeight, width=myWidth))

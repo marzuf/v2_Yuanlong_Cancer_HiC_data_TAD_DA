@@ -9,6 +9,12 @@ SSHFS=F
 # Rscript plot_lolli_by_tad_dataset.R chr7_TAD591 LG2_40kb TCGAlusc_norm_lusc
 # Rscript plot_lolli_by_tad_dataset.R chr7_TAD515 GSE105381_HepG2_40kb TCGAlihc_norm_lihc
 
+# Rscript plot_lolli_by_tad_dataset.R chr10_TAD22 GSE99051_786_O_40kb TCGAkich_norm_kich
+# Rscript plot_lolli_by_tad_dataset.R chr10_TAD24 GSE99051_786_O_40kb TCGAkich_norm_kich
+
+# Rscript plot_lolli_by_tad_dataset.R chr7_TAD437 GSE99051_786_O_40kb TCGAkich_norm_kich
+# Rscript plot_lolli_by_tad_dataset.R chr7_TAD439 GSE99051_786_O_40kb TCGAkich_norm_kich
+
 #norm vs. tumor limma missed: JMJD8 MT1L MAPK7 FCGR2C NUP93, SORD, SLAMF7, LILRA2, ACTL10, RRP12, BRICD5, GSTM4, PGAM1, RHBDL1, FBXL16, MT1A, MT1E, MT1F, MT1G, MT1H
 gene_symbol <- "IFIT3"
 gene_symbol <- "JMJD8"

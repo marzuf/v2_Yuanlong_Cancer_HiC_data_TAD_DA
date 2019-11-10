@@ -4,6 +4,7 @@ SSHFS=F
 
 # Rscript plot_lolli_by_symbol_dataset.R <gene_symbol> <hicds> <exprds>
 # Rscript plot_lolli_by_symbol_dataset.R MMP2 LG1_40kb TCGAlusc_norm_lusc
+# Rscript plot_lolli_by_symbol_dataset.R CAV3 GSE99051_786_O_40kb TCGAkich_norm_kich
 
 #norm vs. tumor limma missed: JMJD8 MT1L MAPK7 FCGR2C NUP93, SORD, SLAMF7, LILRA2, ACTL10, RRP12, BRICD5, GSTM4, PGAM1, RHBDL1, FBXL16, MT1A, MT1E, MT1F, MT1G, MT1H
 gene_symbol <- "IFIT3"

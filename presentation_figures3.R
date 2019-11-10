@@ -191,7 +191,16 @@ sub_gene_tad_dt$geneSymb <- entrez2symb[sub_gene_tad_dt$entrezID]
 # 333383      3503     CAV1
 # 333389       465     CAV2
 # 333408        26   AKR1C3
-
+load(file.path("PIPELINE/OUTPUT_FOLDER", ex_hicds, ex_exprds, "1_runGeneDE/DE_topTable.Rdata"))
+sub_dt <- DE_topTable[DE_topTable$genes %in% tolookentrez, c("genes", "adj.P.Val")]
+sub_dt$geneSymb <- entrez2symb[sub_dt$genes]
+genes    adj.P.Val geneSymb
+# 8644  8644 1.127175e-27   AKR1C3
+# 858    858 3.904018e-15     CAV2
+# 1646  1646 3.541086e-13   AKR1C2
+# 4233  4233 2.209539e-12      MET
+# 857    857 1.170486e-04     CAV1
+# 1645  1645 4.284339e-02   AKR1C1
 
 #######################################################################################################################################
 #######################################################################################################################################

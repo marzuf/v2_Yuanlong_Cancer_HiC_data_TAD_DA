@@ -211,3 +211,52 @@ data2 <- get(load("GO_SIGNIF_GENELEVEL_TADLEVEL_INTERSECTDIFF/tadPvalThresh0.05_
 length(data1[[1]][["tads_signif_genes"]]) < length(data2[[1]][["tads_signif_genes"]])
 length(data1[[1]][["limma_signif_genes"]]) < length(data2[[1]][["limma_signif_genes"]])
 
+
+############################################################################################## GIMAP genes cancer
+# ENCSR444WCZ_A549_40kb/ GIMAP 2 4 6  7
+# chr7_TAD553  
+# "TCGAluad_norm_luad"
+
+hicds="GSE99051_786_O_40kb"
+exprds = "TCGAkich_norm_kich"
+
+
+dt <- read.delim(file.path(hicds, "genes2tad", "all_genes_positions.txt"), header=F, col.names=c("entrezID", "chromo", "start", "end", "region"))
+
+
+setDir <- "/media/electron"
+# setDir <- ""
+entrezDT_file <- paste0(setDir, "/mnt/ed4/marie/entrez2synonym/entrez/ENTREZ_POS/gff_entrez_position_GRCh37p13_nodup.txt")
+gff_dt <- read.delim(entrezDT_file, header = TRUE, stringsAsFactors = FALSE)
+gff_dt$entrezID <- as.character(gff_dt$entrezID)
+stopifnot(!duplicated(gff_dt$entrezID))
+entrez2symb <- setNames(gff_dt$symbol, gff_dt$entrezID)
+
+
+gimap_genes <- entrez2symb[grepl("AKR1", entrez2symb)]
+
+dt[dt$entrezID %in% names(gimap_genes),]
+
+unique(as.character(dt$region[dt$entrezID %in% names(gimap_genes)]))
+
+unique(as.character(dt$region[dt$entrezID %in% names(gimap_genes)]))
+# [1] "chr10_TAD23" "chr10_TAD24"  "chr10_TAD244" "chr11_TAD63"  "chr13_TAD107"
+# [6] "chr14_TAD157" "chr18_TAD37"  "chr18_TAD243" "chr19_TAD124" "chr1_TAD171" 
+# [11] "chr1_TAD536"  "chr1_TAD763"  "chr3_TAD279"  "chr7_TAD506"  "chr7_TAD519" 
+
+# Rscript plot_lolli_by_tad_dataset.R chr10_TAD244 GSE99051_786_O_40kb TCGAkich_norm_kich
+# Rscript plot_lolli_by_tad_dataset.R chr11_TAD63 GSE99051_786_O_40kb TCGAkich_norm_kich
+# Rscript plot_lolli_by_tad_dataset.R chr13_TAD107 GSE99051_786_O_40kb TCGAkich_norm_kich
+
+# Rscript plot_lolli_by_tad_dataset.R chr14_TAD157 GSE99051_786_O_40kb TCGAkich_norm_kich
+# Rscript plot_lolli_by_tad_dataset.R chr18_TAD37 GSE99051_786_O_40kb TCGAkich_norm_kich
+# Rscript plot_lolli_by_tad_dataset.R chr18_TAD243 GSE99051_786_O_40kb TCGAkich_norm_kich
+# Rscript plot_lolli_by_tad_dataset.R chr19_TAD124 GSE99051_786_O_40kb TCGAkich_norm_kich
+# Rscript plot_lolli_by_tad_dataset.R chr1_TAD171 GSE99051_786_O_40kb TCGAkich_norm_kich
+
+# Rscript plot_lolli_by_tad_dataset.R chr1_TAD536 GSE99051_786_O_40kb TCGAkich_norm_kich
+# Rscript plot_lolli_by_tad_dataset.R chr1_TAD763 GSE99051_786_O_40kb TCGAkich_norm_kich
+# Rscript plot_lolli_by_tad_dataset.R chr3_TAD279 GSE99051_786_O_40kb TCGAkich_norm_kich
+# Rscript plot_lolli_by_tad_dataset.R chr7_TAD506 GSE99051_786_O_40kb TCGAkich_norm_kich
+# Rscript plot_lolli_by_tad_dataset.R chr7_TAD519 GSE99051_786_O_40kb TCGAkich_norm_kich
+
