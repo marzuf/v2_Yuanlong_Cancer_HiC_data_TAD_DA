@@ -27,15 +27,15 @@ shuffle_chromoPartition <- function(domainDT, chrSize, preservePattern=TRUE, set
   chromoDT <- rbind(domainDT, gapsDT)
   if(domainDT$start[1] > 1) {
     startDT <- data.frame(chromo = chromo,
-                       start= 1,
-                       end = domainDT$start[1]-1,
-                       regType = "non_domain")
+                          start= 1,
+                          end = domainDT$start[1]-1,
+                          regType = "non_domain")
     chromoDT <- rbind(chromoDT, startDT)
   }
   if(domainDT$end[nrow(domainDT)] < chrSize) {
     endDT <- data.frame(chromo = chromo,
-                          start= domainDT$end[nrow(domainDT)] + 1,
-                          end = chrSize,
+                        start= domainDT$end[nrow(domainDT)] + 1,
+                        end = chrSize,
                         regType = "non_domain")
     chromoDT <- rbind(chromoDT, endDT)
   }
@@ -72,14 +72,14 @@ shuffle_chromoPartition <- function(domainDT, chrSize, preservePattern=TRUE, set
   # !!! DO NOT USE dopar WHEN MODFIYING "GLOBAL" VARIABLE !!!
   randomPartition <- foreach(reg = names(O_list), .combine='c') %do% {
     if(reg == "domain") {
-     z <- setNames(O_list_dom_rand[dom_index], "domain")
-     dom_index <- dom_index + 1
+      z <- setNames(O_list_dom_rand[dom_index], "domain")
+      dom_index <- dom_index + 1
     } else if(reg == "non_domain") {
       z <- setNames(O_list_non_rand[non_index], "non_domain")
       non_index <- non_index + 1
     } else {
-		stop("error")
-	}
+      stop("error")
+    }
     z
   }
   stopifnot(all(names(randomPartition) == names(O_list)))
@@ -88,18 +88,18 @@ shuffle_chromoPartition <- function(domainDT, chrSize, preservePattern=TRUE, set
   ### STEP6: reconstruct the domain list
   cum_randomPart <- cumsum(randomPartition)
   newChromoDT <- data.frame(chromo = rep(chromo, length(cum_randomPart)), 
-                        start = c(1, cum_randomPart[-length(cum_randomPart)]+1 ),
-                        end = as.numeric(cum_randomPart),
-                        regType = names(cum_randomPart))
+                            start = c(1, cum_randomPart[-length(cum_randomPart)]+1 ),
+                            end = as.numeric(cum_randomPart),
+                            regType = names(cum_randomPart))
   stopifnot(nrow(newChromoDT) == nrow(chromoDT))
   newDomainDT <- newChromoDT[newChromoDT$regType == "domain",c("chromo", "start", "end")]
   stopifnot(nrow(newDomainDT) == nrow(domainDT))
- 
+  
   obsSum <- sum(domainDT$end-domainDT$start+1)
   shuffSum <- sum(newDomainDT$end-newDomainDT$start+1)
   if( abs(obsSum-shuffSum) > 1e-10) {
-	cat(paste0( round(obsSum, 2) , " == ", round(shuffSum, 2), "\n"))
-	stop("abs(obsSum-shuffSum) > 1e-10\n")
+    cat(paste0( round(obsSum, 2) , " == ", round(shuffSum, 2), "\n"))
+    stop("abs(obsSum-shuffSum) > 1e-10\n")
   }
   return(newDomainDT)
 }
@@ -108,53 +108,53 @@ shuffle_chromoPartition <- function(domainDT, chrSize, preservePattern=TRUE, set
 #**************************************************************************************
 #**************************************************************************************
 fill_DT <- function(dt, chr_len) {
-    stopifnot(ncol(dt) == 3)
-    chromo <- as.character(dt[1,1])
-    # do not take the 1st column with the "chr6"    
-    dt <- dt[,2:3]
-    colnames(dt) <- c("start", "end")
-    # add a column filled with 0
-    dt$region <- "TAD"
-    # test that nrow dt is bigger than 1 otherwise the 2:... will create NA
-    if(nrow(dt) > 1) {
-      # create data frame that will hold the gap for the 1st dataset
-      # start of the gap = end of the end of the TAD + 1 (do not take the last row)    
-      # end of the gap = start of the TAD - 1 (do not take the first row)
-      dt_gaps <- data.frame( start = (dt$end[1:(nrow(dt)-1)] + 1),
-                              end = (dt$start[2:nrow(dt)] -1))
-      stopifnot(is.numeric(dt_gaps$start[1]))
-      stopifnot(is.numeric(dt_gaps$end[1]))    
-      # select only the row with end > start
-      dt_gaps <- dt_gaps[dt_gaps$start < dt_gaps$end,]
-    } else{
-      dt_gaps <- data.frame(start = numeric(), end=numeric())
-    }
-    # ad gaps at the beginning until first TAD and at the end until end of chromo size
-    # CHANGE MZ: FIRST DOMAIN APPENDED SHOULD START WITH 1 NOT WITH 0
-    #pgaps1 = pgaps1.append(pd.DataFrame([[0, p1.iloc[0,0]-1], [p1.iloc[p1.shape[0]-1,1]+1, chr_len]], columns=['Start', 'End']), ignore_index=True)
-    # THERE WAS A PROBLEM IF THE LAST TAD WAS UNTIL THE LAST CHROMO IT WHOULD HAD LAST ROW WITH CHR_LEN+1 CHR_LEN
-    #dt_gaps = dt_gaps.append(pd.DataFrame([[1, dt.iloc[0,0]-1], [dt.iloc[dt.shape[0]-1,1]+1, chr_len]], columns=['Start', 'End']), ignore_index=True)
-    # if needed, add gap before 1st TAD
-    if(dt$start[1] > 1) {
-        tmpDT <- data.frame(start = 1, end = dt$start[1]-1)
-        dt_gaps <- rbind(tmpDT, dt_gaps)
-    }
-    # if needed, add gap until chromosome end    
-    if(dt$end[nrow(dt)] < chr_len) {
-        tmpDT <- data.frame(start = dt$end[nrow(dt)] + 1, end = chr_len)
-        dt_gaps <- rbind(dt_gaps, tmpDT)        
-    }
-    # add a column to indicate there are gaps
-    if(nrow(dt_gaps) > 0) {
-        dt_gaps$region <- "gap"
-        dt_final <- rbind(dt, dt_gaps)
-    } else{
-        dt_final <- dt
-    }
-    dt_final <- dt_final[order(dt_final$start),]
-    rownames(dt_final) <- NULL
-    dt_final$chromo <- chromo
-    return(dt_final)
+  stopifnot(ncol(dt) == 3)
+  chromo <- as.character(dt[1,1])
+  # do not take the 1st column with the "chr6"    
+  dt <- dt[,2:3]
+  colnames(dt) <- c("start", "end")
+  # add a column filled with 0
+  dt$region <- "TAD"
+  # test that nrow dt is bigger than 1 otherwise the 2:... will create NA
+  if(nrow(dt) > 1) {
+    # create data frame that will hold the gap for the 1st dataset
+    # start of the gap = end of the end of the TAD + 1 (do not take the last row)    
+    # end of the gap = start of the TAD - 1 (do not take the first row)
+    dt_gaps <- data.frame( start = (dt$end[1:(nrow(dt)-1)] + 1),
+                           end = (dt$start[2:nrow(dt)] -1))
+    stopifnot(is.numeric(dt_gaps$start[1]))
+    stopifnot(is.numeric(dt_gaps$end[1]))    
+    # select only the row with end > start
+    dt_gaps <- dt_gaps[dt_gaps$start < dt_gaps$end,]
+  } else{
+    dt_gaps <- data.frame(start = numeric(), end=numeric())
+  }
+  # ad gaps at the beginning until first TAD and at the end until end of chromo size
+  # CHANGE MZ: FIRST DOMAIN APPENDED SHOULD START WITH 1 NOT WITH 0
+  #pgaps1 = pgaps1.append(pd.DataFrame([[0, p1.iloc[0,0]-1], [p1.iloc[p1.shape[0]-1,1]+1, chr_len]], columns=['Start', 'End']), ignore_index=True)
+  # THERE WAS A PROBLEM IF THE LAST TAD WAS UNTIL THE LAST CHROMO IT WHOULD HAD LAST ROW WITH CHR_LEN+1 CHR_LEN
+  #dt_gaps = dt_gaps.append(pd.DataFrame([[1, dt.iloc[0,0]-1], [dt.iloc[dt.shape[0]-1,1]+1, chr_len]], columns=['Start', 'End']), ignore_index=True)
+  # if needed, add gap before 1st TAD
+  if(dt$start[1] > 1) {
+    tmpDT <- data.frame(start = 1, end = dt$start[1]-1)
+    dt_gaps <- rbind(tmpDT, dt_gaps)
+  }
+  # if needed, add gap until chromosome end    
+  if(dt$end[nrow(dt)] < chr_len) {
+    tmpDT <- data.frame(start = dt$end[nrow(dt)] + 1, end = chr_len)
+    dt_gaps <- rbind(dt_gaps, tmpDT)        
+  }
+  # add a column to indicate there are gaps
+  if(nrow(dt_gaps) > 0) {
+    dt_gaps$region <- "gap"
+    dt_final <- rbind(dt, dt_gaps)
+  } else{
+    dt_final <- dt
+  }
+  dt_final <- dt_final[order(dt_final$start),]
+  rownames(dt_final) <- NULL
+  dt_final$chromo <- chromo
+  return(dt_final)
 }
 #**************************************************************************************
 #**************************************************************************************
@@ -180,32 +180,23 @@ get_paralog_concord_with_tad <- function(dt_para, dt_g2t, check_entrez=NULL) {
   sameTAD_ratio <- sum(paralog_g2t_dt$ref_region == paralog_g2t_dt$paralog_region)/nrow(paralog_g2t_dt)
   
   cat(paste0("... create paralog sets:\t", Sys.time() , " - "))
-  para_list_2 <- by(paralog_g2t_dt, paralog_g2t_dt$EntrezGene.ID, function(sub_dt) sort(unique(c(sub_dt$EntrezGene.ID, sub_dt$Human.paralogue.entrezGene.ID)) ))
-  cat(paste0(Sys.time() , " \n "))
-  para_list <- para_list_2
-  names(para_list) <- NULL
-  para_list <- unique(para_list)
-  length(para_list) # 3491
-  length(para_list_2) # 12993
   
   
-  cat(paste0("... remove nested:\t", Sys.time(), " - "))
   
-  n_match_paralogs <- unlist(lapply(para_list, function(mylist) sum(unlist(lapply(para_list, function(x) all(mylist %in% x))))))
-  # same as:
-  # unlist(lapply(para_list, function(mylist) sum(unlist(lapply(para_list, function(x) length(setdiff(mylist, x))==0)))))
+  para_g <- graph_from_data_frame(paralog_g2t_dt[,c("EntrezGene.ID", "Human.paralogue.entrezGene.ID")], directed = FALSE, vertices = NULL)
+  paralogs_list_nosub <- lapply(decompose.graph(para_g), function(x) names(V(x)))
   
-  stopifnot(length(n_match_paralogs) == length(para_list))
-  stopifnot(n_match_paralogs > 0)
-  cat(paste0(Sys.time(), "\n"))
   
-  paralogs_list_nosub <- para_list[which(n_match_paralogs == 1)]
   length(paralogs_list_nosub)
   
   cat(paste0("... still duplicated entrez:\t", sum(duplicated(unlist(paralogs_list_nosub))), "\n"))
   
+  # paralogs_list_tads <- lapply(paralogs_list_nosub, function(sublist) {
+  #   unique(unlist(sapply(sublist, function(sublist_gene) dt_g2t$region[dt_g2t$entrezID == sublist_gene])))
+  # })
+  
   paralogs_list_tads <- lapply(paralogs_list_nosub, function(sublist) {
-    unique(unlist(sapply(sublist, function(sublist_gene) dt_g2t$region[dt_g2t$entrezID == sublist_gene])))
+    unique(unlist(dt_g2t$region[dt_g2t$entrezID %in% sublist]))
   })
   
   paralogs_list_nGenes <- lengths(paralogs_list_nosub)
@@ -217,10 +208,10 @@ get_paralog_concord_with_tad <- function(dt_para, dt_g2t, check_entrez=NULL) {
   stopifnot(paralogs_list_nGenes >= paralogs_list_nTads)
   
   return(list(sameTAD_ratio=sameTAD_ratio, 
-         paralogs_list_nGenes=paralogs_list_nGenes,
-         paralogs_list_nTads=paralogs_list_nTads,
-         paralogs_list_ratioTadsGenes=paralogs_list_ratioTadsGenes
-         )
+              paralogs_list_nGenes=paralogs_list_nGenes,
+              paralogs_list_nTads=paralogs_list_nTads,
+              paralogs_list_ratioTadsGenes=paralogs_list_ratioTadsGenes
+  )
   )
   
 }

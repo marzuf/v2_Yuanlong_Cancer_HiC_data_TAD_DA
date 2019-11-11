@@ -1,18 +1,19 @@
 startTime <- Sys.time()
-cat(paste0("> Rscript paralogs_and_tads.R\n"))
+cat(paste0("> Rscript paralogs_and_tads_vGraph.R\n"))
 
-script_name <- "paralogs_and_tads.R"
+script_name <- "paralogs_and_tads_vGraph.R"
 
 suppressPackageStartupMessages(library(foreach, warn.conflicts = FALSE, quietly = TRUE, verbose = FALSE))
 suppressPackageStartupMessages(library(doMC, warn.conflicts = FALSE, quietly = TRUE, verbose = FALSE))
 suppressPackageStartupMessages(library(dplyr, warn.conflicts = FALSE, quietly = TRUE, verbose = FALSE))
+require(igraph)
 
-# Rscript paralogs_and_tads.R
+# Rscript paralogs_and_tads_vGraph.R
 buildTable <- TRUE
 
 source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 
-source("paralog_utils_fct.R")
+source("paralog_utils_fct_vGraph.R")
 nRandom <- 1000
 # nRandom <- 5
 stopifnot(nRandom>1)
@@ -32,7 +33,7 @@ pipFolder <- file.path("PIPELINE", "OUTPUT_FOLDER")
 all_hicds <- list.files(pipFolder)
 stopifnot(dir.exists(file.path(mainFolder, all_hicds)))
 
-outFolder <- file.path("PARALOGS_AND_TADS_vPos1")
+outFolder <- file.path("PARALOGS_AND_TADS_vGraph_all")
 dir.create(outFolder, recursive = TRUE)
 
 ################################################################################################################################################
@@ -67,7 +68,7 @@ if(buildTable) {
   
   hicds = all_hicds[1]
   
-  all_hicds = all_hicds[1]
+  # all_hicds = all_hicds[1]
   
   all_ds_results <- foreach(hicds = all_hicds) %do% {
     cat(paste0("... start ", hicds, "\n"))  
@@ -85,78 +86,69 @@ if(buildTable) {
                                                   entrez_paraDT$Human.paralogue.entrezGene.ID %in% obs_g2t_dt$entrezID]))
     
     
-              para_g2t_dt_tmp <- inner_join(entrez_paraDT, obs_g2t_dt[,c("entrezID", "region")], by = c("EntrezGene.ID" = "entrezID"))
-              colnames(para_g2t_dt_tmp)[colnames(para_g2t_dt_tmp) == "region"] <- "ref_region"
-              para_g2t_dt <- inner_join(para_g2t_dt_tmp, obs_g2t_dt[,c("entrezID", "region")], by = c("Human.paralogue.entrezGene.ID" = "entrezID"))
-              colnames(para_g2t_dt)[colnames(para_g2t_dt) == "region"] <- "paralog_region"
-              nrow(para_g2t_dt)
-              # 158274
-              stopifnot(is.character(para_g2t_dt$EntrezGene.ID))
-              stopifnot(is.character(para_g2t_dt$Human.paralogue.entrezGene.ID))
-              stopifnot(setequal(av_entrez, unique(c(para_g2t_dt$EntrezGene.ID, para_g2t_dt$Human.paralogue.entrezGene.ID))))
+              # para_g2t_dt_tmp <- inner_join(entrez_paraDT, obs_g2t_dt[,c("entrezID", "region")], by = c("EntrezGene.ID" = "entrezID"))
+              # colnames(para_g2t_dt_tmp)[colnames(para_g2t_dt_tmp) == "region"] <- "ref_region"
+              # para_g2t_dt <- inner_join(para_g2t_dt_tmp, obs_g2t_dt[,c("entrezID", "region")], by = c("Human.paralogue.entrezGene.ID" = "entrezID"))
+              # colnames(para_g2t_dt)[colnames(para_g2t_dt) == "region"] <- "paralog_region"
+              # nrow(para_g2t_dt)
+              # # 158274
+              # stopifnot(is.character(para_g2t_dt$EntrezGene.ID))
+              # stopifnot(is.character(para_g2t_dt$Human.paralogue.entrezGene.ID))
+              # stopifnot(setequal(av_entrez, unique(c(para_g2t_dt$EntrezGene.ID, para_g2t_dt$Human.paralogue.entrezGene.ID))))
+              # 
+              # obs_sameTAD_ratio <- sum(para_g2t_dt$ref_region == para_g2t_dt$paralog_region)/nrow(para_g2t_dt)
+              # 
+              # cat(paste0("... create paralog sets:\t", Sys.time() , " - "))
+              # 
+              # para_g <- graph_from_data_frame(para_g2t_dt[,c("EntrezGene.ID", "Human.paralogue.entrezGene.ID")], directed = FALSE, vertices = NULL)
+              # para_list_nosub <- lapply(decompose.graph(para_g), function(x) names(V(x)))
+              # 
+              # length(para_list_nosub)
+              # 
+              # cat(paste0("... still duplicated entrez:\t", sum(duplicated(unlist(para_list_nosub))), "\n"))
+              # 
+              ## para_list_tads <- lapply(para_list_nosub, function(sublist) {
+              ##   unique(unlist(sapply(sublist, function(sublist_gene) obs_g2t_dt$region[obs_g2t_dt$entrezID == sublist_gene])))
+              ## })
               
-              obs_sameTAD_ratio <- sum(para_g2t_dt$ref_region == para_g2t_dt$paralog_region)/nrow(para_g2t_dt)
-              
-              cat(paste0("... create paralog sets:\t", Sys.time() , " - "))
-              para_list_2 <- by(para_g2t_dt, para_g2t_dt$EntrezGene.ID, function(sub_dt) sort(unique(c(sub_dt$EntrezGene.ID, sub_dt$Human.paralogue.entrezGene.ID)) ))
-              cat(paste0(Sys.time() , " \n "))
-              para_list <- para_list_2
-              names(para_list) <- NULL
-              para_list <- unique(para_list)
-              length(para_list) # 3491
-              length(para_list_2) # 12993
-              
-              # > para_list[[35]]
-              # [1] "100131539" "100131980" "100132396" "169270"    "728957"
-              # > para_list[[39]]
-              # [1] "100131539" "100131980" "100132396" "169270"    "440077"    "728957"   
-          
-              cat(paste0("... remove nested:\t", Sys.time(), " - "))
-              
-              n_match_paras <- unlist(lapply(para_list, function(mylist) sum(unlist(lapply(para_list, function(x) all(mylist %in% x))))))
-              stopifnot(length(n_match_paras) == length(para_list))
-              stopifnot(n_match_paras > 0)
-              cat(paste0(Sys.time(), "\n"))
-              
-              para_list_nosub <- para_list[which(n_match_paras == 1)]
-              length(para_list_nosub)
-          
-              cat(paste0("... still duplicated entrez:\t", sum(duplicated(unlist(para_list_nosub))), "\n"))
-              
-              para_list_tads <- lapply(para_list_nosub, function(sublist) {
-                unique(unlist(sapply(sublist, function(sublist_gene) obs_g2t_dt$region[obs_g2t_dt$entrezID == sublist_gene])))
-              })
-              
-              obs_para_list_nGenes <- lengths(para_list_nosub)
-              obs_para_list_nTads <- lengths(para_list_tads)
-              
-              stopifnot(length(obs_para_list_nGenes) == length(obs_para_list_nTads))
-              stopifnot(obs_para_list_nGenes >= obs_para_list_nTads)
-              
-              obs_para_list_ratioTadsGenes <- obs_para_list_nTads/obs_para_list_nGenes
-              
-              hist(obs_para_list_nTads, breaks=1:max(obs_para_list_nTads))
+              # para_list_tads <- lapply(para_list_nosub, function(sublist) {
+              #   unique(unlist(obs_g2t_dt$region[obs_g2t_dt$entrezID %in% sublist]))
+              # })
+              # 
+              # 
+              # obs_para_list_nGenes <- lengths(para_list_nosub)
+              # obs_para_list_nTads <- lengths(para_list_tads)
+              # 
+              # stopifnot(length(obs_para_list_nGenes) == length(obs_para_list_nTads))
+              # stopifnot(obs_para_list_nGenes >= obs_para_list_nTads)
+              # 
+              # obs_para_list_ratioTadsGenes <- obs_para_list_nTads/obs_para_list_nGenes
+              # 
+              # hist(obs_para_list_nTads, breaks=1:max(obs_para_list_nTads))
     
     
     check_fct <- get_paralog_concord_with_tad(dt_para=entrez_paraDT,
                                              dt_g2t=obs_g2t_dt, 
                                              check_entrez=av_entrez)
     
-    save(obs_sameTAD_ratio, file=file.path(outFolder, "obs_sameTAD_ratio.Rdata"), version=2)
-    save(obs_para_list_nTads, file=file.path(outFolder, "obs_para_list_nTads.Rdata"), version=2)
-    save(check_fct, file=file.path(outFolder, "check_fct.Rdata"), version=2)
+    obs_sameTAD_ratio <- check_fct[["sameTAD_ratio"]]
+    obs_para_list_nTads <- check_fct[["paralogs_list_nTads"]]
+    obs_para_list_ratioTadsGenes <-  check_fct[["paralogs_list_ratioTadsGenes"]]
+    # save(obs_sameTAD_ratio, file=file.path(outFolder, "obs_sameTAD_ratio.Rdata"), version=2)
+    # save(obs_para_list_nTads, file=file.path(outFolder, "obs_para_list_nTads.Rdata"), version=2)
+    # save(check_fct, file=file.path(outFolder, "check_fct.Rdata"), version=2)
       
     cat(paste0("check_fct[[sameTAD_ratio]] \t=\t", round(check_fct[["sameTAD_ratio"]], 4), "\n"))
     
-    stopifnot(round(obs_sameTAD_ratio,4) == round(check_fct[["sameTAD_ratio"]], 4))
+    # stopifnot(round(obs_sameTAD_ratio,4) == round(check_fct[["sameTAD_ratio"]], 4))
     
-    stopifnot(obs_para_list_nTads == check_fct[["paralogs_list_nTads"]])
-    stopifnot(obs_para_list_nGenes == check_fct[["paralogs_list_nGenes"]])
-    stopifnot(obs_para_list_ratioTadsGenes == check_fct[["paralogs_list_ratioTadsGenes"]])
+    # stopifnot(obs_para_list_nTads == check_fct[["paralogs_list_nTads"]])
+    # stopifnot(obs_para_list_nGenes == check_fct[["paralogs_list_nGenes"]])
+    # stopifnot(obs_para_list_ratioTadsGenes == check_fct[["paralogs_list_ratioTadsGenes"]])
     
-    cat(paste0("stopifnot(obs_para_list_nTads == check_fct[[paralogs_list_nTads]])   \t=\t", 
-               stopifnot(obs_para_list_nTads == check_fct[["paralogs_list_nTads"]]), "\n"))  
-    
+    # cat(paste0("stopifnot(obs_para_list_nTads == check_fct[[paralogs_list_nTads]])   \t=\t", 
+    #            stopifnot(obs_para_list_nTads == check_fct[["paralogs_list_nTads"]]), "\n"))  
+    # 
     # shuffle_chromoPartition <- function(domainDT, chrSize, preservePattern=TRUE, setSeed = F , seed = 42) {
     
     tad_dt <- read.delim(tad_file, header=FALSE, sep="\t", stringsAsFactors = FALSE, col.names=c("chromo", "region", "start", "end"))
@@ -196,12 +188,12 @@ if(buildTable) {
       cat(paste0("... permut # ", i_random, "\t: end permut each chromo\n"))
       
       # do the gene2tad assignment based on TSS start
-      save(tad_dt, file="tad_dt.Rdata", version=2)
-      save(rd_tad_dt, file="rd_tad_dt.Rdata", version=2)
-      save(av_entrez, file="av_entrez.Rdata", version=2)
-      save(obs_g2t_dt, file="obs_g2t_dt.Rdata", version=2)
+      # save(tad_dt, file="tad_dt.Rdata", version=2)
+      # save(rd_tad_dt, file="rd_tad_dt.Rdata", version=2)
+      # save(av_entrez, file="av_entrez.Rdata", version=2)
+      # save(obs_g2t_dt, file="obs_g2t_dt.Rdata", version=2)
       
-      stopifnot(nrow(para_g2t_dt) > 0)
+      # stopifnot(nrow(para_g2t_dt) > 0)
       av_gene=av_entrez[1]
       rd_g2t_dt <- foreach(av_gene = av_entrez, .combine='rbind') %do% {
         gchromo <- obs_g2t_dt$chromo[obs_g2t_dt$entrezID == av_gene]

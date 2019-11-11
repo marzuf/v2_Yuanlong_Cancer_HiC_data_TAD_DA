@@ -18,7 +18,12 @@ pipOutDir =  file.path(pipelineDir, "OUTPUT_FOLDER")
 pipScriptDir = paste0(setDir, "/mnt/ed4/marie/scripts/TAD_DE_pipeline_v2")
 mainSettingsFile = file.path(paste0(pipScriptDir, "_",  "TopDom"), "main_settings.R")
 
-plot_lolliTAD_ds <- function(exprds, hicds, all_TADs, orderByLolli = "startPos", titTADonly=TRUE, mytitle=NULL){
+#plot_lolliTAD_ds <- function(exprds, hicds, all_TADs, orderByLolli = "startPos", titTADonly=TRUE, mytitle=NULL){
+plot_lolliTAD_ds <- function(exprds, hicds, all_TADs, orderByLolli = "startPos", titTADonly=TRUE, mytitle=NULL,
+						gene2tadDT=NULL,entrez2symbDT=NULL,
+					    DE_topTable=NULL,
+						rnaseqDT=NULL, initList=NULL, geneList=NULL
+						){
                           # mainDir = file.path(setDir, "/mnt/etemp/marie/Cancer_HiC_data_TAD_DA"),
                           # pipelineDir = file.path(mainDir, "PIPELINE"),
                           # settingDir = file.path(pipelineDir, "INPUT_FILES"),
@@ -52,6 +57,8 @@ plot_lolliTAD_ds <- function(exprds, hicds, all_TADs, orderByLolli = "startPos",
   source(mainSettingsFile)
   source(paste0(pipScriptDir, "/", "TAD_DE_utils.R"))
   source(settingF) # overwrite the variables loaded from mainSettingsFile
+
+  source("plot_lolli_fct.R") # overwrite the function: color of the bar of the gene can be logFC or meanExpr
   
   ################################****************************************************************************************
   ####################################################### PREPARE INPUT
@@ -60,17 +67,17 @@ plot_lolliTAD_ds <- function(exprds, hicds, all_TADs, orderByLolli = "startPos",
   # INPUT DATA
   # txt <- paste0("... gene2tadDT_file = ", gene2tadDT_file, "\n")
   # printAndLog(txt, logFile = logfile)
-  
-  cat(paste0("... read gene2tadDT from: ", gene2tadDT_file, "\n"))
-  
-  gene2tadDT <- read.delim(gene2tadDT_file, header=F, col.names = c("entrezID", "chromo", "start", "end", "region"), stringsAsFactors = F)
+  if(is.null(gene2tadDT)) {
+    cat(paste0("... read gene2tadDT from: ", gene2tadDT_file, "\n"))
+    gene2tadDT <- read.delim(gene2tadDT_file, header=F, col.names = c("entrezID", "chromo", "start", "end", "region"), stringsAsFactors = F)
+  }
   gene2tadDT$entrezID <- as.character(gene2tadDT$entrezID)
-  
-  cat(paste0("... read entrez2symbDT from: ", entrezDT_file, "\n"))
-  
-  # txt <- paste0("... entrezDT_file = ", entrezDT_file, "\n")
-  # printAndLog(txt, logFile = logfile)
-  entrez2symbDT <- read.delim(entrezDT_file, header=T, stringsAsFactors=F)
+  if(is.null(entrez2symbDT)) {
+    cat(paste0("... read entrez2symbDT from: ", entrezDT_file, "\n"))
+    # txt <- paste0("... entrezDT_file = ", entrezDT_file, "\n")
+    # printAndLog(txt, logFile = logfile)
+    entrez2symbDT <- read.delim(entrezDT_file, header=T, stringsAsFactors=F)
+  }
   entrez2symbDT <- entrez2symbDT[,c("entrezID", "symbol")]
   colnames(entrez2symbDT) <- c("entrezID", "geneName")
   entrez2symbDT$entrezID <- as.character(entrez2symbDT$entrezID)
@@ -88,16 +95,21 @@ plot_lolliTAD_ds <- function(exprds, hicds, all_TADs, orderByLolli = "startPos",
   samp2 <- eval(parse(text = load(samp2File)))
   
   # UPDATE SELECT THE GENES ACCORDING TO THE SETTINGS PREPARED IN 0_PREPGENEDATA
-  rnaseqDTFile <- file.path(pipOutDir,script0_name, "rna_rnaseqDT.Rdata")
-  initListFile <- file.path(pipOutDir,script0_name, "rna_geneList.Rdata")
-  geneListFile <- file.path(pipOutDir,script0_name, "pipeline_geneList.Rdata")
-
-  cat(paste0("... load ", rnaseqDTFile, "\n"))
-  rnaseqDT <- eval(parse(text = load(rnaseqDTFile)))
-  cat(paste0("... load ", initListFile, "\n"))
-  initList <- eval(parse(text = load(initListFile)))
-  cat(paste0("... load ", geneListFile, "\n"))
-  geneList <- eval(parse(text = load(geneListFile)))
+  if(is.null(rnaseqDT)) {
+    rnaseqDTFile <- file.path(pipOutDir,script0_name, "rna_rnaseqDT.Rdata")
+    cat(paste0("... load ", rnaseqDTFile, "\n"))
+    rnaseqDT <- eval(parse(text = load(rnaseqDTFile))) 
+  }
+  if(is.null(initList)) {
+    initListFile <- file.path(pipOutDir,script0_name, "rna_geneList.Rdata")
+    cat(paste0("... load ", initListFile, "\n"))
+    initList <- eval(parse(text = load(initListFile)))
+  }
+  if(is.null(geneList)) {
+    geneListFile <- file.path(pipOutDir,script0_name, "pipeline_geneList.Rdata")
+    cat(paste0("... load ", geneListFile, "\n"))
+    geneList <- eval(parse(text = load(geneListFile)))
+  }
   
   # txt <- paste0(toupper(script_name), "> Start with # genes: ", length(geneList), "/", length(initList), "\n")
   # printAndLog(txt, logfile)
@@ -107,7 +119,9 @@ plot_lolliTAD_ds <- function(exprds, hicds, all_TADs, orderByLolli = "startPos",
   stopifnot(!any(duplicated(names(geneList))))
   stopifnot(!any(duplicated(geneList)))
   
-  DE_topTable <- eval(parse(text = load(file.path(pipOutDir, script1_name, "DE_topTable.Rdata"))))
+  if(is.null(DE_topTable)) {
+	DE_topTable <- eval(parse(text = load(file.path(pipOutDir, script1_name, "DE_topTable.Rdata"))))
+  }
   stopifnot(!any(duplicated(names(geneList))))
   DE_topTable <- DE_topTable[DE_topTable$genes %in% names(geneList),]
   stopifnot(nrow(DE_topTable) > 0)

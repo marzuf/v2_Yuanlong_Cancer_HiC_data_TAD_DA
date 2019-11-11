@@ -118,9 +118,6 @@ allDS_signifFDR_DT <- foreach(hicds = all_hicds, .combine='rbind') %dopar% {
     meanCorr_FDR <- all_corr_FDR[["empFDR"]]  # the names is the meanCorr threshold, the value is the FDR
     stopifnot(length(meanCorr_FDR) > 0)
       
-
-
-
     # PREPARE logFC and meanCorr observed data
     fc_file <-  file.path(pipOutFolder, hicds, exprds, script3_name, "all_meanLogFC_TAD.Rdata")
     corr_file <- file.path(pipOutFolder, hicds, exprds, script4_name, "all_meanCorr_TAD.Rdata")
