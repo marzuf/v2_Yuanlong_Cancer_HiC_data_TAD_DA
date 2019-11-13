@@ -8,7 +8,7 @@ suppressPackageStartupMessages(library(doMC, warn.conflicts = FALSE, quietly = T
 suppressPackageStartupMessages(library(dplyr, warn.conflicts = FALSE, quietly = TRUE, verbose = FALSE))
 
 # Rscript paralogs_and_tads.R
-buildTable <- TRUE
+buildTable <- FALSE
 
 source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 
@@ -32,7 +32,7 @@ pipFolder <- file.path("PIPELINE", "OUTPUT_FOLDER")
 all_hicds <- list.files(pipFolder)
 stopifnot(dir.exists(file.path(mainFolder, all_hicds)))
 
-outFolder <- file.path("PARALOGS_AND_TADS_vPos1")
+outFolder <- file.path("PARALOGS_AND_TADS_vRatio")
 dir.create(outFolder, recursive = TRUE)
 
 ################################################################################################################################################
