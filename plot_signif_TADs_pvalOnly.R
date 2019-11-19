@@ -6,6 +6,10 @@ setDir=""
 # Rscript plot_signif_TADs_pvalOnly.R <p_value_threshold> # to run all datasets in one shot
 # Rscript plot_signif_TADs_pvalOnly.R 0.01 K562_40kb TCGAlaml_wt_mutFLT3
 # Rscript plot_signif_TADs_pvalOnly.R 0.01 GSE99051_786_O_40kb TCGAkich_norm_kich
+# Rscript plot_signif_TADs_pvalOnly.R 0.01 GSE99051_786_O_40kb TCGAkich_norm_kich
+# Rscript plot_signif_TADs_pvalOnly.R 0.01 GSE99051_786_O_40kb TCGAkich_norm_kich
+# Rscript plot_signif_TADs_pvalOnly.R 0.01 GSE99051_786_O_40kb TCGAkich_norm_kich
+# Rscript plot_signif_TADs_pvalOnly.R 0.01 ENCSR TCGAkich_norm_kich
 
 script_name <- "plot_signif_TADs_pvalOnly.R"
 

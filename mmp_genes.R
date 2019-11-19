@@ -555,6 +555,40 @@ unique(as.character(dt$region[dt$entrezID %in% names(fam_genes)]))
 # Rscript plot_lolli_by_tad_dataset.R chr12_TAD194 GSE118514_RWPE1_40kb TCGAprad_norm_prad
 
  
- 
+############################################################################################## EPHB
+
+hicds="ENCSR312KHQ_SK-MEL-5_40kb"
+exprds = "TCGAskcm_lowInf_highInf"
+
+dt <- read.delim(file.path(hicds, "genes2tad", "all_genes_positions.txt"), header=F, col.names=c("entrezID", "chromo", "start", "end", "region"))
+
+setDir <- "/media/electron"
+# setDir <- ""
+entrezDT_file <- paste0(setDir, "/mnt/ed4/marie/entrez2synonym/entrez/ENTREZ_POS/gff_entrez_position_GRCh37p13_nodup.txt")
+gff_dt <- read.delim(entrezDT_file, header = TRUE, stringsAsFactors = FALSE)
+gff_dt$entrezID <- as.character(gff_dt$entrezID)
+stopifnot(!duplicated(gff_dt$entrezID))
+entrez2symb <- setNames(gff_dt$symbol, gff_dt$entrezID)
+
+fam_genes <- entrez2symb[grepl("^EPHB", entrez2symb)]
+
+dt[dt$entrezID %in% names(fam_genes),]
+
+unique(as.character(dt$region[dt$entrezID %in% names(fam_genes)]))
+
+Rscript plot_lolli_by_tad_dataset.R chr1_TAD84 ENCSR312KHQ_SK-MEL-5_40kb TCGAskcm_lowInf_highInf
+Rscript plot_lolli_by_tad_dataset.R chr3_TAD521 ENCSR312KHQ_SK-MEL-5_40kb TCGAskcm_lowInf_highInf
+Rscript plot_lolli_by_tad_dataset.R chr3_TAD722 ENCSR312KHQ_SK-MEL-5_40kb TCGAskcm_lowInf_highInf
+Rscript plot_lolli_by_tad_dataset.R chr7_TAD375 ENCSR312KHQ_SK-MEL-5_40kb TCGAskcm_lowInf_highInf
+Rscript plot_lolli_by_tad_dataset.R chr7_TAD538 ENCSR312KHQ_SK-MEL-5_40kb TCGAskcm_lowInf_highInf
+
+
+
+
+
+
+
+
+
 
 
