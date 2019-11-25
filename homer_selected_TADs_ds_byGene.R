@@ -8,6 +8,34 @@ setDir=""
 # Rscript homer_selected_TADs_ds_byGene.R LG2_40kb TCGAlusc_norm_lusc chr14_TAD144
 # Rscript homer_selected_TADs_ds_byGene.R LG2_40kb TCGAlusc_norm_lusc chr1_TAD520
 
+
+# Rscript homer_selected_TADs_ds_byGene.R ENCSR489OCU_NCI-H460_40kb TCGAlusc_norm_lusc chr13_TAD244
+# Rscript homer_selected_TADs_ds_byGene.R LG2_40kb TCGAlusc_norm_lusc chr14_TAD144
+# Rscript homer_selected_TADs_ds_byGene.R ENCSR346DCU_LNCaP_40kb TCGAprad_norm_prad chr19_TAD192
+# Rscript homer_selected_TADs_ds_byGene.R GSE118514_RWPE1_40kb TCGAprad_norm_prad chr17_TAD174
+# Rscript homer_selected_TADs_ds_byGene.R GSE118514_RWPE1_40kb TCGAprad_norm_prad chr1_TAD776
+# Rscript homer_selected_TADs_ds_byGene.R GSE118514_22Rv1_40kb TCGAprad_norm_prad chr17_TAD269
+# Rscript homer_selected_TADs_ds_byGene.R GSE118514_22Rv1_40kb TCGAprad_norm_prad chr12_TAD196
+# Rscript homer_selected_TADs_ds_byGene.R PA2_40kb TCGApaad_wt_mutKRAS chr21_TAD121
+# Rscript homer_selected_TADs_ds_byGene.R LG2_40kb TCGAlusc_norm_lusc chr1_TAD520
+# Rscript homer_selected_TADs_ds_byGene.R GSE105381_HepG2_40kb TCGAlihc_norm_lihc chr16_TAD164
+# Rscript homer_selected_TADs_ds_byGene.R LI_40kb TCGAlihc_norm_lihc chr4_TAD723
+# Rscript homer_selected_TADs_ds_byGene.R ENCSR444WCZ_A549_40kb TCGAlusc_norm_lusc chr18_TAD245
+# Rscript homer_selected_TADs_ds_byGene.R ENCSR444WCZ_A549_40kb TCGAluad_norm_luad chr8_TAD83
+# Rscript homer_selected_TADs_ds_byGene.R LG2_40kb TCGAluad_norm_luad chr16_TAD122
+# Rscript homer_selected_TADs_ds_byGene.R ENCSR444WCZ_A549_40kb TCGAlusc_norm_lusc chr11_TAD398
+# Rscript homer_selected_TADs_ds_byGene.R ENCSR444WCZ_A549_40kb TCGAlusc_norm_lusc chr1_TAD721
+# Rscript homer_selected_TADs_ds_byGene.R ENCSR444WCZ_A549_40kb TCGAlusc_norm_lusc chr3_TAD717
+# Rscript homer_selected_TADs_ds_byGene.R ENCSR444WCZ_A549_40kb TCGAlusc_norm_lusc chr14_TAD157
+# Rscript homer_selected_TADs_ds_byGene.R LG1_40kb TCGAlusc_norm_lusc chr11_TAD390
+# Rscript homer_selected_TADs_ds_byGene.R ENCSR444WCZ_A549_40kb TCGAluad_norm_luad chr5_TAD170
+# Rscript homer_selected_TADs_ds_byGene.R ENCSR444WCZ_A549_40kb TCGAluad_norm_luad chr15_TAD40
+# Rscript homer_selected_TADs_ds_byGene.R LG1_40kb TCGAluad_norm_luad chr12_TAD174
+# Rscript homer_selected_TADs_ds_byGene.R ENCSR312KHQ_SK-MEL-5_40kb TCGAskcm_lowInf_highInf chr1_TAD84
+# Rscript homer_selected_TADs_ds_byGene.R ENCSR312KHQ_SK-MEL-5_40kb TCGAskcm_lowInf_highInf chr7_TAD568
+""
+
+
 # compare to homer_selected_TADs_ds.R => here pass to homer every region around TSS of the gene
 # instead of a single TAD region
 

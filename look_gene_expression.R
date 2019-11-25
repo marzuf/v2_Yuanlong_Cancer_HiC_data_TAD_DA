@@ -14,6 +14,47 @@ suppressPackageStartupMessages(library(reshape2, warn.conflicts = FALSE, quietly
 # Rscript look_gene_expression.R <hicds> <exprds> <gene_symbol>
 # Rscript look_gene_expression.R LG1_40kb TCGAlusc_norm_lusc GIMAP2
 # Rscript look_gene_expression.R LG1_40kb TCGAlusc_norm_lusc C1QA
+# 
+# 
+# Rscript look_gene_expression.R LG1_40kb TCGAlusc_norm_lusc GIMAP2 GIMAP4 GIMAP6
+# Rscript look_gene_expression.R ENCSR079VIJ_40kb TCGAlihc_norm_lihc GIMAP2 GIMAP4 GIMAP6
+# Rscript look_gene_expression.R ENCSR444WCZ_A549_40kb TCGAlusc_norm_lusc GIMAP2 GIMAP4 GIMAP6
+# Rscript look_gene_expression.R LG2_40kb TCGAluad_norm_luad GIMAP2 GIMAP4 GIMAP6
+# Rscript look_gene_expression.R ENCSR444WCZ_A549_40kb TCGAluad_nonsmoker_smoker GIMAP2 GIMAP4 GIMAP6
+# Rscript look_gene_expression.R ENCSR862OGI_RPMI-7951_40kb TCGAskcm_lowInf_highInf GIMAP2 GIMAP4 GIMAP6
+# Rscript look_gene_expression.R GSE105194_cerebellum_40kb TCGAgbm_classical_mesenchymal GIMAP2 GIMAP4 GIMAP6
+# Rscript look_gene_expression.R ENCSR312KHQ_SK-MEL-5_40kb TCGAskcm_wt_mutBRAF GIMAP2 GIMAP4 GIMAP6
+# Rscript look_gene_expression.R PA3_40kb TCGAskcm_wt_mutKRAS GIMAP2 GIMAP4 GIMAP6
+# Rscript look_gene_expression.R LG2_40kb TCGAluad_wt_mutKRAS GIMAP2 GIMAP4 GIMAP6
+# Rscript look_gene_expression.R K562_40kb TCGAlaml_wt_mutFLT3 GIMAP2 GIMAP4 GIMAP6
+# 
+# 
+# Rscript look_gene_expression.R ENCSR444WCZ_A549_40kb TCGAluad_norm_luad MMP1 MMP12
+# Rscript look_gene_expression.R ENCSR444WCZ_A549_40kb TCGAlusc_norm_lusc MMP1 MMP12
+# Rscript look_gene_expression.R ENCSR504OTV_transverse_colon_40kb TCGAcoad_msi_mss MMP1 MMP12
+# 
+# 
+# Rscript look_gene_expression.R ENCSR312KHQ_SK-MEL-5_40kb TCGAskcm_wt_mutBRAF CD244 CD48 LY9 SLAMF7
+# Rscript look_gene_expression.R ENCSR444WCZ_A549_40kb TCGAluad_wt_mutKRAS CD244 CD48 LY9 SLAMF7
+# Rscript look_gene_expression.R Panc1_rep12_40kb TCGApaad_wt_mutKRAS CD244 CD48 LY9 SLAMF7
+# Rscript look_gene_expression.R GSE105381_HepG2_40kb TCGAlihc_norm_lihc CD244 CD48 LY9 SLAMF7
+# 
+# Rscript look_gene_expression.R LG1_40kb TCGAluad_norm_luad C1QA C1QB C1QC
+# Rscript look_gene_expression.R ENCSR312KHQ_SK-MEL-5_40kb TCGAskcm_lowInf_highInf C1QA C1QB C1QC
+# Rscript look_gene_expression.R GSE105194_cerebellum_40kb TCGAgbm_classical_mesenchymal C1QA C1QB C1QC
+# Rscript look_gene_expression.R GSE105194_cerebellum_40kb TCGAgbm_classical_neural C1QA C1QB C1QC
+# Rscript look_gene_expression.R GSE105318_DLD1_40kb TCGAcoad_msi_mss C1QA C1QB C1QC
+# Rscript look_gene_expression.R ENCSR312KHQ_SK-MEL-5_40kb TCGAskcm_wt_mutBRAF C1QA C1QB C1QC
+# 
+# 
+# Rscript look_gene_expression.R GSE105194_spinal_cord_40kb TCGAgbm_classical_proneural HOXC4 HOXC6
+# Rscript look_gene_expression.R ENCSR346DCU_LNCaP_40kb TCGAprad_norm_prad HOXC4 HOXC6
+# Rscript look_gene_expression.R GSE118514_22Rv1_40kb TCGAprad_norm_prad HOXC4 HOXC6
+# 
+# 
+
+
+
 
 hicds="LG1_40kb"
 exprds="TCGAlusc_norm_lusc"
@@ -24,6 +65,7 @@ stopifnot(length(args) >= 3)
 hicds <- args[1]
 exprds <- args[2]
 all_gene_symbols <- args[3:length(args)]
+all_gene_symbols <- unique(all_gene_symbols)
 init_order <- all_gene_symbols
 
 
@@ -147,6 +189,7 @@ if(length(all_gene_symbols) == 0) {
   
   expr_p <- ggboxplot(count_dt_t, x = "cond",
             xlab = "",
+            scales='free_y',
             y = gene_order,
             combine = TRUE,
             ylab = myylab,
