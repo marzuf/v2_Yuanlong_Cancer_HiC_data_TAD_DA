@@ -130,7 +130,7 @@ for(pm in purity_metrics) {
   plot_dt <- dataset_samp_cond_purity_dt[dataset_samp_cond_purity_dt$variable == pm,]
   plot_dt$dataset <- paste0(plot_dt$hicds, "\n", plot_dt$exprds)
   plot_dt$subTit <- paste0(plot_dt$hicds, "-", plot_dt$exprds)
-  ds = unique(plot_dt$dataset)[1]
+  ds = unique(plot_dt$dataset)[3]
   for(ds in unique(plot_dt$dataset)) {
     
     plot_dt_ds <- plot_dt[plot_dt$dataset == ds,]
@@ -143,7 +143,7 @@ for(pm in purity_metrics) {
       coord_cartesian(expand = FALSE) +
       ggtitle(paste0(pm), subtitle = paste0(subtit))+
       scale_x_discrete(name="")+
-      scale_y_continuous(name=paste0(),
+      scale_y_continuous(name=paste0("purity"),
                          breaks = scales::pretty_breaks(n = 20))+
       scale_fill_brewer(palette="Set1")+
       labs(fill  = "") +

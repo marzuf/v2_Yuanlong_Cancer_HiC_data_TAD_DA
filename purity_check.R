@@ -67,7 +67,7 @@ matching_purity_dt$adjPvalComb_log10 <- -log10(matching_purity_dt$adjPvalComb)
 
 print_dt <- matching_purity_dt[,c("hicds", "exprds", "region", "region_genes", "meanLogFC", "adjPvalComb", all_pm_metrics)]
 
-plotSubTit <- ""
+plotSubTit <- paste0("TADs with ", paste0(all_gene_symbols,collapse=","))
 
 tad_val="meanLogFC"
 pm="ABSOLUTE"

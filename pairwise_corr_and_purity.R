@@ -55,14 +55,18 @@ if(purity_ds == "") {
   stop("---invalid DS\n")
 }
 
+
 coexpr_file <- file.path(paste0("COEXPR_AND_PURITY", file_suffix), "coexpr_and_purity_dt.Rdata")
 stopifnot(file.exists(coexpr_file))
+cat(paste0("load coexpr dt - ", Sys.time(), " - "))
 coexpr_dt <- get(load(coexpr_file))
+cat(paste0(Sys.time(), " \n "))
 
 corrpurity_file <- file.path(paste0("CORR_EXPR_AND_PURITY", file_suffix), "corr_expr_purity_dt.Rdata")
 stopifnot(file.exists(corrpurity_file))
+cat(paste0("load correxpr dt - ", Sys.time(), " - "))
 corrpur_dt <- get(load(corrpurity_file))
-
+cat(paste0(Sys.time(), " \n "))
 
 coexpr_dt_full <- coexpr_dt
 corrpur_dt_full <- corrpur_dt
@@ -81,76 +85,90 @@ colnames(corrpur_dt)[colnames(corrpur_dt) == "gene1"] <- "gene2"
 coexpr_corrpur_dt <- merge(coexpr_corrpur_dt_1, corrpur_dt, by=c("hicds", "exprds", "gene2"), all.x=TRUE, all.y=FALSE)
 colnames(coexpr_corrpur_dt)[colnames(coexpr_corrpur_dt) == "all_corr_gene_purity"] <- "gene2_corr_gene_purity"
 
-coexpr_corrpur_dt$pairwise_corr_gene_purity <- coexpr_corrpur_dt$gene1_corr_gene_purity * coexpr_corrpur_dt$gene2_corr_gene_purity
 
-coexpr_corrpur_dt$full_partial_corr_diff <- coexpr_corrpur_dt$coexpr - coexpr_corrpur_dt$partial_coexpr
+# coexpr_corrpur_dt$dataset <- file.path(coexpr_corrpur_dt$hicds, coexpr_corrpur_dt$exprds)
+coexpr_corrpur_dt$dataset <- paste0(coexpr_corrpur_dt$hicds, "-",coexpr_corrpur_dt$exprds)
 
-#Create a function to generate a continuous color palette
-rbPal <- colorRampPalette(c('red','blue'))
-coexpr_corrpur_dt$puritycorr_col <- rbPal(10)[as.numeric(cut(coexpr_corrpur_dt$pairwise_corr_gene_purity,breaks = 10))]
+all_ds <- unique(coexpr_corrpur_dt$dataset)
 
+for(ds in all_ds ) {
 
-
-# figure 4
-myTit <- ""
-mySub <- ""
-
-myylab <- "Pairwise partial correlations"
-myxlab <- "Pairwise correlations"
-
-myx <- "coexpr"
-myy <- "partial_coexpr"
-
-outFile <- file.path(outFolder, paste0("all_datasets_", myy, "_vs_", myx, ".", plotType))
-do.call(plotType, list(file=outFile, height=myHeight, width=myWidth))
-plot(
-  as.formula(paste0(myy, "~", myx)),
-  data=coexpr_corrpur_dt,
-  xlab =myxlab,
-  ylab =myylab,
-  main=myTit,
-  cex=0.7,
-  pch=16,
-  col=coexpr_corrpur_dt$puritycorr_col,
-  cex.lab=plotCex,
-  cex.axis=plotCex
-)
-curve(1*x, lty=2, col="grey", add=T)
-mtext(side=3, text = paste0(mySub))
-legend("topleft",legend=levels(cut(coexpr_corrpur_dt$pairwise_corr_gene_purity,breaks = 10)),col =rbPal(10),pch=16, bty="n", cex=0.8)
-foo <- dev.off()
-cat(paste0("... written: ", outFile, "\n"))    
-
-# figure 5
-myxlab <- "Diff. correlation (regular-controlled)"
-myylab <- "Pairwise correlation with purity"
-
-myy <- "pairwise_corr_gene_purity"
-myx <- "full_partial_corr_diff"
-
-outFile <- file.path(outFolder, paste0("all_datasets_", myy, "_vs_", myx, ".", plotType))
-do.call(plotType, list(file=outFile, height=myHeight, width=myWidth))
-plot(
-  as.formula(paste0(myy, "~", myx)),
-  data=coexpr_corrpur_dt,
-  xlab =myxlab,
-  ylab =myylab,
-  main=myTit,
-  cex=0.7,
-  pch=16,
-  col="black",
-  cex.lab=plotCex,
-  cex.axis=plotCex
-)
-curve(1*x, lty=2, col="grey", add=T)
-mtext(side=3, text = paste0(mySub))
-legend("topleft",legend=levels(cut(coexpr_corrpur_dt$pairwise_corr_gene_purity,breaks = 10)),col =rbPal(10),pch=16, bty="n", cex=0.8)
-
-foo <- dev.off()
-cat(paste0("... written: ", outFile, "\n"))    
-
-
-
+  cat(paste0("... start ", ds, "\n"))  
+  
+  sub_coexpr_corrpur_dt <- coexpr_corrpur_dt[coexpr_corrpur_dt$dataset == ds,]
+  
+  sub_scoexpr_corrpur_dt$pairwise_corr_gene_purity <- sub_scoexpr_corrpur_dt$gene1_corr_gene_purity * sub_scoexpr_corrpur_dt$gene2_corr_gene_purity
+  
+  sub_scoexpr_corrpur_dt$full_partial_corr_diff <- sub_scoexpr_corrpur_dt$coexpr - sub_scoexpr_corrpur_dt$partial_coexpr
+  
+  #Create a function to generate a continuous color palette
+  rbPal <- colorRampPalette(c('red','blue'))
+  sub_scoexpr_corrpur_dt$puritycorr_col <- rbPal(10)[as.numeric(cut(sub_scoexpr_corrpur_dt$pairwise_corr_gene_purity,breaks = 10))]
+  
+  
+  
+  # figure 4
+  myTit <- paste0(ds)
+  mySub <- ""
+  
+  myylab <- "Pairwise partial correlations"
+  myxlab <- "Pairwise correlations"
+  
+  myx <- "coexpr"
+  myy <- "partial_coexpr"
+  
+  # outFile <- file.path(outFolder, paste0("all_datasets_", myy, "_vs_", myx, ".", plotType))
+  outFile <- file.path(outFolder, paste0(ds, "_", myy, "_vs_", myx, ".", plotType))
+  do.call(plotType, list(file=outFile, height=myHeight, width=myWidth))
+  plot(
+    as.formula(paste0(myy, "~", myx)),
+    data=sub_scoexpr_corrpur_dt,
+    xlab =myxlab,
+    ylab =myylab,
+    main=myTit,
+    cex=0.7,
+    pch=16,
+    col=sub_scoexpr_corrpur_dt$puritycorr_col,
+    cex.lab=plotCex,
+    cex.axis=plotCex
+  )
+  curve(1*x, lty=2, col="grey", add=T)
+  mtext(side=3, text = paste0(mySub))
+  legend("topleft",legend=levels(cut(sub_scoexpr_corrpur_dt$pairwise_corr_gene_purity,breaks = 10)),col =rbPal(10),pch=16, bty="n", cex=0.8)
+  foo <- dev.off()
+  cat(paste0("... written: ", outFile, "\n"))    
+  
+  # figure 5
+  myxlab <- "Diff. correlation (regular-controlled)"
+  myylab <- "Pairwise correlation with purity"
+  
+  myy <- "pairwise_corr_gene_purity"
+  myx <- "full_partial_corr_diff"
+  
+  # outFile <- file.path(outFolder, paste0("all_datasets_", myy, "_vs_", myx, ".", plotType))
+  outFile <- file.path(outFolder, paste0(ds,"_", myy, "_vs_", myx, ".", plotType))
+  do.call(plotType, list(file=outFile, height=myHeight, width=myWidth))
+  plot(
+    as.formula(paste0(myy, "~", myx)),
+    data=sub_scoexpr_corrpur_dt,
+    xlab =myxlab,
+    ylab =myylab,
+    main=myTit,
+    cex=0.7,
+    pch=16,
+    col="black",
+    cex.lab=plotCex,
+    cex.axis=plotCex
+  )
+  curve(1*x, lty=2, col="grey", add=T)
+  mtext(side=3, text = paste0(mySub))
+  legend("topleft",legend=levels(cut(sub_scoexpr_corrpur_dt$pairwise_corr_gene_purity,breaks = 10)),col =rbPal(10),pch=16, bty="n", cex=0.8)
+  
+  foo <- dev.off()
+  cat(paste0("... written: ", outFile, "\n"))    
+  
+  
+} # end.iterating over ds
 
 ##############################
 cat("***** DONE: ", script_name, "\n")

@@ -7,6 +7,16 @@ aran_purity_dt$Sample.ID <- gsub("A$", "", aran_purity_dt$Sample.ID)
 epic_purity_file <- file.path("EPIC_PURITY/all_epic_purity_data.Rdata")
 epic_purity_data <- get(load(epic_purity_file))
 
+samples_dt <- do.call(rbind, lapply(1:length(epic_purity_data), function(x) {
+  tmp <- rownames(epic_purity_data[[x]][["infiltration_fraction"]])
+  data.frame(
+    hicds = dirname(names(epic_purity_data)[x]),
+    exprds = basename(names(epic_purity_data)[x]),
+    Sample.ID = tmp,
+    stringsAsFactors = FALSE
+  )
+}))
+
 epic_purity_dt <- as.data.frame(do.call(rbind, c(lapply(epic_purity_data, function(x) x[["infiltration_fraction"]]))))
                                                  
 epic_purity_dt$Sample.ID <- rownames(epic_purity_dt)
@@ -20,6 +30,18 @@ nrow(epic_purity_dt)
 
 nrow(cmp_dt)
 
+source("subtype_cols.R")
+
+stopifnot(cmp_dt$Sample.ID %in% samples_dt$Sample.ID)
+
+cmp_samples_dt <- merge(cmp_dt, samples_dt, by=c("Sample.ID"))
+cmp_samples_dt$cmp_type <- all_cmps[paste0(cmp_samples_dt$exprds)]
+stopifnot(!is.na(cmp_samples_dt$cmp_type))
+cmp_samples_dt$cmp_type_col <- ifelse(cmp_samples_dt$cmp_type == "norm_vs_tumor", "blue",
+                                      ifelse(cmp_samples_dt$cmp_type == "subtypes", "green",
+                                             ifelse(cmp_samples_dt$cmp_type == "wt_vs_mut", "red",NA)))
+stopifnot(!is.na(cmp_samples_dt$cmp_type_col))
+
 outFolder <- "CMP_PURITY_EPIC_ARAN"
 dir.create(outFolder, recursive = TRUE)
 
@@ -31,13 +53,23 @@ outFile <- file.path(outFolder, paste0("epicOtherCells_vs_aranESTIMATE.", plotTy
 do.call(plotType, list(file=outFile, height=myHeight, width=myWidth))
 plot(
   otherCells ~ ESTIMATE,
-  data = cmp_dt,
+  data = cmp_samples_dt,
   pch=16,
-  cex=0.7
+  cex=0.7,
+  cex.lab=1.4,
+  cex.axis=1.4,
+  col = cmp_samples_dt$cmp_type_col
 )
 legend(
   "topleft",
   legend=paste0("Pearson's coeff=", round(cor(cmp_dt$ESTIMATE, cmp_dt$otherCells, use="complete.obs"),4)),
+  bty="n"
+)
+legend(
+  "bottomleft",
+  legend=c("norm_vs_tumor", "subtypes", "wt_vs_mut"),
+  col = c("blue", "green", "red"),
+  pch=16,
   bty="n"
 )
 

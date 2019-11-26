@@ -51,24 +51,55 @@ SSHFS <- FALSE
 setDir <- ifelse(SSHFS, "/media/electron", "")
 registerDoMC(ifelse(SSHFS, 2, 80))
 
-buildTable <- TRUE
+buildTable <- FALSE
 
-myHeightGG <- 7
-myWidthGG <- 9
+myHeight <- 400 
+myWidth <- 400
 plotType <- "png"
-
+plotCex <- 1.4
 mainFolder <- file.path(".")
 pipFolder <- file.path("PIPELINE", "OUTPUT_FOLDER")
 settingFolder <- file.path("PIPELINE", "INPUT_FILES")
 
-outFolder <- file.path("COEXPR_AND_PURITY")
+args <- commandArgs(trailingOnly = TRUE)
+if(length(args) == 1) {
+  purity_ds <- args[1]  
+} else{
+  purity_ds <- ""
+}
+
+
+if(purity_ds == "") {
+  file_suffix <- ""
+  purity_file <- file.path("tcga_purity_aran2015.csv")
+  purity_dt <- read.delim(purity_file, header=TRUE, sep="\t", stringsAsFactors = FALSE)
+  purity_metrics <- c("ESTIMATE", "ABSOLUTE", "LUMP", "IHC", "CPE")
+  pm <- purity_metrics[1]
+  # all the ranks are between 1 and 0
+  
+  
+} else if(purity_ds == "EPIC") {
+  file_suffix <- "_EPIC"
+  purity_file <- file.path("EPIC_PURITY/all_epic_purity_data.Rdata")
+  epic_purity_data <- get(load(purity_file))
+  purity_dt <- as.data.frame(do.call(rbind, c(lapply(epic_purity_data, function(x) x[["infiltration_fraction"]]))))
+  all_pm_metrics <- colnames(purity_dt) #"Bcells"      "CAFs"        "CD4_Tcells"  "CD8_Tcells"  "Endothelial" "Macrophages" "NKcells"     "otherCells" 
+  pm <- "otherCells"
+  purity_dt$Sample.ID <- rownames(purity_dt)
+  purity_dt$Sample.ID <- gsub("\\.", "-", purity_dt$Sample.ID)
+  
+  
+} else {
+  stop("--invalid purity_ds\n")
+}
+
+outFolder <- file.path(paste0("COEXPR_AND_PURITY", file_suffix))
 dir.create(outFolder, recursive = TRUE)
 
-purity_file <- file.path("tcga_purity_aran2015.csv")
-purity_dt <- read.delim(purity_file, header=TRUE, sep="\t", stringsAsFactors = FALSE)
-purity_metrics <- c("ESTIMATE", "ABSOLUTE", "LUMP", "IHC", "CPE")
-pm <- purity_metrics[1]
-# all the ranks are between 1 and 0
+
+cat(paste0("!!! > purity metric: ", pm, "\n"))
+
+
 
 all_hicds <- list.files(pipFolder)
 all_exprds <- lapply(all_hicds, function(x) list.files(file.path(pipFolder, x)))
@@ -76,7 +107,6 @@ names(all_exprds) <- all_hicds
 all_ds <- unlist(sapply(names(all_exprds), function(x) file.path(x, all_exprds[[paste0(x)]])))
 names(all_ds) <- NULL
 ds=all_ds[3]
-# all_ds=all_ds[1]
 
 corMet <- "pearson"
 
@@ -133,6 +163,8 @@ if(buildTable) {
     fpkm_file <- file.path(pipFolder, hicds, exprds, "0_prepGeneData", "rna_fpkmDT.Rdata")
     stopifnot(file.exists(fpkm_file))
     fpkm_dt <- get(load(fpkm_file))  
+    
+    
     
     gene_file <- file.path(pipFolder, hicds, exprds, "0_prepGeneData", "pipeline_geneList.Rdata")
     stopifnot(file.exists(gene_file))
@@ -211,88 +243,40 @@ if(buildTable) {
   
 } else {
   outFile <- file.path(outFolder, "coexpr_and_purity_dt.Rdata")
+  # outFile <- file.path(outFolder, "sub_coexpr_and_purity_dt.Rdata")
+  cat(paste0("... load coexpr data - ", Sys.time()))
   coexpr_and_purity_dt <- get(load(outFile))
-  
+  cat(paste0(" - ", Sys.time(), " - done\n"))
 }
 
-# plot_dt <- melt(corr_expr_purity_dt, id=c("hicds", "exprds", "entrezID"))
-# 
-# plotTit <- paste0("Corr. expression and purity")
-# subTit <- paste0("corr. method = ", corMet)
-# 
-# myxlab <- ""
-# myylab <- paste0("purity (", pm, ")")
-# 
-# expr_p_boxplot <- ggboxplot(plot_dt, x = "variable",
-#                             y = "value",
-#                             xlab = myxlab,
-#                             # scales='free_y',
-#                             # y = gene_order,
-#                             # combine = TRUE,
-#                             ylab = myylab,
-#                             palette = "jco") + 
-#   guides(color=FALSE)+
-#   # ggtitle(plotTit, sub=plotSubTit)+
-#   ggtitle(plotTit)+
-#   theme(
-#     plot.title = element_text(size=16, hjust=0.5, face = "bold"),
-#     plot.subtitle = element_text(size=14, hjust=0.5),
-#     strip.text.x =  element_text(size=12),
-#     axis.text.x = element_text(size=12),
-#     axis.title.y = element_text(size=14)
-#   )
-# 
-# 
-# outFile <- file.path(outFolder, paste0("correlation_expression_purity_boxplot.", plotType))
-# ggsave(filename = outFile, plot = expr_p_boxplot, height=myHeightGG, width=myWidthGG)
-# cat(paste0("... written: ", outFile, "\n"))    
-# 
-# 
-# expr_p_density <- ggdensity(plot_dt,
-#                             title = paste0(plotTit),
-#                             subtitle = paste0(subTit),
-#                             x = "value", 
-#                             col = "variable",
-#                             palette="jco") + 
-#   labs(color="")+
-#   theme(
-#     plot.title = element_text(size=16, hjust=0.5, face = "bold"),
-#     plot.subtitle = element_text(size=14, hjust=0.5),
-#     strip.text.x =  element_text(size=12),
-#     axis.text.x = element_text(size=12),
-#     axis.title.y = element_text(size=14)
-#   )
-# 
-# outFile <- file.path(outFolder, paste0("correlation_expression_purity_densityplot.", plotType))
-# ggsave(filename = outFile, plot = expr_p_density, height=myHeightGG, width=myWidthGG)
-# cat(paste0("... written: ", outFile, "\n"))    
 
-# 
-# x=get(load("COEXPR_AND_PURITY/coexpr_and_purity_dt.Rdata"))
-# y=get(load("COEXPR_AND_PURITY_FOREACH//coexpr_and_purity_dt.Rdata"))
-# 
-# nrow(x)
-# nrow(y)
-# 
-# uu <- merge(x, y, by=c("hicds", "exprds","gene1","gene2"))
-# 
-# all(zapsmall(uu[,c("coexpr.y")]) == zapsmall(uu[,c("coexpr.x")] ))
-# all(zapsmall(uu[,c("partial_coexpr.y")]) == zapsmall(uu[,c("partial_coexpr.x")] ))
-# all(zapsmall(uu[,c("partial_coexpr_samp1.y")]) == zapsmall(uu[,c("partial_coexpr_samp1.x")] ))
-# all(zapsmall(uu[,c("partial_coexpr_samp2.y")]) == zapsmall(uu[,c("partial_coexpr_samp2.x")] ))
-# all(zapsmall(uu[,c("partial_coexpr_samp1.y")]) == zapsmall(uu[,c("partial_coexpr_samp1.x")] ))
-# all(zapsmall(uu[,c("partial_coexpr_samp2.y")]) == zapsmall(uu[,c("partial_coexpr_samp2.x")] ))
-# 
-# uu[,c("gene1", "gene2", "coexpr.x","coexpr.y")]
-# 
-# # gene1  gene2     coexpr.x     coexpr.y
-# # 1   10357 155060 -0.006653467 -0.006347639
-# # 2   10357 388795 -0.007596405 -0.009245269
-# # 3   10357 390284  0.021291232  0.021014074
-# # 
-# # all_dt[all_dt$gene1=="10357" & all_dt$gene2 == "155060",]
-# 
-# uu[,c("gene1", "gene2", "partial_coexpr.x","partial_coexpr.y")]
+source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
+
+all_suffix <- c("", "_samp1", "_samp2")
+
+suff=""
+for(suff in all_suffix){
+  
+  outFile <- file.path(outFolder, paste0("all_datasets_partial_vs_full_coexpr", suff, ".", plotType))
+  do.call(plotType, list(file=outFile, height=myHeight, width=myWidth))
+  densplot(
+    x = coexpr_and_purity_dt[,paste0("coexpr", suff)],
+    y = coexpr_and_purity_dt[,paste0("partial_coexpr", suff)],
+	xlab = paste0("coexpr", suff),
+	ylab = paste0("partial_coexpr", suff),
+    main=paste0("partial vs. full coexpr."),
+    cex.axis=plotCex,
+    cex.lab=plotCex,
+    pch=16,
+    cex=0.7
+  )  
+  legend("topleft", legend = paste0("n=", nrow(coexpr_and_purity_dt)), bty="n")
+  
+  foo <- dev.off()
+  cat(paste0("... written: ", outFile, "\n"))    
+  
+  
+}
 
 
 ##############################

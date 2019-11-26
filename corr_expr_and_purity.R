@@ -10,7 +10,8 @@ suppressPackageStartupMessages(library(dplyr, warn.conflicts = FALSE, quietly = 
 suppressPackageStartupMessages(library(ggpubr, warn.conflicts = FALSE, quietly = TRUE, verbose = FALSE))
 suppressPackageStartupMessages(library(reshape2, warn.conflicts = FALSE, quietly = TRUE, verbose = FALSE))
 
-# Rscript corr_expr_and_purity.R
+# Rscript corr_expr_and_purity.R 
+# Rscript corr_expr_and_purity.R EPIC
 
 SSHFS <- FALSE
 setDir <- ifelse(SSHFS, "/media/electron", "")
@@ -26,14 +27,40 @@ mainFolder <- file.path(".")
 pipFolder <- file.path("PIPELINE", "OUTPUT_FOLDER")
 settingFolder <- file.path("PIPELINE", "INPUT_FILES")
 
-outFolder <- file.path("CORR_EXPR_AND_PURITY")
+
+
+args <- commandArgs(trailingOnly = TRUE)
+if(length(args) == 1) {
+  purity_ds <- args[1]  
+} else{
+  purity_ds <- ""
+}
+
+
+if(purity_ds == "") {
+  file_suffix <- ""
+  purity_file <- file.path("tcga_purity_aran2015.csv")
+  purity_dt <- read.delim(purity_file, header=TRUE, sep="\t", stringsAsFactors = FALSE)
+  purity_metrics <- c("ESTIMATE", "ABSOLUTE", "LUMP", "IHC", "CPE")
+  pm <- purity_metrics[1]
+  # all the ranks are between 1 and 0
+} else if(purity_ds == "EPIC") {
+  file_suffix <- "_EPIC"
+  purity_file <- file.path("EPIC_PURITY/all_epic_purity_data.Rdata")
+  epic_purity_data <- get(load(purity_file))
+  purity_dt <- as.data.frame(do.call(rbind, c(lapply(epic_purity_data, function(x) x[["infiltration_fraction"]]))))
+  purity_metrics <- colnames(purity_dt) #"Bcells"      "CAFs"        "CD4_Tcells"  "CD8_Tcells"  "Endothelial" "Macrophages" "NKcells"     "otherCells" 
+  pm <- "otherCells"
+  purity_dt$Sample.ID <- rownames(purity_dt)
+  purity_dt$Sample.ID <- gsub("\\.", "-", purity_dt$Sample.ID)
+} else {
+  stop("--invalid purity_ds\n")
+}
+
+
+outFolder <- file.path(paste0("CORR_EXPR_AND_PURITY", file_suffix))
 dir.create(outFolder, recursive = TRUE)
 
-purity_file <- file.path("tcga_purity_aran2015.csv")
-purity_dt <- read.delim(purity_file, header=TRUE, sep="\t", stringsAsFactors = FALSE)
-purity_metrics <- c("ESTIMATE", "ABSOLUTE", "LUMP", "IHC", "CPE")
-pm <- purity_metrics[1]
-# all the ranks are between 1 and 0
 
 all_hicds <- list.files(pipFolder)
 all_exprds <- lapply(all_hicds, function(x) list.files(file.path(pipFolder, x)))
