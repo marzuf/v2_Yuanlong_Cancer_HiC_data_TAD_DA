@@ -18,7 +18,7 @@ SSHFS <- FALSE
 setDir <- ifelse(SSHFS, "/media/electron", "")
 registerDoMC(ifelse(SSHFS, 2, 80))
 
-buildTable <- TRUE
+buildTable <- FALSE
 
 myHeightGG <- 7
 myWidthGG <- 9
@@ -103,9 +103,16 @@ if(buildTable) {
   all_epic_purity_data <- get(load(outFile))
 }
   
-    
-    
+all_purity_values <- foreach(i=1:length(all_epic_purity_data)) %dopar% {
+  epic_dt <- as.data.frame(all_epic_purity_data[[i]][["infiltration_fraction"]])
+  setNames(epic_dt$otherCells, rownames(epic_dt))
+} 
+names(all_purity_values) <- names(all_epic_purity_data)    
 
+
+outFile <- file.path(outFolder, "all_purity_values.Rdata")
+save(all_purity_values, file=outFile, version=2)
+cat(paste0("... written: ", outFile, "\n"))
 
 
 
