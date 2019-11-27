@@ -173,6 +173,7 @@ if(buildTable) {
   cat("... start preparing data before matching \n")
   
   hicds = all_hicds[1]
+#  all_hicds = all_hicds[7]
   all_go_enrich_list <- foreach(hicds = all_hicds) %dopar% {
     
     hicds_file <- file.path(mainFolder, hicds, "genes2tad", "all_genes_positions.txt")
@@ -183,6 +184,7 @@ if(buildTable) {
     
     
     exprds = all_exprds[[paste0(hicds)]][1]
+#all_exprds[[paste0(hicds)]]=all_exprds[[paste0(hicds)]][5]
     exprds_list <- foreach(exprds = all_exprds[[paste0(hicds)]]) %do% {
       
       
@@ -269,6 +271,10 @@ if(buildTable) {
                                             maxGSSize = enricher_maxGSSize, 
                                             qvalueCutoff =enricher_qvalueCutoff)
         
+if(is.null(limmaOnly_signif_enrich)) {
+limmaOnly_signif_enrich_resultDT <- NULL
+} else {
+
         limmaOnly_signif_enrich_resultDT <- limmaOnly_signif_enrich@result
         limmaOnly_signif_enrich_resultDT <- limmaOnly_signif_enrich_resultDT[order(limmaOnly_signif_enrich_resultDT[,enricher_results_sortGOby], decreasing=FALSE), ]
         limmaOnly_signif_enrich_resultDT$log10_pval <- -log10(limmaOnly_signif_enrich_resultDT[,paste0(padjVarGO)])
@@ -298,7 +304,7 @@ if(buildTable) {
           }
         }
         limmaOnly_signif_enrich_resultDT <- data.frame(limmaOnly_signif_enrich_resultDT)
-        
+}       
       } else {
         limmaOnly_signif_enrich_resultDT <- NULL
       }
@@ -317,7 +323,9 @@ if(buildTable) {
                                            minGSSize = enricher_minGSSize, 
                                            maxGSSize = enricher_maxGSSize, 
                                            qvalueCutoff =enricher_qvalueCutoff)
-        
+if(is.null(tadsOnly_signif_enrich)) {
+tadsOnly_signif_enrich_resultDT <- NULL
+}else {
         tadsOnly_signif_enrich_resultDT <- tadsOnly_signif_enrich@result
         tadsOnly_signif_enrich_resultDT <- tadsOnly_signif_enrich_resultDT[order(tadsOnly_signif_enrich_resultDT[,enricher_results_sortGOby], decreasing=FALSE), ]
         tadsOnly_signif_enrich_resultDT$log10_pval <- -log10(tadsOnly_signif_enrich_resultDT[,paste0(padjVarGO)])
@@ -347,7 +355,7 @@ if(buildTable) {
           }
         }
         tadsOnly_signif_enrich_resultDT <- data.frame(tadsOnly_signif_enrich_resultDT)
-        
+}   
       } else {
         tadsOnly_signif_enrich_resultDT <- NULL
       }
@@ -366,7 +374,9 @@ if(buildTable) {
                                             minGSSize = enricher_minGSSize, 
                                             maxGSSize = enricher_maxGSSize, 
                                             qvalueCutoff =enricher_qvalueCutoff)
-        
+if(is.null(intersect_signif_enrich)){
+        intersect_signif_enrich_resultDT <- NULL
+}else{        
         intersect_signif_enrich_resultDT <- intersect_signif_enrich@result
         intersect_signif_enrich_resultDT <- intersect_signif_enrich_resultDT[order(intersect_signif_enrich_resultDT[,enricher_results_sortGOby], decreasing=FALSE), ]
         intersect_signif_enrich_resultDT$log10_pval <- -log10(intersect_signif_enrich_resultDT[,paste0(padjVarGO)])
@@ -396,7 +406,7 @@ if(buildTable) {
           }
         }
         intersect_signif_enrich_resultDT <- data.frame(intersect_signif_enrich_resultDT)
-        
+}        
       } else {
         intersect_signif_enrich_resultDT <- NULL
       }
@@ -417,7 +427,9 @@ if(buildTable) {
                                       minGSSize = enricher_minGSSize, 
                                       maxGSSize = enricher_maxGSSize, 
                                       qvalueCutoff =enricher_qvalueCutoff)
-        
+if(is.null(tad_signif_enrich)) {
+        tad_signif_enrich_resultDT <- NULL
+} else {        
         tad_signif_enrich_resultDT <- tad_signif_enrich@result
         tad_signif_enrich_resultDT <- tad_signif_enrich_resultDT[order(tad_signif_enrich_resultDT[,enricher_results_sortGOby], decreasing=FALSE), ]
         tad_signif_enrich_resultDT$log10_pval <- -log10(tad_signif_enrich_resultDT[,paste0(padjVarGO)])
@@ -447,7 +459,7 @@ if(buildTable) {
           }
         }
         tad_signif_enrich_resultDT <- data.frame(tad_signif_enrich_resultDT)
-        
+}        
       } else {
         tad_signif_enrich_resultDT <- NULL
       }
@@ -472,7 +484,9 @@ if(buildTable) {
                                         minGSSize = enricher_minGSSize, 
                                         maxGSSize = enricher_maxGSSize, 
                                         qvalueCutoff =enricher_qvalueCutoff)
-        
+if(is.null(limma_signif_enrich)){
+        limma_signif_enrich_resultDT <- NULL
+}else{    
         limma_signif_enrich_resultDT <- limma_signif_enrich@result
         limma_signif_enrich_resultDT <- limma_signif_enrich_resultDT[order(limma_signif_enrich_resultDT[,enricher_results_sortGOby], decreasing=FALSE), ]
         limma_signif_enrich_resultDT$log10_pval <- -log10(limma_signif_enrich_resultDT[,paste0(padjVarGO)])
@@ -504,7 +518,7 @@ if(buildTable) {
         limma_signif_enrich_resultDT <- data.frame(limma_signif_enrich_resultDT)
         # limma_signif_enrich_resultDT$hicds <- hicds
         # limma_signif_enrich_resultDT$exprds <- exprds
-        
+}  
         
       } else {
         limma_signif_enrich_resultDT <- NULL
@@ -722,7 +736,9 @@ if(length(go_all_limmaOnly_signif_genes) > 0) {
                                           minGSSize = enricher_minGSSize, 
                                           maxGSSize = enricher_maxGSSize, 
                                           qvalueCutoff =enricher_qvalueCutoff)
-  
+if(is.null(all_limmaOnly_signif_enrich)){
+  all_limmaOnly_signif_enrich_resultDT <- NULL
+}else{  
   all_limmaOnly_signif_enrich_resultDT <- all_limmaOnly_signif_enrich@result
   all_limmaOnly_signif_enrich_resultDT <- all_limmaOnly_signif_enrich_resultDT[order(all_limmaOnly_signif_enrich_resultDT[,enricher_results_sortGOby], decreasing=FALSE), ]
   all_limmaOnly_signif_enrich_resultDT$log10_pval <- -log10(all_limmaOnly_signif_enrich_resultDT[,paste0(padjVarGO)])
@@ -752,7 +768,7 @@ if(length(go_all_limmaOnly_signif_genes) > 0) {
     }
   }
   all_limmaOnly_signif_enrich_resultDT <- data.frame(all_limmaOnly_signif_enrich_resultDT)
-  
+}  
 } else {
   all_limmaOnly_signif_enrich_resultDT <- NULL
 }
@@ -771,7 +787,9 @@ if(length(go_all_tadsOnly_signif_genes) > 0) {
                                          minGSSize = enricher_minGSSize, 
                                          maxGSSize = enricher_maxGSSize, 
                                          qvalueCutoff =enricher_qvalueCutoff)
-  
+if(is.null(all_tadsOnly_signif_enrich)){
+  all_tadsOnly_signif_enrich_resultDT <- NULL
+}else{ 
   all_tadsOnly_signif_enrich_resultDT <- all_tadsOnly_signif_enrich@result
   all_tadsOnly_signif_enrich_resultDT <- all_tadsOnly_signif_enrich_resultDT[order(all_tadsOnly_signif_enrich_resultDT[,enricher_results_sortGOby], decreasing=FALSE), ]
   all_tadsOnly_signif_enrich_resultDT$log10_pval <- -log10(all_tadsOnly_signif_enrich_resultDT[,paste0(padjVarGO)])
@@ -801,7 +819,7 @@ if(length(go_all_tadsOnly_signif_genes) > 0) {
     }
   }
   all_tadsOnly_signif_enrich_resultDT <- data.frame(all_tadsOnly_signif_enrich_resultDT)
-  
+}  
 } else {
   all_tadsOnly_signif_enrich_resultDT <- NULL
 }
@@ -820,7 +838,9 @@ if(length(go_all_intersect_signif_genes) > 0) {
                                           minGSSize = enricher_minGSSize, 
                                           maxGSSize = enricher_maxGSSize, 
                                           qvalueCutoff =enricher_qvalueCutoff)
-  
+if(is.null(all_intersect_signif_enrich)){
+  all_intersect_signif_enrich_resultDT <- NULL
+}else{ 
   all_intersect_signif_enrich_resultDT <- all_intersect_signif_enrich@result
   all_intersect_signif_enrich_resultDT <- all_intersect_signif_enrich_resultDT[order(all_intersect_signif_enrich_resultDT[,enricher_results_sortGOby], decreasing=FALSE), ]
   all_intersect_signif_enrich_resultDT$log10_pval <- -log10(all_intersect_signif_enrich_resultDT[,paste0(padjVarGO)])
@@ -850,7 +870,7 @@ if(length(go_all_intersect_signif_genes) > 0) {
     }
   }
   all_intersect_signif_enrich_resultDT <- data.frame(all_intersect_signif_enrich_resultDT)
-  
+}
 } else {
   all_intersect_signif_enrich_resultDT <- NULL
 }
@@ -871,7 +891,9 @@ if(length(go_all_tads_signif_genes) > 0) {
                                 minGSSize = enricher_minGSSize, 
                                 maxGSSize = enricher_maxGSSize, 
                                 qvalueCutoff =enricher_qvalueCutoff)
-  
+if(is.null(tad_signif_enrich)){
+  tad_signif_enrich_resultDT <- NULL
+}else {  
   tad_signif_enrich_resultDT <- tad_signif_enrich@result
   tad_signif_enrich_resultDT <- tad_signif_enrich_resultDT[order(tad_signif_enrich_resultDT[,enricher_results_sortGOby], decreasing=FALSE), ]
   tad_signif_enrich_resultDT$log10_pval <- -log10(tad_signif_enrich_resultDT[,paste0(padjVarGO)])
@@ -901,7 +923,7 @@ if(length(go_all_tads_signif_genes) > 0) {
     }
   }
   tad_signif_enrich_resultDT <- data.frame(tad_signif_enrich_resultDT)
-  
+}
 } else {
   tad_signif_enrich_resultDT <- NULL
 }
@@ -926,7 +948,9 @@ if(length(go_all_limma_signif_genes) > 0) {
                                       minGSSize = enricher_minGSSize, 
                                       maxGSSize = enricher_maxGSSize, 
                                       qvalueCutoff =enricher_qvalueCutoff)
-  
+if(is.null(all_limma_signif_enrich)){
+  all_limma_signif_enrich_resultDT <- NULL
+}else{ 
   all_limma_signif_enrich_resultDT <- all_limma_signif_enrich@result
   all_limma_signif_enrich_resultDT <- all_limma_signif_enrich_resultDT[order(all_limma_signif_enrich_resultDT[,enricher_results_sortGOby], decreasing=FALSE), ]
   all_limma_signif_enrich_resultDT$log10_pval <- -log10(all_limma_signif_enrich_resultDT[,paste0(padjVarGO)])
@@ -956,7 +980,7 @@ if(length(go_all_limma_signif_genes) > 0) {
     }
   }
   all_limma_signif_enrich_resultDT <- data.frame(all_limma_signif_enrich_resultDT)
-  
+}  
   
 } else {
   all_limma_signif_enrich_resultDT <- NULL
