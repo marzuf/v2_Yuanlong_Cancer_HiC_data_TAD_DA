@@ -215,8 +215,8 @@ cat(paste0("... written: ", outFile, "\n"))
 build_dt$expr_gene1_log10 <- log10(build_dt$expr_gene1)
 build_dt$expr_gene2_log10 <- log10(build_dt$expr_gene2)
 
-all_x <- c("expr_gene2","expr_gene2_log10", "expr_gene2", "expr_gene2_log10", "expr_gene1", "expr_gene1_log10")
-all_y <- c("expr_gene1", "expr_gene1_log10", "samp_purity", "samp_purity", "samp_purity", "samp_purity")
+all_x <- c("expr_gene2","expr_gene2_log10", "samp_purity", "samp_purity", "samp_purity", "samp_purity")
+all_y <- c("expr_gene1", "expr_gene1_log10", "expr_gene2", "expr_gene2_log10", "expr_gene1", "expr_gene1_log10")
 
 stopifnot(length(all_x) == length(all_y))
 

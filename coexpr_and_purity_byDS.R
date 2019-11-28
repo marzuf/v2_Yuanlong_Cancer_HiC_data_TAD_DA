@@ -51,6 +51,8 @@ get_partial_corr_dt <- function(fpkmdt_with_pur, cormet, newcol) {
 
 # Rscript coexpr_and_purity_byDS.R
 
+# Rscript coexpr_and_purity_byDS.R EPIC
+
 SSHFS <- FALSE
 setDir <- ifelse(SSHFS, "/media/electron", "")
 registerDoMC(ifelse(SSHFS, 2, 80))
@@ -118,12 +120,38 @@ cat(paste0("!!! HARD-CODED !!!\n"))
 cat(paste0(">>> corMet\t=\t", corMet, "\n"))
 cat(paste0(">>> purity metric\t=\t", pm, "\n"))
 
+
+# all_ds <- c("LG1_40kb/TCGAlusc_norm_lusc", "LG1_40kb/TCGAluad_nonsmoker_smoker", "LG1_40kb/TCGAluad_mutKRAS_mutEGFR")
+# all_ds <- c("ENCSR312KHQ_SK-MEL-5_40kb/TCGAskcm_lowInf_highInf",
+# "ENCSR444WCZ_A549_40kb/TCGAluad_mutKRAS_mutEGFR",
+# "ENCSR444WCZ_A549_40kb/TCGAluad_nonsmoker_smoker",
+# "ENCSR489OCU_NCI-H460_40kb/TCGAluad_wt_mutKRAS",
+# "ENCSR862OGI_RPMI-7951_40kb/TCGAskcm_wt_mutBRAF",
+# "ENCSR862OGI_RPMI-7951_40kb/TCGAskcm_wt_mutCTNNB1",
+# "GSE105194_cerebellum_40kb/TCGAgbm_classical_mesenchymal",
+# "GSE105194_cerebellum_40kb/TCGAgbm_classical_neural",
+# "GSE105194_cerebellum_40kb/TCGAgbm_classical_proneural",
+# "GSE105194_spinal_cord_40kb/TCGAgbm_classical_mesenchymal",
+# "GSE105194_spinal_cord_40kb/TCGAgbm_classical_neural",
+# "GSE105194_spinal_cord_40kb/TCGAgbm_classical_proneural",
+# "GSE105194_spinal_cord_40kb/TCGAlgg_IDHwt_IDHmutnc",
+# "GSE105381_HepG2_40kb/TCGAlihc_wt_mutCTNNB1",
+# "GSE118514_RWPE1_40kb/TCGAprad_norm_prad",
+# "HMEC_40kb/TCGAbrca_lum_bas",
+# "LG1_40kb/TCGAluad_norm_luad",
+# "LG2_40kb/TCGAluad_norm_luad",
+# "LI_40kb/TCGAlihc_norm_lihc",
+# "Rao_HCT-116_2017_40kb/TCGAcoad_msi_mss")
+
 if(buildTable) {
   
   foo <- foreach(ds = all_ds, .combine='rbind') %dopar% {
     
     hicds <- dirname(ds)
     exprds <- basename(ds)
+    
+    outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_coexpr_and_purity_dt.Rdata"))
+    if(file.exists(outFile)) return(NULL)
     
     settingFile <- file.path(settingFolder, hicds, paste0("run_settings_", exprds, ".R"))
     stopifnot(file.exists(settingFile))
@@ -263,44 +291,57 @@ if(buildTable) {
 
   
   
-} else {
-cat(paste0("------ done by DS now\n"))
-stop("---\n")
-  outFile <- file.path(outFolder, "coexpr_and_purity_dt.Rdata")
-  # outFile <- file.path(outFolder, "sub_coexpr_and_purity_dt.Rdata")
-  cat(paste0("... load coexpr data - ", Sys.time()))
-  coexpr_and_purity_dt <- get(load(outFile))
-  cat(paste0(" - ", Sys.time(), " - done\n"))
-}
+} # end-if buildTable
 
-# 
-# source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
-# 
-# all_suffix <- c("", "_samp1", "_samp2")
-# 
-# suff=""
-# for(suff in all_suffix){
-#   
-#   outFile <- file.path(outFolder, paste0("all_datasets_partial_vs_full_coexpr", suff, ".", plotType))
-#   do.call(plotType, list(file=outFile, height=myHeight, width=myWidth))
-#   densplot(
-#     x = coexpr_and_purity_dt[,paste0("coexpr", suff)],
-#     y = coexpr_and_purity_dt[,paste0("partial_coexpr", suff)],
-# 	xlab = paste0("coexpr", suff),
-# 	ylab = paste0("partial_coexpr", suff),
-#     main=paste0("partial vs. full coexpr."),
-#     cex.axis=plotCex,
-#     cex.lab=plotCex,
-#     pch=16,
-#     cex=0.7
-#   )  
-#   legend("topleft", legend = paste0("n=", nrow(coexpr_and_purity_dt)), bty="n")
-#   
-#   foo <- dev.off()
-#   cat(paste0("... written: ", outFile, "\n"))    
-#   
-#   
-# }
+source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
+
+foo <- foreach(ds = all_ds, .combine='rbind') %dopar% {
+  
+  hicds <- dirname(ds)
+  exprds <- basename(ds)
+  
+
+  inFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_coexpr_and_purity_dt.Rdata"))
+  if(!file.exists(inFile)) return(NULL)
+  cat(paste0("... load coexpr data - ", Sys.time()))
+  coexpr_and_purity_dt <- get(load(inFile))
+  cat(paste0(" - ", Sys.time(), " - done\n"))
+  
+
+  all_suffix <- c("", "_samp1", "_samp2")
+
+  suff=""
+  for(suff in all_suffix){
+
+    outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_partial_vs_full_coexpr", suff, ".", plotType))
+    do.call(plotType, list(file=outFile, height=myHeight, width=myWidth))
+    densplot(
+      x = coexpr_and_purity_dt[,paste0("coexpr", suff)],
+      y = coexpr_and_purity_dt[,paste0("partial_coexpr", suff)],
+  	xlab = paste0("coexpr", suff),
+  	ylab = paste0("partial_coexpr", suff),
+      main=paste0(hicds, " - ", exprds),
+      cex.axis=plotCex,
+      cex.lab=plotCex,
+      pch=16,
+      cex=0.7
+    )
+    mtext(side=3, text = paste0("partial vs. full coexpr."))
+    cor_val <- cor(coexpr_and_purity_dt[,paste0("coexpr", suff)],coexpr_and_purity_dt[,paste0("partial_coexpr", suff)],use="pairwise")
+    
+    legend("topleft", legend = c(paste0("n=", nrow(coexpr_and_purity_dt)),
+                                 paste0("PCC=", round(cor_val, 4))), bty="n")
+    
+
+    foo <- dev.off()
+    cat(paste0("... written: ", outFile, "\n"))
+
+
+  } # end-iterating over suffix
+  
+                      
+  
+} # end-foreach iterating over ds
 
 
 ##############################

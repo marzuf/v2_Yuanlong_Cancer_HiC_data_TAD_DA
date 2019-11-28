@@ -14,7 +14,7 @@ suppressPackageStartupMessages(library(ggplot2, warn.conflicts = FALSE, quietly 
 suppressPackageStartupMessages(library(ggpubr, warn.conflicts = FALSE, quietly = TRUE, verbose = FALSE))
 suppressPackageStartupMessages(library(reshape2, warn.conflicts = FALSE, quietly = TRUE, verbose = FALSE))
 
-# Rscript pairwise_corr_and_purity_byDS.R
+#  
 # Rscript pairwise_corr_and_purity_byDS.R EPIC
 
 SSHFS <- FALSE
@@ -81,6 +81,9 @@ foo <- foreach(ds = all_ds ) %dopar% {
   cat(paste0("... start ", hicds, " - ", exprds, "\n"))  
   
   coexpr_corrpur_dt_file <- file.path(coexpr_folder, paste0(hicds, "_", exprds, "_", "coexpr_and_purity_dt.Rdata" ))
+  
+  if(!file.exists(coexpr_corrpur_dt_file)) return(NULL)
+  
   stopifnot(file.exists(coexpr_corrpur_dt_file))
   
   cat(paste0("load coexpr dt - ", Sys.time(), " - "))
@@ -106,13 +109,13 @@ foo <- foreach(ds = all_ds ) %dopar% {
   
   sub_coexpr_corrpur_dt <- coexpr_corrpur_dt
   
-  sub_scoexpr_corrpur_dt$pairwise_corr_gene_purity <- sub_scoexpr_corrpur_dt$gene1_corr_gene_purity * sub_scoexpr_corrpur_dt$gene2_corr_gene_purity
+  sub_coexpr_corrpur_dt$pairwise_corr_gene_purity <- sub_coexpr_corrpur_dt$gene1_corr_gene_purity * sub_coexpr_corrpur_dt$gene2_corr_gene_purity
   
-  sub_scoexpr_corrpur_dt$full_partial_corr_diff <- sub_scoexpr_corrpur_dt$coexpr - sub_scoexpr_corrpur_dt$partial_coexpr
+  sub_coexpr_corrpur_dt$full_partial_corr_diff <- sub_coexpr_corrpur_dt$coexpr - sub_coexpr_corrpur_dt$partial_coexpr
   
   #Create a function to generate a continuous color palette
   rbPal <- colorRampPalette(c('red','blue'))
-  sub_scoexpr_corrpur_dt$puritycorr_col <- rbPal(10)[as.numeric(cut(sub_scoexpr_corrpur_dt$pairwise_corr_gene_purity,breaks = 10))]
+  sub_coexpr_corrpur_dt$puritycorr_col <- rbPal(10)[as.numeric(cut(sub_coexpr_corrpur_dt$pairwise_corr_gene_purity,breaks = 10))]
   
   
   
@@ -131,19 +134,19 @@ foo <- foreach(ds = all_ds ) %dopar% {
   do.call(plotType, list(file=outFile, height=myHeight, width=myWidth))
   plot(
     as.formula(paste0(myy, "~", myx)),
-    data=sub_scoexpr_corrpur_dt,
+    data=sub_coexpr_corrpur_dt,
     xlab =myxlab,
     ylab =myylab,
     main=myTit,
     cex=0.7,
     pch=16,
-    col=sub_scoexpr_corrpur_dt$puritycorr_col,
+    col=sub_coexpr_corrpur_dt$puritycorr_col,
     cex.lab=plotCex,
     cex.axis=plotCex
   )
   curve(1*x, lty=2, col="grey", add=T)
   mtext(side=3, text = paste0(mySub))
-  legend("topleft",legend=levels(cut(sub_scoexpr_corrpur_dt$pairwise_corr_gene_purity,breaks = 10)),col =rbPal(10),pch=16, bty="n", cex=0.8)
+  legend("topleft",legend=levels(cut(sub_coexpr_corrpur_dt$pairwise_corr_gene_purity,breaks = 10)),col =rbPal(10),pch=16, bty="n", cex=0.8)
   foo <- dev.off()
   cat(paste0("... written: ", outFile, "\n"))    
   
@@ -159,7 +162,7 @@ foo <- foreach(ds = all_ds ) %dopar% {
   do.call(plotType, list(file=outFile, height=myHeight, width=myWidth))
   plot(
     as.formula(paste0(myy, "~", myx)),
-    data=sub_scoexpr_corrpur_dt,
+    data=sub_coexpr_corrpur_dt,
     xlab =myxlab,
     ylab =myylab,
     main=myTit,
@@ -171,7 +174,7 @@ foo <- foreach(ds = all_ds ) %dopar% {
   )
   curve(1*x, lty=2, col="grey", add=T)
   mtext(side=3, text = paste0(mySub))
-  legend("topleft",legend=levels(cut(sub_scoexpr_corrpur_dt$pairwise_corr_gene_purity,breaks = 10)),col =rbPal(10),pch=16, bty="n", cex=0.8)
+  legend("topleft",legend=levels(cut(sub_coexpr_corrpur_dt$pairwise_corr_gene_purity,breaks = 10)),col =rbPal(10),pch=16, bty="n", cex=0.8)
   
   foo <- dev.off()
   cat(paste0("... written: ", outFile, "\n"))    

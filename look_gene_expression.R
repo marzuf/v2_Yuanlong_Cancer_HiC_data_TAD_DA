@@ -39,6 +39,20 @@ suppressPackageStartupMessages(library(reshape2, warn.conflicts = FALSE, quietly
 # Rscript look_gene_expression.R Panc1_rep12_40kb TCGApaad_wt_mutKRAS CD244 CD48 LY9 SLAMF7
 # Rscript look_gene_expression.R GSE105381_HepG2_40kb TCGAlihc_norm_lihc CD244 CD48 LY9 SLAMF7
 # 
+
+# Rscript look_gene_expression.R ENCSR312KHQ_SK-MEL-5_40kb TCGAskcm_wt_mutBRAF LY9 SLAMF7
+# Rscript look_gene_expression.R ENCSR444WCZ_A549_40kb TCGAluad_wt_mutKRAS LY9 SLAMF7
+# Rscript look_gene_expression.R Panc1_rep12_40kb TCGApaad_wt_mutKRAS LY9 SLAMF7
+# Rscript look_gene_expression.R GSE105381_HepG2_40kb TCGAlihc_norm_lihc LY9 SLAMF7
+
+# Rscript look_gene_expression.R ENCSR312KHQ_SK-MEL-5_40kb TCGAskcm_wt_mutBRAF CD244 CD48 
+# Rscript look_gene_expression.R ENCSR444WCZ_A549_40kb TCGAluad_wt_mutKRAS CD244 CD48 
+# Rscript look_gene_expression.R Panc1_rep12_40kb TCGApaad_wt_mutKRAS CD244 CD48 
+# Rscript look_gene_expression.R GSE105381_HepG2_40kb TCGAlihc_norm_lihc CD244 CD48 
+# 
+
+# 
+
 # Rscript look_gene_expression.R LG1_40kb TCGAluad_norm_luad C1QA C1QB C1QC
 # Rscript look_gene_expression.R ENCSR312KHQ_SK-MEL-5_40kb TCGAskcm_lowInf_highInf C1QA C1QB C1QC
 # Rscript look_gene_expression.R GSE105194_cerebellum_40kb TCGAgbm_classical_mesenchymal C1QA C1QB C1QC
