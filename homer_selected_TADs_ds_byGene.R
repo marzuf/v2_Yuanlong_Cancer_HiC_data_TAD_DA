@@ -33,8 +33,6 @@ setDir=""
 # Rscript homer_selected_TADs_ds_byGene.R LG1_40kb TCGAluad_norm_luad chr12_TAD174
 # Rscript homer_selected_TADs_ds_byGene.R ENCSR312KHQ_SK-MEL-5_40kb TCGAskcm_lowInf_highInf chr1_TAD84
 # Rscript homer_selected_TADs_ds_byGene.R ENCSR312KHQ_SK-MEL-5_40kb TCGAskcm_lowInf_highInf chr7_TAD568
-""
-
 
 # compare to homer_selected_TADs_ds.R => here pass to homer every region around TSS of the gene
 # instead of a single TAD region

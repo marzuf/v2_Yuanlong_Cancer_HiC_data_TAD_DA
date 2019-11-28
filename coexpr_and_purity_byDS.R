@@ -57,7 +57,7 @@ SSHFS <- FALSE
 setDir <- ifelse(SSHFS, "/media/electron", "")
 registerDoMC(ifelse(SSHFS, 2, 80))
 
-buildTable <- FALSE
+buildTable <- TRUE
 
 myHeight <- 400 
 myWidth <- 400
@@ -142,6 +142,12 @@ cat(paste0(">>> purity metric\t=\t", pm, "\n"))
 # "LG2_40kb/TCGAluad_norm_luad",
 # "LI_40kb/TCGAlihc_norm_lihc",
 # "Rao_HCT-116_2017_40kb/TCGAcoad_msi_mss")
+
+
+all_ds <- c("ENCSR312KHQ_SK-MEL-5_40kb/TCGAskcm_wt_mutCTNNB1",
+            "LI_40kb/TCGAlihc_wt_mutCTNNB1",
+            "GSE105318_DLD1_40kb/TCGAcoad_msi_mss")
+
 
 if(buildTable) {
   
@@ -294,6 +300,10 @@ if(buildTable) {
 } # end-if buildTable
 
 source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
+
+all_ds <- c("ENCSR312KHQ_SK-MEL-5_40kb/TCGAskcm_wt_mutCTNNB1",
+            "LI_40kb/TCGAlihc_wt_mutCTNNB1",
+            "GSE105318_DLD1_40kb/TCGAcoad_msi_mss")
 
 foo <- foreach(ds = all_ds, .combine='rbind') %dopar% {
   

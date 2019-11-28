@@ -39,9 +39,10 @@ if(length(args) == 0) {
 outFolder <- file.path(paste0("PAIRWISE_CORR_AND_PURITY_BYDS", file_suffix))
 dir.create(outFolder, recursive = TRUE)
 
-myHeight <- 7
-myWidth <- 9
+myHeight <- 400
+myWidth <- 400
 plotType <- "png"
+plotCex <- 1.4
 
 mainFolder <- file.path(".")
 pipFolder <- file.path("PIPELINE", "OUTPUT_FOLDER")
@@ -130,7 +131,7 @@ foo <- foreach(ds = all_ds ) %dopar% {
   myy <- "partial_coexpr"
   
   # outFile <- file.path(outFolder, paste0("all_datasets_", myy, "_vs_", myx, ".", plotType))
-  outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_", myy, "_vs_", myx, ".", plotType))
+  outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_", myy, "_vs_", myx, "_fig4.", plotType))
   do.call(plotType, list(file=outFile, height=myHeight, width=myWidth))
   plot(
     as.formula(paste0(myy, "~", myx)),
@@ -158,7 +159,7 @@ foo <- foreach(ds = all_ds ) %dopar% {
   myx <- "full_partial_corr_diff"
   
   # outFile <- file.path(outFolder, paste0("all_datasets_", myy, "_vs_", myx, ".", plotType))
-  outFile <- file.path(outFolder, paste0(hicds, "_", exprds,"_", myy, "_vs_", myx, ".", plotType))
+  outFile <- file.path(outFolder, paste0(hicds, "_", exprds,"_", myy, "_vs_", myx, "_fig5.", plotType))
   do.call(plotType, list(file=outFile, height=myHeight, width=myWidth))
   plot(
     as.formula(paste0(myy, "~", myx)),
@@ -174,7 +175,7 @@ foo <- foreach(ds = all_ds ) %dopar% {
   )
   curve(1*x, lty=2, col="grey", add=T)
   mtext(side=3, text = paste0(mySub))
-  legend("topleft",legend=levels(cut(sub_coexpr_corrpur_dt$pairwise_corr_gene_purity,breaks = 10)),col =rbPal(10),pch=16, bty="n", cex=0.8)
+#  legend("topleft",legend=levels(cut(sub_coexpr_corrpur_dt$pairwise_corr_gene_purity,breaks = 10)),col =rbPal(10),pch=16, bty="n", cex=0.8)
   
   foo <- dev.off()
   cat(paste0("... written: ", outFile, "\n"))    
