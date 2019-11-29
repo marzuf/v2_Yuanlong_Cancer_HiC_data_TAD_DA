@@ -65,6 +65,8 @@ suppressPackageStartupMessages(library(reshape2, warn.conflicts = FALSE, quietly
 # Rscript look_gene_expression.R ENCSR346DCU_LNCaP_40kb TCGAprad_norm_prad HOXC4 HOXC6
 # Rscript look_gene_expression.R GSE118514_22Rv1_40kb TCGAprad_norm_prad HOXC4 HOXC6
 # 
+
+# Rscript look_gene_expression.R LG2_40kb TCGAlusc_norm_lusc SERPINB3 SERPINB4
 # 
 
 
