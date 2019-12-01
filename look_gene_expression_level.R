@@ -87,7 +87,7 @@ init_order <- all_gene_symbols
 
 
 plotType <- "png"
-myHeight <- ifelse(plotType=="png", 500, 7)
+myHeight <- ifelse(plotType=="png", 400, 7)
 myWidth <- myHeight
 plotCex <- 1.4
 myHeightGG <- 7
@@ -167,19 +167,51 @@ if(length(all_gene_symbols) == 0) {
   ofinterest_med <- medianExpr[rowsOfInterest]
   other_med <-  medianExpr[! rowsOfInterest]
   
+  ofinterest_med_noout <- ofinterest_med[ofinterest_med>= quantile(ofinterest_med, probs=0.05) & ofinterest_med <= quantile(ofinterest_med, probs=0.95)]
   other_med_noout <- other_med[other_med>= quantile(other_med, probs=0.05) & other_med <= quantile(other_med, probs=0.95)]
   
-  plot(density(log10(other_med_noout)))
+  outFile <- file.path(outFolder, paste0(paste0(all_gene_symbols, collapse="_"), "_", hicds, "_", exprds, "_meds_density_log10.", plotType))
+  do.call(plotType, list(outFile, height=myHeight, width=myWidth*1.2))
+  plot(density(log10(other_med_noout)), main=plotTit)
+  abline(v=ofinterest_med, lty=2, col="red")
+  foo <- dev.off()
+  cat(paste0("... written: ", outFile, "\n"))    
   
   ofinterest_dt <- fpkm_dt[rowsOfInterest,]
   other_dt <-  fpkm_dt[! rowsOfInterest,]
   
-  stopifnot(nrow(ofinterest_dt) + nrow(other_dt) == nrow(fpkm_dt))
+  interest_meds_samp1 <- apply(ofinterest_dt[,c(samp1)], 1, median)
+  other_meds_samp1 <- apply(ofinterest_dt[,c(samp1)], 1, median)
+  interest_meds_samp2<- apply(ofinterest_dt[,c(samp2)], 1, median)
+  other_meds_samp2 <- apply(ofinterest_dt[,c(samp2)], 1, median)
   
+  outFile <- file.path(outFolder, paste0(paste0(all_gene_symbols, collapse="_"),"_", hicds, "_", exprds, "_samp1_samp2_meds.", plotType))
+  do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+  par(bty="l")
+  plot(
+    x=interest_meds_samp1,
+    y = interest_meds_samp2,
+    pch=16,
+    cex=0.7,
+    col="black",
+    cex.axis=plotCex,
+    cex.lab=plotCex,
+    xlab="med expr. samp1",
+    ylab="med expr. samp2",
+    main=plotTit)
+  points(x=other_meds_samp1,
+         y=other_meds_samp2,
+         col="red",
+         pch=16,
+         cex=0.7)
+  foo <- dev.off()
+  cat(paste0("... written: ", outFile, "\n"))
+  
+  
+  stopifnot(nrow(ofinterest_dt) + nrow(other_dt) == nrow(fpkm_dt))
   
   cond1_fpkm <- unlist(ofinterest_dt[, samp1])
   cond2_fpkm <- unlist(ofinterest_dt[, samp2])
-  
   all_other_fpkm <- unlist(other_dt[, c(samp1, samp2)])
   
   boxplot_dt <- data.frame(
@@ -187,33 +219,30 @@ if(length(all_gene_symbols) == 0) {
     cond = c(rep(cond1, length(cond1_fpkm)), rep(cond2, length(cond2_fpkm)), rep("all_other", length(all_other_fpkm))),
     stringsAsFactors = FALSE
   )
-  
   boxplot_dt$FPKM_log10 <- log10(boxplot_dt$FPKM)
   
-  
-  
-  
-  outFile <- file.path(outFolder, paste0(all_gene_symbols, "_", hicds, "_", exprds, ".", plotType))
-  
-  
-  ggdensity(
+  outFile <- file.path(outFolder, paste0(paste0(all_gene_symbols, collapse="_"), "_", hicds, "_", exprds, "_all_counts_log10.", plotType))
+  p_all <- ggdensity(
       data=boxplot_dt,
       x = "FPKM_log10",
-      color="cond"
+      color="cond",
+      title = plotTit, subtitle=plotSubTit
   )
+  ggsave(p_all, filename = outFile, height=myHeightGG, width=myWidthGG)
+  cat(paste0("... written: ", outFile, "\n"))
   
   
-  ggboxplot(
-    data=boxplot_dt,
-    x="cond",
-    y = "FPKM_log10",
-    color="cond"
-  )
   
-  
-  mtext(side=3, text = plotSubTit, cex=1.4)
-  foo <- dev.off()
-  cat(paste0("... written: ", outFile, "\n"))    
+  # ggboxplot(
+  #   data=boxplot_dt,
+  #   x="cond",
+  #   y = "FPKM_log10",
+  #   color="cond"
+  # )
+  # 
+  # mtext(side=3, text = plotSubTit, cex=1.4)
+  # foo <- dev.off()
+  # cat(paste0("... written: ", outFile, "\n"))    
   
 } 
 
