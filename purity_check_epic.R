@@ -14,6 +14,7 @@ suppressPackageStartupMessages(library(reshape2, warn.conflicts = FALSE, quietly
 
 # Rscript purity_check_epic.R <gene_symbol>
 # Rscript purity_check_epic.R GIMAP4
+# Rscript purity_check_epic.R HOXC4
 all_gene_symbols=c("GIMAP2", "GIMAP1")
 
 args <- commandArgs(trailingOnly = TRUE)

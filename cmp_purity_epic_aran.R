@@ -76,3 +76,53 @@ legend(
 mtext(side=3, text = paste0("n=", nrow(cmp_dt)), cex=1.4)
 foo <- dev.off()
 cat(paste0("... written: ", outFile, "\n"))    
+
+
+cmp_samples_dt$corr_diff <- cmp_samples_dt$ESTIMATE - cmp_samples_dt$otherCells
+cmp_samples_dt <- cmp_samples_dt[order(cmp_samples_dt$corr_diff, decreasing = TRUE),]
+head(cmp_samples_dt[,c("hicds", "exprds", "otherCells", "ESTIMATE", "corr_diff")])
+
+dis_dt <- cmp_samples_dt[cmp_samples_dt$ESTIMATE > 0.4 & cmp_samples_dt$otherCells < 0.4,]
+dis_dt <- dis_dt[,c("hicds", "exprds", "otherCells", "ESTIMATE", "corr_diff")]
+dis_dt <- na.omit(dis_dt)
+dis_dt <- dis_dt[dis_dt$corr_diff >= 0.5,]
+View(dis_dt[,c("hicds", "exprds", "otherCells", "ESTIMATE", "corr_diff")])
+unique(dis_dt$exprds)
+unique(dis_dt$exprds)
+# [1] "TCGAlihc_norm_lihc"            "TCGAlihc_wt_mutCTNNB1"         "TCGAlgg_IDHwt_IDHmutnc"       
+# [4] "TCGAgbm_classical_neural"      "TCGAgbm_classical_mesenchymal" "TCGAgbm_classical_proneural"  
+# [7] "TCGAbrca_lum_bas"              "TCGAskcm_wt_mutBRAF"           "TCGAskcm_wt_mutCTNNB1"
+
+
+
+dt1 <- get(load("CREATE_FINAL_TABLE/all_result_dt.Rdata"))
+dt1 <- dt1[dt1$adjPvalComb <= 0.01,]
+dt1 <- dt1[order(dt1$hicds, dt1$exprds, dt1$adjPvalComb),]
+dt1$id <- file.path(dt1$hicds, dt1$exprds, dt1$region)
+dt2 <- get(load("CREATE_FINAL_TABLE_PARTIAL/all_result_dt.Rdata"))
+dt2 <- dt2[dt2$adjPvalComb <= 0.01,]
+dt2 <- dt2[order(dt2$hicds, dt2$exprds, dt2$adjPvalComb),]
+dt2$id <- file.path(dt2$hicds, dt2$exprds, dt2$region)
+
+nrow(dt1)
+nrow(dt2)
+length(intersect(dt1$id, dt2$id))
+
+dt1_10 <- do.call(rbind, by(dt1, list(dt1$hicds, dt1$exprds), FUN=head, n=10))
+dt2_10 <- do.call(rbind, by(dt2, list(dt2$hicds, dt2$exprds), FUN=head, n=10))
+nrow(dt1_10)
+nrow(dt2_10)
+length(intersect(dt1_10$id, dt2_10$id))
+
+dt2 <- get(load("EPIC_PURITY/all_purity_values.Rdata"))
+dt2 <- unlist(dt2, use.names = TRUE)
+dt2_dt <- data.frame(
+  id_code = gsub(".+TCGA-.+-.+-(.+)$", "\\1", names(dt2)),
+  purity = as.numeric(dt2),
+  stringsAsFactors = FALSE
+)
+
+
+
+
+boxplot(purity~id_code, data=dt2_dt)

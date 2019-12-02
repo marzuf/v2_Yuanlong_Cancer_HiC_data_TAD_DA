@@ -181,16 +181,16 @@ if(length(all_gene_symbols) == 0) {
   other_dt <-  fpkm_dt[! rowsOfInterest,]
   
   interest_meds_samp1 <- apply(ofinterest_dt[,c(samp1)], 1, median)
-  other_meds_samp1 <- apply(ofinterest_dt[,c(samp1)], 1, median)
+  other_meds_samp1 <- apply(other_dt[,c(samp1)], 1, median)
   interest_meds_samp2<- apply(ofinterest_dt[,c(samp2)], 1, median)
-  other_meds_samp2 <- apply(ofinterest_dt[,c(samp2)], 1, median)
+  other_meds_samp2 <- apply(other_dt[,c(samp2)], 1, median)
   
   outFile <- file.path(outFolder, paste0(paste0(all_gene_symbols, collapse="_"),"_", hicds, "_", exprds, "_samp1_samp2_meds.", plotType))
   do.call(plotType, list(outFile, height=myHeight, width=myWidth))
   par(bty="l")
   plot(
-    x=interest_meds_samp1,
-    y = interest_meds_samp2,
+    x=other_meds_samp1,
+    y = other_meds_samp2,
     pch=16,
     cex=0.7,
     col="black",
@@ -199,11 +199,68 @@ if(length(all_gene_symbols) == 0) {
     xlab="med expr. samp1",
     ylab="med expr. samp2",
     main=plotTit)
-  points(x=other_meds_samp1,
-         y=other_meds_samp2,
+  points(x=interest_meds_samp1,
+         y=interest_meds_samp2,
          col="red",
          pch=16,
          cex=0.7)
+  foo <- dev.off()
+  cat(paste0("... written: ", outFile, "\n"))
+  
+  
+  
+  outFile <- file.path(outFolder, paste0(paste0(all_gene_symbols, collapse="_"),"_", hicds, "_", exprds, "_samp1_samp2_meds_log10.", plotType))
+  do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+  par(bty="l")
+  plot(
+    x=log10(other_meds_samp1),
+    y = log10(other_meds_samp2),
+    pch=16,
+    cex=0.7,
+    col="black",
+    cex.axis=plotCex,
+    cex.lab=plotCex,
+    xlab="med expr. samp1",
+    ylab="med expr. samp2",
+    main=plotTit)
+  points(x=log10(interest_meds_samp1),
+         y=log10(interest_meds_samp2),
+         col="red",
+         pch=16,
+         cex=0.7)
+  foo <- dev.off()
+  cat(paste0("... written: ", outFile, "\n"))
+  
+  
+  
+  outFile <- file.path(outFolder, paste0(paste0(all_gene_symbols, collapse="_"),"_", hicds, "_", exprds, "_samp1_samp2_meds_noout.", plotType))
+  do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+  par(bty="l")
+  plot(
+    x=other_meds_samp1[other_meds_samp1 >= quantile(other_meds_samp1, probs = 0.05) & other_meds_samp1 <= quantile(other_meds_samp1, probs = 0.95) & 
+                         other_meds_samp2 >= quantile(other_meds_samp2, probs = 0.05) & other_meds_samp2 <= quantile(other_meds_samp2, probs = 0.95)],
+    y = other_meds_samp2[other_meds_samp1 >= quantile(other_meds_samp1, probs = 0.05) & other_meds_samp1 <= quantile(other_meds_samp1, probs = 0.95) & 
+                           other_meds_samp2 >= quantile(other_meds_samp2, probs = 0.05) & other_meds_samp2 <= quantile(other_meds_samp2, probs = 0.95)],
+    pch=16,
+    cex=0.7,
+    col="black",
+    cex.axis=plotCex,
+    cex.lab=plotCex,
+    xlab="med expr. samp1",
+    ylab="med expr. samp2",
+    main=plotTit)
+  points(x=interest_meds_samp1,
+         y=interest_meds_samp2,
+         col="red",
+         pch=16,
+         cex=0.7)
+  text(x=interest_meds_samp1,
+         y=interest_meds_samp2,
+       labels = entrez2symb[rownames(ofinterest_dt)],
+         col="red",
+       pos=3,
+         pch=16,
+         cex=1.2)
   foo <- dev.off()
   cat(paste0("... written: ", outFile, "\n"))
   
