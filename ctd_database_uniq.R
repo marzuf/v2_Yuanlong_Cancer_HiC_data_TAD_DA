@@ -6,9 +6,9 @@ startTime <- Sys.time()
 
 cat(paste0("... start - ", startTime, "\n"))
 
-# Rscript ctd_database.R
+# Rscript ctd_database_uniq.R
 
-outFolder <- "CTD_DATABASE"
+outFolder <- "CTD_DATABASE_UNIQ"
 dir.create(outFolder, recursive = TRUE)
 
 # CTD_genes.csv.gz  CTD_genes_diseases.csv.gz  CTD_genes_pathways.csv.gz
@@ -57,6 +57,8 @@ require(dplyr)
 result_and_pathways_v1 <- inner_join(gene_tad_dt_top10[, c("hicds", "exprds", "region", "id", "entrezID", "geneSymbol", "region", "tad_adjCombPval")],
                                   ctd_genes_pathways_dt[,c("GeneSymbol", "GeneID", "PathwayName")], by=c("entrezID" = "GeneID"))
 
+result_and_pathways_v1 <- result_and_pathways_v1[,c("entrezID", "GeneSymbol", "PathwayName")]
+result_and_pathways_v1 <- unique(result_and_pathways_v1)
 # 26738
 # result_and_pathways_v2 <- inner_join(gene_tad_dt_top10[, c("hicds", "exprds", "region", "id", "entrezID", "geneSymbol", "region", "tad_adjCombPval")],
 #                                      ctd_genes_pathways_dt[,c("GeneSymbol", "GeneID", "PathwayName")], by=c("geneSymbol" = "GeneSymbol"))
@@ -84,12 +86,8 @@ cat(paste0("... written: ", outFile, "\n"))
 
 result_and_diseases_dt <- inner_join(gene_tad_dt_top10[, c("hicds", "exprds", "region", "id", "entrezID", "geneSymbol", "region", "tad_adjCombPval")],
                                      ctd_genes_diseases_dt[,c("GeneSymbol", "GeneID", "DiseaseName")], by=c("entrezID" = "GeneID"))
-#nrow(result_and_diseases_dt)
-#[1] 11335949
-# result_and_diseases_dt2 <- inner_join(gene_tad_dt_top10[, c("hicds", "exprds", "region", "id", "entrezID", "geneSymbol", "region", "tad_adjCombPval")],
-#                                      ctd_genes_diseases_dt[,c("GeneSymbol", "GeneID", "DiseaseName")], by=c("geneSymbol" = "GeneSymbol"))
-#nrow(result_and_diseases_dt2)
-# [1] 10983607
+result_and_diseases_dt <- result_and_diseases_dt[,c("entrezID", "GeneSymbol", "DiseaseName")]
+result_and_diseases_dt <- unique(result_and_diseases_dt)
 
 countDiseases_dt <- data.frame(
   nCount = as.numeric(table(result_and_diseases_dt$DiseaseName)),

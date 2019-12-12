@@ -6,10 +6,16 @@ startTime <- Sys.time()
 
 cat(paste0("... start - ", startTime, "\n"))
 
-# Rscript ctd_database.R
+# Rscript ctd_database_dataset.R TCGAluad_norm_luad
+# Rscript ctd_database_dataset.R TCGAlusc_norm_lusc
 
-outFolder <- "CTD_DATABASE"
+
+args <- commandArgs(trailingOnly = TRUE)
+exprds <- args[1]
+
+outFolder <- file.path("CTD_DATABASE", exprds)
 dir.create(outFolder, recursive = TRUE)
+
 
 # CTD_genes.csv.gz  CTD_genes_diseases.csv.gz  CTD_genes_pathways.csv.gz
 setDir <- "/media/electron"
@@ -28,7 +34,11 @@ gene_tad_dt$geneSymbol <- entrez2symb[paste0(gene_tad_dt$entrezID)]
 
 result_dt <- get(load("CREATE_FINAL_TABLE/all_result_dt.Rdata"))
 
-ctd_genes_dt <- read.delim("CTD_genes.csv", header=F)
+stopifnot(exprds %in% result_dt$exprds)
+result_dt <- result_dt[result_dt$exprds == exprds,]
+
+
+# ctd_genes_dt <- read.delim("CTD_genes.csv", header=F)
 
 ctd_genes_diseases_dt <- read.delim("CTD_genes_diseases.csv", 
                                     skip=29, header=F, sep=",", stringsAsFactors=F,
@@ -84,12 +94,6 @@ cat(paste0("... written: ", outFile, "\n"))
 
 result_and_diseases_dt <- inner_join(gene_tad_dt_top10[, c("hicds", "exprds", "region", "id", "entrezID", "geneSymbol", "region", "tad_adjCombPval")],
                                      ctd_genes_diseases_dt[,c("GeneSymbol", "GeneID", "DiseaseName")], by=c("entrezID" = "GeneID"))
-#nrow(result_and_diseases_dt)
-#[1] 11335949
-# result_and_diseases_dt2 <- inner_join(gene_tad_dt_top10[, c("hicds", "exprds", "region", "id", "entrezID", "geneSymbol", "region", "tad_adjCombPval")],
-#                                      ctd_genes_diseases_dt[,c("GeneSymbol", "GeneID", "DiseaseName")], by=c("geneSymbol" = "GeneSymbol"))
-#nrow(result_and_diseases_dt2)
-# [1] 10983607
 
 countDiseases_dt <- data.frame(
   nCount = as.numeric(table(result_and_diseases_dt$DiseaseName)),
