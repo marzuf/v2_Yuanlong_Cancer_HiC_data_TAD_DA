@@ -10,6 +10,8 @@ registerDoMC(40)
 # Rscript tfsets_and_tads.R crisp LG1_40kb
 # Rscript tfsets_and_tads.R c3.mir LG1_40kb
 # Rscript tfsets_and_tads.R c3.all LG1_40kb
+# Rscript tfsets_and_tads.R trrust LG1_40kb
+# Rscript tfsets_and_tads.R tftg LG1_40kb
 
 plotType <- "png"
 myHeight <- 400
@@ -23,13 +25,13 @@ stopifnot(length(args) == 2)
 dsIn <- args[1]
 hicds <- args[2]
 
-stopifnot(dsIn %in% c("crisp", "c3.mir", "c3.all", "c3.tft"))
+stopifnot(dsIn %in% c("crisp", "c3.mir", "c3.all", "c3.tft", "trrust", "tftg"))
 
 nPermut <- 10000
 
 outFolder <- file.path(paste0("TFSETS_AND_TADS_", toupper(dsIn)))
 
-buildData <- FALSE
+buildData <- TRUE
 
 if(buildData) {
   
@@ -52,9 +54,24 @@ if(buildData) {
     cat(paste0("with Entrez: nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
     reg_dt$targetEntrezID <- symb2entrez[reg_dt$targetSymbol]
     reg_dt$targetEntrezID <- as.character(reg_dt$targetEntrezID)
+  } else if(dsIn == "trrust"){
+    reg_file <- file.path("trrust_rawdata.human.tsv")
+    reg_dt <- read.delim(reg_file, sep="\t", header=FALSE, stringsAsFactors = FALSE,
+                         col.names = c("regSymbol", "targetSymbol", "direction", "ID"))
+    cat(paste0("init nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
+    reg_dt <- reg_dt[reg_dt$targetSymbol %in% names(symb2entrez),]
+    cat(paste0("with Entrez: nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
+    reg_dt$targetEntrezID <- symb2entrez[reg_dt$targetSymbol]
+    reg_dt$targetEntrezID <- as.character(reg_dt$targetEntrezID)
+  } else if(dsIn == "tftg") {
+    reg_file <- file.path("tftg_db_all_processed.txt")
+    reg_dt <- read.delim(reg_file, sep="\t", header=TRUE, stringsAsFactors = FALSE, 
+                         col.names=c("regSymbol", "targetEntrezID"))
+    cat(paste0("init nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
   } else {
     reg_file <- file.path(paste0(dsIn, ".v7.0.entrez_processed.txt"))
-    reg_dt <- read.delim(reg_file, sep="\t", header=TRUE, stringsAsFactors = FALSE, col.names=c("regSymbol", "targetEntrezID"))
+    reg_dt <- read.delim(reg_file, sep="\t", header=TRUE, stringsAsFactors = FALSE, 
+                         col.names=c("regSymbol", "targetEntrezID"))
     cat(paste0("init nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
   }
   
