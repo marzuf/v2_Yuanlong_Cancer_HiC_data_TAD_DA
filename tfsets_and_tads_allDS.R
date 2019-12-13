@@ -11,6 +11,10 @@ registerDoMC(40)
 # Rscript tfsets_and_tads_allDS.R c3.mir
 # Rscript tfsets_and_tads_allDS.R c3.tft
 # Rscript tfsets_and_tads_allDS.R c3.all
+# Rscript tfsets_and_tads_allDS.R trrust
+# Rscript tfsets_and_tads_allDS.R tftg
+# Rscript tfsets_and_tads_allDS.R motifmap LG1_40kb
+# Rscript tfsets_and_tads_allDS.R motifmap 
 
 plotType <- "png"
 myHeight <- 400
@@ -20,12 +24,15 @@ plotCex <- 1.4
 
 dsIn <- "crisp"
 args <- commandArgs(trailingOnly = TRUE)
-stopifnot(length(args) == 1)
+stopifnot(length(args) == 1 | length(args) == 2)
 dsIn <- args[1]
+if(length(args) == 2) {
+  all_hicds <- args[2]
+} else {
+  all_hicds <- list.files("PIPELINE/OUTPUT_FOLDER")
+}
 
-stopifnot(dsIn %in% c("crisp", "c3.mir", "c3.all", "c3.tft"))
-
-all_hicds <- list.files("PIPELINE/OUTPUT_FOLDER")
+stopifnot(dsIn %in% c("crisp", "c3.mir", "c3.all", "c3.tft", "trrust", "tftg", "motifmap"))
 
 nPermut <- 10000
 
@@ -58,9 +65,29 @@ for(hicds in all_hicds){
       cat(paste0("with Entrez: nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
       reg_dt$targetEntrezID <- symb2entrez[reg_dt$targetSymbol]
       reg_dt$targetEntrezID <- as.character(reg_dt$targetEntrezID)
-    } else {
+    } else if(dsIn == "trrust"){
+      reg_file <- file.path("trrust_rawdata.human.tsv")
+      reg_dt <- read.delim(reg_file, sep="\t", header=FALSE, stringsAsFactors = FALSE,
+                           col.names = c("regSymbol", "targetSymbol", "direction", "ID"))
+      cat(paste0("init nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
+      reg_dt <- reg_dt[reg_dt$targetSymbol %in% names(symb2entrez),]
+      cat(paste0("with Entrez: nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
+      reg_dt$targetEntrezID <- symb2entrez[reg_dt$targetSymbol]
+      reg_dt$targetEntrezID <- as.character(reg_dt$targetEntrezID)
+    } else if(dsIn == "tftg") {
+      reg_file <- file.path("tftg_db_all_processed.txt")
+      reg_dt <- read.delim(reg_file, sep="\t", header=TRUE, stringsAsFactors = FALSE, 
+                           col.names=c("regSymbol", "targetEntrezID"))
+      cat(paste0("init nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
+    } else if(dsIn == "motifmap"){
+      reg_file <- file.path("MOTIFMAP_ALLGENES/overlapDT_bp.Rdata")
+      reg_dt <- get(load(reg_file))
+      colnames(reg_dt)[colnames(reg_dt)=="entrezID"] <- "targetEntrezID"
+      cat(paste0("init nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
+    }else {
       reg_file <- file.path(paste0(dsIn, ".v7.0.entrez_processed.txt"))
-      reg_dt <- read.delim(reg_file, sep="\t", header=TRUE, stringsAsFactors = FALSE, col.names=c("regSymbol", "targetEntrezID"))
+      reg_dt <- read.delim(reg_file, sep="\t", header=TRUE, stringsAsFactors = FALSE, 
+                           col.names=c("regSymbol", "targetEntrezID"))
       cat(paste0("init nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
     }
     
@@ -74,7 +101,7 @@ for(hicds in all_hicds){
     g2t_vect <- setNames(g2t_dt$region, g2t_dt$entrezID)
     
     reg_dt <- reg_dt[reg_dt$targetEntrezID %in% g2t_dt$entrezID,]
-    cat(paste0("with g2t assignmentz: nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
+    cat(paste0("with g2t assignment: nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
     reg_dt$targetRegion <- g2t_vect[paste0(reg_dt$targetEntrezID)]
     stopifnot(!is.na(reg_dt))
     
