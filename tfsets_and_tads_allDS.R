@@ -15,6 +15,7 @@ registerDoMC(40)
 # Rscript tfsets_and_tads_allDS.R tftg
 # Rscript tfsets_and_tads_allDS.R motifmap LG1_40kb
 # Rscript tfsets_and_tads_allDS.R motifmap 
+# Rscript tfsets_and_tads_allDS.R kegg LG1_40kb
 
 plotType <- "png"
 myHeight <- 400
@@ -32,7 +33,7 @@ if(length(args) == 2) {
   all_hicds <- list.files("PIPELINE/OUTPUT_FOLDER")
 }
 
-stopifnot(dsIn %in% c("crisp", "c3.mir", "c3.all", "c3.tft", "trrust", "tftg", "motifmap"))
+stopifnot(dsIn %in% c("crisp", "c3.mir", "c3.all", "c3.tft", "trrust", "tftg", "motifmap", "kegg"))
 
 nPermut <- 10000
 
@@ -84,6 +85,17 @@ for(hicds in all_hicds){
       reg_dt <- get(load(reg_file))
       colnames(reg_dt)[colnames(reg_dt)=="entrezID"] <- "targetEntrezID"
       cat(paste0("init nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
+    } else if(dsIn == "kegg"){
+      
+      
+      reg_file <- file.path("hsa_kegg_entrez.txt")
+      reg_dt <- read.delim(reg_file, sep="\t", header=FALSE, stringsAsFactors = FALSE,
+                           col.names = c("targetEntrezID", "regSymbol"))
+      reg_dt$targetEntrezID <- gsub("hsa:", "",reg_dt$targetEntrezID )
+      cat(paste0("init nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
+
+      
+      
     }else {
       reg_file <- file.path(paste0(dsIn, ".v7.0.entrez_processed.txt"))
       reg_dt <- read.delim(reg_file, sep="\t", header=TRUE, stringsAsFactors = FALSE, 
@@ -111,6 +123,8 @@ for(hicds in all_hicds){
     reg_nTADs <- unlist(by(reg_dt, reg_dt$regSymbol, function(x) length(unique(x$targetRegion))))
     
     all_gene_nbrs <- unique(reg_nGenes)
+    
+    stopifnot(length(all_gene_nbrs) > 1)
     
     ng=all_gene_nbrs[1]
     permut_dt <- foreach(i_ng = 1:length(all_gene_nbrs), .combine='rbind') %do% {
