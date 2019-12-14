@@ -2,6 +2,10 @@
 
 # Rscript final_table_with_gene_rank.R
 
+require(foreach)
+require(doMC)
+registerDoMC(40)
+
 outFolder <- "FINAL_TABLE_WITH_GENE_RANK"
 dir.create(outFolder, recursive = TRUE)
 
@@ -46,6 +50,7 @@ final_dt_with_rank <- foreach(i = 1:nrow(final_dt), .combine='rbind') %dopar% {
   
   out_dt <- final_dt[i,,drop=F]
   out_dt$region_genes <- region_genes_with_rank 
+  out_dt
   
 }
 

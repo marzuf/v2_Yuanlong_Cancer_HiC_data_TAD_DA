@@ -188,6 +188,7 @@ for(hicds in all_hicds){
          col = c("red", "black"),
          pch=16,
          bty="n")
+  mtext(side=3, text = paste0(dsIn))
   foo <- dev.off()
   cat(paste0("... written: ", outFile, "\n"))
   
@@ -203,6 +204,7 @@ for(hicds in all_hicds){
          permut = permut_dt$tad_ratio),
     plotTit = paste0(hicds)
   )
+  mtext(side=3, text = paste0(dsIn))
   foo <- dev.off()
   cat(paste0("... written: ", outFile, "\n"))
   
@@ -221,7 +223,7 @@ for(hicds in all_hicds){
     pch = 16,
     col ="red"
   )
-  mtext("reg_nGenes <= 100", side=3)
+  mtext(paste0(dsIn, "reg_nGenes <= 100"), side=3)
   legend("topleft", 
          legend=c("obs.", "permut."),
          col = c("red", "black"),
@@ -242,7 +244,7 @@ for(hicds in all_hicds){
          permut = permut_dt$tad_ratio[permut_dt$reg_nGenes <= 100]),
     plotTit = paste0(hicds)
   )
-  mtext("reg_nGenes <= 100", side=3)
+  mtext(paste0(dsIn, "reg_nGenes <= 100"), side=3)
   foo <- dev.off()
   cat(paste0("... written: ", outFile, "\n"))
 
