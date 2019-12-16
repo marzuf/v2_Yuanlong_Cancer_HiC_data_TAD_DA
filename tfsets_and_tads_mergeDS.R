@@ -102,12 +102,14 @@ mtext(side=3, text = paste0("# DS = ", nDS))
 foo <- dev.off()
 cat(paste0("... written: ", outFile, "\n"))
 
+yMax <- max(c(all_permut_data$TAD_ratio_med, all_obs_data$reg_nTADs/all_obs_data$reg_nGenes), na.rm=TRUE)
 
 outFile <- file.path(outFolder, paste0("all_ds_med_obs_permut_ratio_boxplot.", plotType))
 do.call(plotType, list(outFile, height=myHeight, width=myWidth))
 boxplot(TAD_ratio_med ~ reg_nGenes, data = all_permut_data, 
         xlab = "# regulated genes ",
         ylab = "# TADs/# genes",
+  		ylim = c(0, yMax),
         main = paste0("all DS"), 
         at = unique(all_permut_data$reg_nGenes))
 points(
@@ -147,16 +149,19 @@ cat(paste0("... written: ", outFile, "\n"))
   
 # the same, but only for TF that have <= 100 targets  
 
+yMax <- max(c(all_permut_data$reg_nTADs_permut_med[all_permut_data$reg_nGenes <= 100],all_obs_data$reg_nTADs[all_obs_data$reg_nGenes<=100]),na.rm=TRUE)
+
 outFile <- file.path(outFolder, paste0("all_ds_med_obs_permut_boxplot_to100.", plotType))
 do.call(plotType, list(outFile, height=myHeight, width=myWidth))
 boxplot(reg_nTADs_permut_med ~ reg_nGenes, data = all_permut_data[all_permut_data$reg_nGenes <= 100,], 
         xlab = "# regulated genes ",
         ylab = "# of TADs",
+ylim =c(0,yMax),
         main = paste0("all DS"), 
         at = unique(all_permut_data$reg_nGenes[all_permut_data$reg_nGenes <= 100]))
 points(
-  x = all_obs_data$reg_nGenes,
-  y = all_obs_data$reg_nTADs,
+  x = all_obs_data$reg_nGenes[all_obs_data$reg_nGenes <=100],
+  y = all_obs_data$reg_nTADs[all_obs_data$reg_nGenes<=100],
   cex.lab = plotCex,
   cex.axis = plotCex,
   pch = 16,
@@ -172,6 +177,8 @@ foo <- dev.off()
 cat(paste0("... written: ", outFile, "\n"))
 
 
+yMax <- max(c(all_permut_data$TAD_ratio_med[all_permut_data$reg_nGenes <= 100],all_obs_data$reg_nTADs_obs[all_obs_data$reg_nGenes <= 100]/all_obs_data$reg_nGenes[all_obs_data$reg_nGenes <= 100]), na.rm=TRUE)
+
 
 outFile <- file.path(outFolder, paste0("all_ds_med_obs_permut_ratio_boxplot_to100.", plotType))
 do.call(plotType, list(outFile, height=myHeight, width=myWidth))
@@ -179,10 +186,11 @@ boxplot(TAD_ratio_med ~ reg_nGenes, data = all_permut_data[all_permut_data$reg_n
         xlab = "# regulated genes ",
         ylab = "# TADs/# genes",
         main = paste0("all DS"), 
+ylim = c(0, yMax),
         at = unique(all_permut_data$reg_nGenes[all_permut_data$reg_nGenes <= 100]))
 points(
-  x = all_obs_data$reg_nGenes,
-  y = all_obs_data$reg_nTADs_obs/all_obs_data$reg_nGenes,
+  x = all_obs_data$reg_nGenes[all_obs_data$reg_nGenes <= 100],
+  y = all_obs_data$reg_nTADs_obs[all_obs_data$reg_nGenes <= 100]/all_obs_data$reg_nGenes[all_obs_data$reg_nGenes <= 100],
   cex.lab = plotCex,
   cex.axis = plotCex,
   pch = 16,

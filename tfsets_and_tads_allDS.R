@@ -8,6 +8,7 @@ require(doMC)
 registerDoMC(40)
   
 # Rscript tfsets_and_tads_allDS.R crisp 
+# Rscript tfsets_and_tads_allDS.R crisp LG1_40kb
 # Rscript tfsets_and_tads_allDS.R c3.mir
 # Rscript tfsets_and_tads_allDS.R c3.tft
 # Rscript tfsets_and_tads_allDS.R c3.all
@@ -39,7 +40,7 @@ nPermut <- 10000
 
 outFolder <- file.path(paste0("TFSETS_AND_TADS_", toupper(dsIn)))
 
-buildData <- TRUE
+buildData <- FALSE
 
 for(hicds in all_hicds){
   
@@ -168,11 +169,16 @@ for(hicds in all_hicds){
   
   permut_dt <- permut_dt[order(permut_dt$reg_nGenes),]
   
+  yMin <- min(c(permut_dt$reg_nTADs_permut, obs_dt$reg_nTADs), na.rm=TRUE)
+  yMax <- max(c(permut_dt$reg_nTADs_permut, obs_dt$reg_nTADs), na.rm=TRUE)
+  
   outFile <- file.path(outFolder, hicds, paste0("obs_permut_boxplot.", plotType))
   do.call(plotType, list(outFile, height=myHeight, width=myWidth))
   boxplot(reg_nTADs_permut ~ reg_nGenes, data = permut_dt, 
           xlab = "# regulated genes ",
           ylab = "# of TADs",
+          # ylim = c(yMin, yMax),
+          ylim = c(0, yMax),
           main = paste0(hicds), 
           at = unique(permut_dt$reg_nGenes))
   points(
@@ -208,16 +214,21 @@ for(hicds in all_hicds){
   foo <- dev.off()
   cat(paste0("... written: ", outFile, "\n"))
   
+  yMin <- min(c(permut_dt$reg_nTADs_permut[permut_dt$reg_nGenes <= 100], obs_dt$reg_nTADs[obs_dt$reg_nGenes<=100]), na.rm=TRUE)
+  yMax <- max(c(permut_dt$reg_nTADs_permut[permut_dt$reg_nGenes <= 100], obs_dt$reg_nTADs[obs_dt$reg_nGenes<=100]), na.rm=TRUE)
+  
+  
   outFile <- file.path(outFolder, hicds, paste0("obs_permut_boxplot_to100.", plotType))
   do.call(plotType, list(outFile, height=myHeight, width=myWidth))
   boxplot(reg_nTADs_permut ~ reg_nGenes, data = permut_dt[permut_dt$reg_nGenes <= 100,], 
           xlab = "# regulated genes ",
           ylab = "# of TADs",
+          ylim = c(0, yMax),
           main = paste0(hicds), 
           at = unique(permut_dt$reg_nGenes[permut_dt$reg_nGenes <= 100]))
   points(
-    x = obs_dt$reg_nGenes,
-    y = obs_dt$reg_nTADs,
+    x = obs_dt$reg_nGenes[obs_dt$reg_nGenes<=100],
+    y = obs_dt$reg_nTADs[obs_dt$reg_nGenes<=100],
     cex.lab = plotCex,
     cex.axis = plotCex,
     pch = 16,

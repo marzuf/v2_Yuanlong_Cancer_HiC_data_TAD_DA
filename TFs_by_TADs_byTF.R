@@ -7,14 +7,8 @@ source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 require(doMC)
 registerDoMC(40)
 
-# Rscript TFs_by_TADs.R crisp
-# Rscript TFs_by_TADs.R c3.mir
-# Rscript TFs_by_TADs.R c3.tft
-# Rscript TFs_by_TADs.R c3.all
-# Rscript TFs_by_TADs.R trrust
-# Rscript TFs_by_TADs.R tftg
-# Rscript TFs_by_TADs.R motifmap
-# Rscript TFs_by_TADs.R kegg
+# Rscript TFs_by_TADs_byTF.R tfcheckpoint
+# Rscript TFs_by_TADs_byTF.R tfcheckpoint LG1_40kb TCGAluad_norm_luad
 
 plotType <- "png"
 myHeight <- 400
@@ -29,16 +23,16 @@ dsIn <- args[1]
 if(length(args) == 3) {
   all_hicds <- args[2]
   all_exprds <- args[3]
-
+  names(all_exprds) <- all_hicds
 } else {
   all_hicds <- list.files("PIPELINE/OUTPUT_FOLDER")
   all_exprds <- sapply(all_hicds, function(x) list.files(file.path("PIPELINE/OUTPUT_FOLDER", x)))
   
 }
 
-stopifnot(dsIn %in% c("crisp", "c3.mir", "c3.all", "c3.tft", "trrust", "tftg", "motifmap", "kegg"))
+stopifnot(dsIn %in% c("tfcheckpoint"))
 
-outFolder <- file.path(paste0("TFS_BY_TADS_", toupper(dsIn)))
+outFolder <- file.path(paste0("TFS_BY_TADS_BYTF_", toupper(dsIn)))
 dir.create(outFolder, recursive = TRUE)
 
 buildData <- TRUE
@@ -66,44 +60,14 @@ if(buildData){
     # tad_DT <- read.delim(tadFile, header=FALSE, stringsAsFactors = FALSE, col.names = c("chromo", "region", "start", "end"))
     # tad_DT <- tad_DT[grepl("_TAD", tad_DT$region),]
     
-    if(dsIn == "crisp") {
-      reg_file <- file.path("gene_set_library_crisp_processed.txt")
+    if(dsIn == "tfcheckpoint") {
+      reg_file <- file.path(paste0("TFCheckpoint_download_180515.txt"))
       reg_dt <- read.delim(reg_file, sep="\t", header=TRUE, stringsAsFactors = FALSE)
+      reg_dt$tfEntrezID <- reg_dt$entrez_human
       cat(paste0("init nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
-      reg_dt <- reg_dt[reg_dt$targetSymbol %in% names(symb2entrez),]
-      cat(paste0("with Entrez: nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
-      reg_dt$targetEntrezID <- symb2entrez[reg_dt$targetSymbol]
-      reg_dt$targetEntrezID <- as.character(reg_dt$targetEntrezID)
-    } else if(dsIn == "trrust"){
-      reg_file <- file.path("trrust_rawdata.human.tsv")
-      reg_dt <- read.delim(reg_file, sep="\t", header=FALSE, stringsAsFactors = FALSE,
-                           col.names = c("regSymbol", "targetSymbol", "direction", "ID"))
-      cat(paste0("init nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
-      reg_dt <- reg_dt[reg_dt$targetSymbol %in% names(symb2entrez),]
-      cat(paste0("with Entrez: nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
-      reg_dt$targetEntrezID <- symb2entrez[reg_dt$targetSymbol]
-      reg_dt$targetEntrezID <- as.character(reg_dt$targetEntrezID)
-    } else if(dsIn == "tftg") {
-      reg_file <- file.path("tftg_db_all_processed.txt")
-      reg_dt <- read.delim(reg_file, sep="\t", header=TRUE, stringsAsFactors = FALSE, 
-                           col.names=c("regSymbol", "targetEntrezID"))
-      cat(paste0("init nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
-    } else if(dsIn == "motifmap"){
-      reg_file <- file.path("MOTIFMAP_ALLGENES/overlapDT_bp.Rdata")
-      reg_dt <- get(load(reg_file))
-      colnames(reg_dt)[colnames(reg_dt)=="entrezID"] <- "targetEntrezID"
-      cat(paste0("init nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
-    } else if(dsIn == "kegg"){
-      reg_file <- file.path("hsa_kegg_entrez.txt")
-      reg_dt <- read.delim(reg_file, sep="\t", header=FALSE, stringsAsFactors = FALSE,
-                           col.names = c("targetEntrezID", "regSymbol"))
-      reg_dt$targetEntrezID <- gsub("hsa:", "",reg_dt$targetEntrezID )
-      cat(paste0("init nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
-    }else {
-      reg_file <- file.path(paste0(dsIn, ".v7.0.entrez_processed.txt"))
-      reg_dt <- read.delim(reg_file, sep="\t", header=TRUE, stringsAsFactors = FALSE, 
-                           col.names=c("regSymbol", "targetEntrezID"))
-      cat(paste0("init nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
+      
+     }else {
+       stop("error")
     }
     
     g2t_file <- file.path(hicds, "genes2tad", "all_genes_positions.txt")
@@ -114,32 +78,41 @@ if(buildData){
     stopifnot(!duplicated(g2t_dt$entrezID))
     g2t_vect <- setNames(g2t_dt$region, g2t_dt$entrezID)
     
-    reg_dt <- reg_dt[reg_dt$targetEntrezID %in% g2t_dt$entrezID,]
+    reg_dt <- reg_dt[reg_dt$tfEntrezID %in% g2t_dt$entrezID,]
     cat(paste0("with g2t assignment: nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
-    reg_dt$targetRegion <- g2t_vect[paste0(reg_dt$targetEntrezID)]
+    reg_dt$tfRegion <- g2t_vect[paste0(reg_dt$tfEntrezID)]
     stopifnot(!is.na(reg_dt))
       
-    nbrReg_TADs_dt <- aggregate(regSymbol~targetRegion, data=reg_dt, function(x) length(unique(x)))
+    nbrReg_TADs_dt <- aggregate(tfEntrezID~tfRegion, data=reg_dt, function(x) length(unique(x)))
+    
+    cat(paste0(nrow(nbrReg_TADs_dt), "\n"))
+    save(nbrReg_TADs_dt, file="nbrReg_TADs_dt.Rdata", version=2)
     
     ds_dt <- foreach(exprds = all_exprds[[paste0(hicds)]], .combine='rbind') %do% {
       
       pval_comb_file <- file.path("PIPELINE", "OUTPUT_FOLDER", hicds, exprds, "11sameNbr_runEmpPvalCombined", "emp_pval_combined.Rdata") 
+      cat(paste0(pval_comb_file, "\n"))
       pval_comb <- get(load(pval_comb_file))
       adj_pval_comb <- p.adjust(pval_comb, method="BH")
-      pval_dt <- data.frame(targetRegion = names(adj_pval_comb), adjPvalComb=adj_pval_comb, stringsAsFactors = FALSE)
+      pval_dt <- data.frame(tfRegion = names(adj_pval_comb), adjPvalComb=adj_pval_comb, stringsAsFactors = FALSE)
       
+      save(pval_dt, file="pval_dt.Rdata", version=2)
       
-      tf_pval_dt <- merge(nbrReg_TADs_dt, pval_dt, by="targetRegion")
-      stopifnot(!duplicated(tf_pval_dt$targetRegion))
+      tf_pval_dt <- merge(nbrReg_TADs_dt, pval_dt, by="tfRegion")
+      save(tf_pval_dt, file="tf_pval_dt.Rdata", version=2)
       
-      outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_pval_vs_nReg.", plotType))
+      stopifnot(!duplicated(tf_pval_dt$tfRegion))
+      
+      cat(paste0(nrow(tf_pval_dt), "\n"))
+      
+      outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_pval_vs_nTFs.", plotType))
       do.call(plotType, list(outFile, height=myHeight, width=myWidth))
       densplot(
         main=paste0(hicds, " - ", exprds),
         xlab = "adj. comb. pval [-log10]",
-        ylab = "# reg. elements",
+        ylab = "# TFs",
         x = -log10(tf_pval_dt$adjPvalComb),
-        y = tf_pval_dt$regSymbol,
+        y = tf_pval_dt$tfEntrezID,
         cex.lab = plotCex,
         cex.axis = plotCex
       )
@@ -162,6 +135,7 @@ if(buildData){
   all_dt <- get(load(inFile))
 }  
 
+cat(paste0(nrow(all_dt), "\n"))
 
 outFile <- file.path(outFolder, paste0("allDS_pval_vs_nReg.", plotType))
 do.call(plotType, list(outFile, height=myHeight, width=myWidth))
@@ -170,7 +144,7 @@ densplot(
   xlab = "adj. comb. pval [-log10]",
   ylab = "# reg. elements",
   x = -log10(all_dt$adjPvalComb),
-  y = all_dt$regSymbol,
+  y = all_dt$tfEntrezID,
   cex.lab = plotCex,
   cex.axis = plotCex
 )

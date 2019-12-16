@@ -32,7 +32,7 @@ entrez2symb_dt$entrezID <- as.character(entrez2symb_dt$entrezID)
 entrez2symb <- setNames(entrez2symb_dt$symbol, entrez2symb_dt$entrezID)
 
 
-buildTable <- FALSE
+buildTable <- TRUE
 
 plotType <- "png"
 myHeight <- ifelse(plotType=="png", 400, 7)
@@ -152,6 +152,8 @@ if(buildTable) {
       
       
       tad_dt <- data.frame(region=names(tad_adjCombPval), tad_adjCombPval = as.numeric(tad_adjCombPval), stringsAsFactors=FALSE)
+      tad_dt$tad_rank <- rank(tad_dt$tad_adjCombPval, ties=tieMeth)
+      
       
       tad_gene_dt <- merge(exprds_g2t_dt[,c("entrezID", "region")], tad_dt, by="region", all.x=TRUE, all.y=FALSE)
       
@@ -161,7 +163,7 @@ if(buildTable) {
       stopifnot(exprds_g2t_dt$entrezID %in% out_dt$entrezID)
       
       out_dt$gene_rank <- rank(out_dt$adj.P.Val, ties=tieMeth)
-      out_dt$tad_rank <- rank(out_dt$tad_adjCombPval, ties=tieMeth)
+      # out_dt$tad_rank <- rank(out_dt$tad_adjCombPval, ties=tieMeth)
       
       out_dt_cols <- colnames(out_dt)
       out_dt$hicds <- hicds
