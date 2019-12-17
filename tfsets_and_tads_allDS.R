@@ -42,21 +42,23 @@ outFolder <- file.path(paste0("TFSETS_AND_TADS_", toupper(dsIn)))
 
 buildData <- FALSE
 
+setDir <- "/media/electron"
+setDir <- ""
+entrezDT_file <- paste0(setDir, "/mnt/ed4/marie/entrez2synonym/entrez/ENTREZ_POS/gff_entrez_position_GRCh37p13_nodup.txt")
+gff_dt <- read.delim(entrezDT_file, header = TRUE, stringsAsFactors = FALSE)
+gff_dt$entrezID <- as.character(gff_dt$entrezID)
+stopifnot(!duplicated(gff_dt$entrezID))
+stopifnot(!duplicated(gff_dt$symbol))
+entrez2symb <- setNames(gff_dt$symbol, gff_dt$entrezID)
+symb2entrez <- setNames(gff_dt$entrezID, gff_dt$symbol)
+
+
+
 for(hicds in all_hicds){
   
   cat(paste0("> START - ", hicds, "\n"))
     
   if(buildData) {
-    
-    setDir <- "/media/electron"
-    setDir <- ""
-    entrezDT_file <- paste0(setDir, "/mnt/ed4/marie/entrez2synonym/entrez/ENTREZ_POS/gff_entrez_position_GRCh37p13_nodup.txt")
-    gff_dt <- read.delim(entrezDT_file, header = TRUE, stringsAsFactors = FALSE)
-    gff_dt$entrezID <- as.character(gff_dt$entrezID)
-    stopifnot(!duplicated(gff_dt$entrezID))
-    stopifnot(!duplicated(gff_dt$symbol))
-    entrez2symb <- setNames(gff_dt$symbol, gff_dt$entrezID)
-    symb2entrez <- setNames(gff_dt$entrezID, gff_dt$symbol)
     
     
     if(dsIn == "crisp") {
@@ -143,6 +145,28 @@ for(hicds in all_hicds){
     }
     
     stopifnot(names(reg_nGenes) == names(reg_nTADs))
+    
+    viz_dt <- data.frame(
+      reg_name = names(reg_nGenes),
+      reg_nGenes = as.numeric(reg_nGenes),
+      reg_nTADs_obs = as.numeric(reg_nTADs), 
+      stringsAsFactors = FALSE
+    )
+    viz_dt$TAD_genes_ratio <- viz_dt$reg_nTADs_obs/viz_dt$reg_nGenes
+    plot(
+           x = viz_dt$reg_nGenes[viz_dt$reg_nGenes<=100],
+           y = viz_dt$reg_nTADs[viz_dt$reg_nGenes<=100],
+           cex.lab = plotCex,
+           cex.axis = plotCex,
+           pch = 16,
+           col ="red"
+       )
+    text(
+      x = viz_dt$reg_nGenes[viz_dt$reg_nGenes<=100 & viz_dt$TAD_genes_ratio < 0.5],
+      y = viz_dt$reg_nTADs[viz_dt$reg_nGenes<=100  & viz_dt$TAD_genes_ratio < 0.5],
+      labels = viz_dt$reg_name[viz_dt$reg_nGenes<=100  & viz_dt$TAD_genes_ratio < 0.5]
+    ) 
+    
     
     obs_dt <- data.frame(
       reg_nGenes = as.numeric(reg_nGenes),

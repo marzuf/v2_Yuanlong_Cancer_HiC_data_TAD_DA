@@ -3,10 +3,14 @@ startTime <- Sys.time()
 cat(paste0("... start - ", startTime, "\n"))
 
 require(foreach)
+source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 require(doMC)
 registerDoMC(40)
 
-# Rscript create_sameTF.R 
+# Rscript TFs_stats.R
+
+outFolder <- "TFS_STATS"
+dir.create(outFolder, recursive = TRUE)
 
 plotType <- "png"
 myHeight <- 400
@@ -14,28 +18,22 @@ myWidth <- 600
 plotCex <- 1.4
 
 
+dsIn <- "crisp"
+
+
 setDir <- "/media/electron"
 setDir <- ""
 entrezDT_file <- paste0(setDir, "/mnt/ed4/marie/entrez2synonym/entrez/ENTREZ_POS/gff_entrez_position_GRCh37p13_nodup.txt")
 gff_dt <- read.delim(entrezDT_file, header = TRUE, stringsAsFactors = FALSE)
 gff_dt$entrezID <- as.character(gff_dt$entrezID)
-
 stopifnot(!duplicated(gff_dt$entrezID))
 stopifnot(!duplicated(gff_dt$symbol))
 entrez2symb <- setNames(gff_dt$symbol, gff_dt$entrezID)
 symb2entrez <- setNames(gff_dt$entrezID, gff_dt$symbol)
 
 
-# all_db <- c("crisp", "c3.mir", "c3.all", "c3.tft", "trrust", "tftg", "motifmap", "kegg")
-# all_db <- c("crisp", "c3.all", "c3.tft", "trrust", "tftg", "motifmap", "kegg")
-all_db="tftg"
-# all_db="c3.mir"
 
-foo <- foreach(dsIn = all_db) %dopar% {
-  
-  outFolder <- file.path(paste0("CREATE_SAMETF_", toupper(dsIn)))
-  dir.create(outFolder, recursive = TRUE)
-  
+stat_dt <- foreach(dsIn = c("crisp", "c3.mir", "c3.all", "c3.tft", "trrust", "tftg", "motifmap", "kegg"), .combine='rbind') %dopar% {
   
   if(dsIn == "crisp") {
     reg_file <- file.path("gene_set_library_crisp_processed.txt")
@@ -73,8 +71,6 @@ foo <- foreach(dsIn = all_db) %dopar% {
     reg_dt$targetEntrezID <- gsub("hsa:", "",reg_dt$targetEntrezID )
     cat(paste0("init nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
     
-    
-    
   }else {
     reg_file <- file.path(paste0(dsIn, ".v7.0.entrez_processed.txt"))
     reg_dt <- read.delim(reg_file, sep="\t", header=TRUE, stringsAsFactors = FALSE, 
@@ -82,26 +78,27 @@ foo <- foreach(dsIn = all_db) %dopar% {
     cat(paste0("init nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
   }
   
-  # build the sameTF dt
-  sameTF_dt <- do.call(rbind, by(reg_dt, reg_dt$regSymbol, function(x) {
-    all_regGenes <- unique(x$targetEntrezID)
-    if(length(all_regGenes) == 1) return(NULL)
-    all_cmbs <- combn(all_regGenes, m=2)
-    genes1 <- as.character(all_cmbs[1,])
-    genes2 <- as.character(all_cmbs[2,])
-    data.frame(
-      gene1 = pmin(genes1,genes2),
-      gene2 = pmax(genes1,genes2),
-      sameTF = 1,
-      stringsAsFactors = FALSE
+  nTFs <- length(unique(reg_dt$regSymbol))
+  
+  nReg_by_TF <- setNames(as.numeric(table(reg_dt$regSymbol)), names(table(reg_dt$regSymbol)))
+  
+  data.frame(
+    TF_set = dsIn,
+    nTFs = nTFs,
+    meanReg = round(mean(nReg_by_TF), 4),
+    medReg = round(median(nReg_by_TF), 4),
+    stringsAsFactors = FALSE
     )
-  }))
-  rownames(sameTF_dt) <- NULL
-  
-  outFile <- file.path(outFolder, "sameTF_dt.Rdata")
-  save(sameTF_dt, file=outFile, version=2)
-  cat(paste0("... written: ", outFile, "\n"))
-  
-  
 }
 
+outFile <- file.path(outFolder, "stat_dt.Rdata")
+save(stat_dt, file=outFile, version=2)
+cat(paste0("... written: ", outFile, "\n"))
+     
+outFile <- file.path(outFolder, "stat_dt.txt")
+write.table(stat_dt, col.names=TRUE, row.names = FALSE, sep="\t", quote=F, append=F, file = outFile)
+cat(paste0("... written: ", outFile, "\n"))
+
+
+
+  

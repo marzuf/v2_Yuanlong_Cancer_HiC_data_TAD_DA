@@ -147,8 +147,8 @@ if(buildData){
       foo <- dev.off()
       cat(paste0("... written: ", outFile, "\n"))
       
-      # tf_pval_dt$hicds <- hicds
-      # tf_pval_dt$exprds <- exprds
+      tf_pval_dt$hicds <- hicds
+      tf_pval_dt$exprds <- exprds
       tf_pval_dt
     }
     ds_dt

@@ -62,8 +62,8 @@ plot(
   cex=0.7
 )
 points(
-  x = inDT$tad_rank[inDT$tadTopRank <= tadSignifThresh & inDT$gene_rank > geneTopRank],
-  y =  inDT$gene_rank[inDT$tadTopRank <= tadSignifThresh & inDT$gene_rank > geneTopRank],
+  x = inDT$tad_rank[inDT$tad_rank <= tadTopRank & inDT$gene_rank > geneTopRank],
+  y =  inDT$gene_rank[inDT$tad_rank <= tadTopRank & inDT$gene_rank > geneTopRank],
   col="red",
   pch=16,
   cex=0.7
