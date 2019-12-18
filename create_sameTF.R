@@ -6,7 +6,7 @@ require(foreach)
 require(doMC)
 registerDoMC(40)
 
-# Rscript create_sameTF.R 
+# Rscript create_sameTF.R crisp
 
 plotType <- "png"
 myHeight <- 400
@@ -25,10 +25,14 @@ stopifnot(!duplicated(gff_dt$symbol))
 entrez2symb <- setNames(gff_dt$symbol, gff_dt$entrezID)
 symb2entrez <- setNames(gff_dt$entrezID, gff_dt$symbol)
 
+args <- commandArgs(trailingOnly = TRUE)
+all_db <- args
+
+stopifnot(length(all_db) > 0)
 
 # all_db <- c("crisp", "c3.mir", "c3.all", "c3.tft", "trrust", "tftg", "motifmap", "kegg")
 # all_db <- c("crisp", "c3.all", "c3.tft", "trrust", "tftg", "motifmap", "kegg")
-all_db="tftg"
+# all_db="tftg"
 # all_db="c3.mir"
 
 foo <- foreach(dsIn = all_db) %dopar% {

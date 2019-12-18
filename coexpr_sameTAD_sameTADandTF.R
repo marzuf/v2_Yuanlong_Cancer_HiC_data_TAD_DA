@@ -63,8 +63,8 @@ sameTF_dt$gene1 <- as.character(sameTF_dt$gene1)
 sameTF_dt$gene2 <- as.character(sameTF_dt$gene2)
 stopifnot(sameTF_dt$gene1 < sameTF_dt$gene2)
 
-all_hicds <- "LG1_40kb"
-all_exprds <- setNames("TCGAlusc_norm_lusc", "LG1_40kb")
+# all_hicds <- "LG1_40kb"
+# all_exprds <- setNames("TCGAlusc_norm_lusc", "LG1_40kb")
 
 
 if(buildData) {
@@ -72,6 +72,13 @@ if(buildData) {
   all_mean_dt <- foreach(hicds = all_hicds, .combine='rbind') %dopar% {
     
     ds_mean_dt <- foreach(exprds = all_exprds[[paste0(hicds)]], .combine='rbind')  %do% {
+      
+      savefile <- file.path(outFolder, paste0(hicds, "_", exprds, "_", "outdt.Rdata"))
+      
+      if(file.exists(savefile)) {
+        outdt <- get(load(savefile))
+        return(outdt)
+      }
       
       coexprDT <- get(load(file.path("CREATE_COEXPR_SORTNODUP", hicds, exprds, corMet, "coexprDT.Rdata")))
       coexprDT$gene1 <- as.character(coexprDT$gene1)
@@ -204,6 +211,7 @@ outdt
   
 } else {
   outFile <- file.path(outFolder, "all_mean_dt.Rdata")
+  cat("load all_mean_dt.Rdata\n")
   all_mean_dt <- get(load(outFile))
 }
 
@@ -220,7 +228,7 @@ boxplot(all_mean_dt,
         ylab = "mean pairwise coexpr.",
         main = paste0("all DS (n = ", nrow(all_mean_dt), ")")
 )
-mtext(side=3, text = paste0(""))
+mtext(side=3, text = paste0(dsIn))
 foo <- dev.off()
 cat(paste0("... written: ", outFile, "\n"))
 
