@@ -631,6 +631,10 @@ outFile <- file.path(outFolder, paste0(file_prefix, "conserved_regions_with_gene
 write.table(out_df, append=F, quote=F, sep="\t", file = outFile, col.names=TRUE, row.names=FALSE)
 cat(paste0("... written: ", outFile, "\n"))
 
+outFile <- file.path(outFolder, paste0(file_prefix, "conserved_regions_with_genes_signif_tads", signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, ".Rdata"))
+save(out_df, file = outFile, version=2)
+cat(paste0("... written: ", outFile, "\n"))
+
 
 #### heatmap version
 plot_matching_dt <- matching_dt

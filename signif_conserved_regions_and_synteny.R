@@ -1,12 +1,12 @@
 
-# Rscript signif_conserved_regions_and_synteny
-# Rscript signif_conserved_regions_and_synteny norm_vs_tumor
-# Rscript signif_conserved_regions_and_synteny subtypes
-# Rscript signif_conserved_regions_and_synteny wt_vs_mut
+# Rscript signif_conserved_regions_and_synteny.R
+# Rscript signif_conserved_regions_and_synteny.R norm_vs_tumor
+# Rscript signif_conserved_regions_and_synteny.R subtypes
+# Rscript signif_conserved_regions_and_synteny.R wt_vs_mut
 
-# Rscript signif_conserved_regions_and_synteny <cmpType>
+# Rscript signif_conserved_regions_and_synteny.R <cmpType>
 
-cat("> START ", "signif_conserved_regions_and_synteny", "\n")
+cat("> START ", "signif_conserved_regions_and_synteny.R", "\n")
 
 startTime <- Sys.time()
 

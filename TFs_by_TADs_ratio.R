@@ -21,6 +21,16 @@ myHeight <- 400
 myWidth <- 400
 plotCex <- 1.4
 
+nTop <- 10
+
+fontFamily <- "Hershey"
+
+require(ggsci)
+top_col <- pal_d3()(2)[1]
+last_col <- pal_d3()(2)[2]
+# yarrr::transparent("grey", trans.val = .6)
+mid_col <- "#BEBEBE66"
+
 
 dsIn <- "crisp"
 args <- commandArgs(trailingOnly = TRUE)
@@ -53,17 +63,15 @@ stopifnot(!duplicated(gff_dt$symbol))
 entrez2symb <- setNames(gff_dt$symbol, gff_dt$entrezID)
 symb2entrez <- setNames(gff_dt$entrezID, gff_dt$symbol)
 
+final_dt <- get(load("CREATE_FINAL_TABLE/all_result_dt.Rdata"))
+
 
 
 if(buildData){
-  all_dt <- foreach(hicds = all_hicds, .combine='rbind') %dopar%{
+  foo <- foreach(hicds = all_hicds, .combine='rbind') %dopar%{
   
     cat(paste0("> START - ", hicds,"\n"))
   
-    # tadFile <- file.path(hicds, "genes2tad", "all_assigned_regions.txt")
-    # tad_DT <- read.delim(tadFile, header=FALSE, stringsAsFactors = FALSE, col.names = c("chromo", "region", "start", "end"))
-    # tad_DT <- tad_DT[grepl("_TAD", tad_DT$region),]
-    
     if(dsIn == "crisp") {
       reg_file <- file.path("gene_set_library_crisp_processed.txt")
       reg_dt <- read.delim(reg_file, sep="\t", header=TRUE, stringsAsFactors = FALSE)
@@ -121,60 +129,95 @@ if(buildData){
     
     ds_dt <- foreach(exprds = all_exprds[[paste0(hicds)]], .combine='rbind') %do% {
       
-      pval_comb_file <- file.path("PIPELINE", "OUTPUT_FOLDER", hicds, exprds, "11sameNbr_runEmpPvalCombined", "emp_pval_combined.Rdata") 
-      pval_comb <- get(load(pval_comb_file))
-      adj_pval_comb <- p.adjust(pval_comb, method="BH")
-      pval_dt <- data.frame(targetRegion = names(adj_pval_comb), adjPvalComb=adj_pval_comb, stringsAsFactors = FALSE)
+      result_dt <- final_dt[final_dt$hicds == hicds & final_dt$exprds == exprds, ]
+      result_dt$tad_rank <- rank(result_dt$adjPvalComb, ties="min")
+      result_dt$rev_tad_rank <- rank(-result_dt$adjPvalComb, ties="min")
+      
+      topTADs <- result_dt$region[result_dt$tad_rank <= nTop]
+      lastTADs <- result_dt$region[result_dt$rev_tad_rank <= nTop]
       
       
-      tf_pval_dt <- merge(nbrReg_TADs_dt, pval_dt, by="targetRegion")
-      stopifnot(!duplicated(tf_pval_dt$targetRegion))
+      geneList <- get(load(file.path("PIPELINE", "OUTPUT_FOLDER", hicds, exprds, "0_prepGeneData", "pipeline_geneList.Rdata") ))
+      stopifnot(geneList %in% g2t_dt$entrezID)
+      gByTAD <- g2t_dt[g2t_dt$entrezID %in% geneList,]
+      # 1) # of genes in TAD
+      tad_nGenes_dt <- aggregate(entrezID ~ region, data=gByTAD, FUN=function(x) length(x))
+      colnames(tad_nGenes_dt)[colnames(tad_nGenes_dt) == "entrezID"] <- "nGenes"
+      stopifnot(tad_nGenes_dt$nGenes >= 3)
       
-      outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_pval_vs_nReg.", plotType))
+      # 2) # of genes regulated within TAD
+      tad_nRegGenes_dt <- aggregate(targetEntrezID~targetRegion, data=reg_dt, FUN=function(x)length(unique(x)) )
+      colnames(tad_nRegGenes_dt)[colnames(tad_nRegGenes_dt) == "targetRegion"] <- "region"
+      colnames(tad_nRegGenes_dt)[colnames(tad_nRegGenes_dt) == "targetEntrezID"] <- "nRegGenes"
+      
+      # 3) # of TFs within TAD
+      tad_nTFs_dt <- aggregate(regSymbol~targetRegion, data=reg_dt, FUN=function(x)length(unique(x)) )
+      colnames(tad_nTFs_dt)[colnames(tad_nTFs_dt) == "targetRegion"] <- "region"
+      colnames(tad_nTFs_dt)[colnames(tad_nTFs_dt) == "regSymbol"] <- "nTFs"
+      
+      plot_dt <- merge(tad_nTFs_dt, merge(tad_nGenes_dt, tad_nRegGenes_dt,by="region"), by="region")
+      
+      plot_dt$nTFs_byGenes <- plot_dt$nTFs/plot_dt$nGenes
+      plot_dt$nRegGenes_byGenes <- plot_dt$nRegGenes/plot_dt$nGenes
+      
+      stopifnot(!duplicated(plot_dt$region))
+      
+      plot_dt$dotCols <- ifelse(plot_dt$region %in% topTADs, top_col, 
+                                ifelse(plot_dt$region %in% lastTADs, last_col, mid_col))
+      
+      outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_ratio_regGenes_nTFs_allTADs_densplot.", plotType))
       do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+      par(bty="l", family=fontFamily)
       densplot(
+        x = plot_dt$nTFs_byGenes,
+        y = plot_dt$nRegGenes_byGenes,
         main=paste0(hicds, " - ", exprds),
-        xlab = "adj. comb. pval [-log10]",
-        ylab = "# reg. elements",
-        x = -log10(tf_pval_dt$adjPvalComb),
-        y = tf_pval_dt$regSymbol,
+        xlab = "# TFs in TAD/# genes in TAD",
+        ylab = "# reg. genes in TAD/# genes in TAD",
+        pch = 16,
+        cex = 0.7,
+        cex.axis = plotCex,
         cex.lab = plotCex,
-        cex.axis = plotCex
+        cex.main = plotCex
       )
-      mtext(side=3, text = paste0(dsIn, " - # TADs = ", nrow(tf_pval_dt)))
+      mtext(side=3, text = paste(dsIn))
       foo <- dev.off()
       cat(paste0("... written: ", outFile, "\n"))
       
-      tf_pval_dt$hicds <- hicds
-      tf_pval_dt$exprds <- exprds
-      tf_pval_dt
-    }
-    ds_dt
-  } # end-for iterating over hicds
-  outFile <- file.path(outFolder, "all_dt.Rdata")
-  save(all_dt, file = outFile, version=2)
-  cat(paste0("... written: ", outFile, "\n"))
 
+      outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_ratio_regGenes_nTFs_allTADs_colplot.", plotType))
+      do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+      par(bty="l", family=fontFamily)
+      plot(
+        x = plot_dt$nTFs_byGenes,
+        y = plot_dt$nRegGenes_byGenes,
+        main=paste0(hicds, " - ", exprds),
+        xlab = "# TFs in TAD/# genes in TAD",
+        ylab = "# reg. genes in TAD/# genes in TAD",
+        pch = 16,
+        col = plot_dt$dotCols,
+        cex = 0.7,
+        cex.axis = plotCex,
+        cex.lab = plotCex,
+        cex.main = plotCex
+      )
+      legend(
+        "topright",
+        pch=16,
+        col = c(top_col, last_col),
+        legend=c(paste0("top TADs (n=", sum(plot_dt$region %in% topTADs), ")"),
+                 paste0("last TADs (n=", sum(plot_dt$region %in% lastTADs), ")")),
+        bty="n"
+      )
+      mtext(side=3, text = paste(dsIn))
+      foo <- dev.off()
+      cat(paste0("... written: ", outFile, "\n"))
+    }
+  } # end-for iterating over hicds
 } else {
-  inFile <- file.path(outFolder, "all_dt.Rdata")
-  all_dt <- get(load(inFile))
+  stop("-")
 }  
 
-
-outFile <- file.path(outFolder, paste0("allDS_pval_vs_nReg.", plotType))
-do.call(plotType, list(outFile, height=myHeight, width=myWidth))
-densplot(
-  main=paste0("all DS"),
-  xlab = "adj. comb. pval [-log10]",
-  ylab = "# reg. elements",
-  x = -log10(all_dt$adjPvalComb),
-  y = all_dt$regSymbol,
-  cex.lab = plotCex,
-  cex.axis = plotCex
-)
-mtext(side=3, text = paste0(dsIn, " - # TADs = ", nrow(all_dt)))
-foo <- dev.off()
-cat(paste0("... written: ", outFile, "\n"))
 
 
 
