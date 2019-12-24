@@ -212,6 +212,49 @@ if(buildData){
       mtext(side=3, text = paste(dsIn))
       foo <- dev.off()
       cat(paste0("... written: ", outFile, "\n"))
+      
+      
+      
+      # dot color meanCorr
+      
+      meancolPlot_dt <- merge(plot_dt, result_dt[,c("region", "meanCorr")], by="region")
+      stopifnot(nrow(meancolPlot_dt) == nrow(plot_dt))
+      
+      #Create a function to generate a continuous color palette
+      rbPal <- colorRampPalette(c('red','blue'))
+      meancolPlot_dt$dotCols <- rev(rbPal(10))[as.numeric(cut(meancolPlot_dt$meanCorr,breaks = 10))]
+      
+
+      outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_ratio_regGenes_nTFs_allTADs_meanCorrColplot.", plotType))
+      do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+      par(bty="l", family=fontFamily)
+      plot(
+        x = meancolPlot_dt$nTFs_byGenes,
+        y = meancolPlot_dt$nRegGenes_byGenes,
+        col = meancolPlot_dt$dotCols, 
+        main=paste0(hicds, " - ", exprds),
+        xlab = "# TFs in TAD/# genes in TAD",
+        ylab = "# reg. genes in TAD/# genes in TAD",
+        pch = 16,
+        cex = 0.7,
+        cex.axis = plotCex,
+        cex.lab = plotCex,
+        cex.main = plotCex
+      )
+      mtext(side=3, text = paste(dsIn))
+      legend("bottomright",
+             pch=16,
+             legend=c(round(meancolPlot_dt$meanCorr[which.min(meancolPlot_dt$meanCorr)],2),
+                      round(meancolPlot_dt$meanCorr[which.max(meancolPlot_dt$meanCorr)], 2)),
+             col=c(meancolPlot_dt$dotCols[which.min(meancolPlot_dt$meanCorr)],
+                          meancolPlot_dt$dotCols[which.max(meancolPlot_dt$meanCorr)]),
+             bty='n')
+      foo <- dev.off()
+      cat(paste0("... written: ", outFile, "\n"))
+      
+      
+      
+      
     }
   } # end-for iterating over hicds
 } else {

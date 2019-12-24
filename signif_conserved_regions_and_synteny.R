@@ -15,6 +15,11 @@ require(foreach)
 registerDoMC(40)
 require(GenomicRanges)
 
+require(ggsci)
+
+ggsci_pal <- "d3"
+ggsci_subpal <- ""
+
 plotType <- "png"
 myWidth <- myHeight <- ifelse(plotType=="png", 400, 7)
 
@@ -134,6 +139,68 @@ for(synType in c("inferCARs", "proCARs")) {
     refID = names(colSums(plot_matching_dt)),
     nConserv = as.numeric(colSums(plot_matching_dt)),
     stringsAsFactors = FALSE)
+  
+  
+  conserv_and_match_dt <- nConserv_dt
+  conserv_and_match_dt$isInSyn <- conserv_and_match_dt$refID %in% overlapDT_bp$refID
+  t1_dt <- aggregate(isInSyn~nConserv , data = conserv_and_match_dt, FUN = function(x) sum(x)/length(x))
+  t2_dt <- aggregate(isInSyn~nConserv , data = conserv_and_match_dt, FUN = function(x) sum(!x)/length(x))
+  bar_dt <- data.frame(
+    nConserv = c(t1_dt$nConserv, t2_dt$nConserv),
+    fractRegion = c(t1_dt$isInSyn, t2_dt$isInSyn),
+    fractType = c(rep("withSynt", nrow(t1_dt)), rep("noSynt", nrow(t2_dt))),
+    stringsAsFacors=FALSE)
+  
+  xlabs <- as.character(sort((unique(bar_dt$nConserv))))
+  bar_dt$nConserv <- factor(bar_dt$nConserv, levels=xlabs)
+  
+   ggplot(bar_dt, aes(x=nConserv, y=fractRegion, fill=fractType, color=fractType)) + 
+    geom_bar(position="stack", stat="identity") +
+    coord_cartesian(expand = FALSE) +
+    ggtitle("Synteny of conserved regions", subtitle = "(all datasets)")+
+    labs(fill="", color="")+
+    eval(parse(text=paste0("scale_color_", ggsci_pal, "(", ggsci_subpal, ")")))+
+    eval(parse(text=paste0("scale_fill_", ggsci_pal, "(", ggsci_subpal, ")")))+
+    scale_y_continuous(name=paste0("Fraction of TADs"),
+                       breaks = scales::pretty_breaks(n = 10))+
+    scale_x_discrete(name="# conservation", labels = xlabs)+
+    theme( # Increase size of axis lines
+      plot.title = element_text(hjust = 0.5, face = "bold", size=16, family=fontFamily),
+      plot.subtitle = element_text(hjust = 0.5, face = "italic", size = 14, family=fontFamily),
+      panel.grid = element_blank(),
+      panel.grid.major.y = element_line(colour = "grey"),
+      panel.grid.minor.y = element_line(colour = "grey"),
+      axis.line.x = element_line(size = .2, color = "black"),
+      axis.line.y = element_line(size = .3, color = "black"),
+      axis.text.y = element_text(color="black", hjust=1,vjust = 0.5, size=12, family=fontFamily),
+      axis.text.x = element_text(color="black", hjust=0.5,vjust = 0.5, size=12, family=fontFamily),
+      axis.title.y = element_text(color="black", size=14, family=fontFamily),
+      axis.title.x = element_text(color="black", size=14, family=fontFamily),
+      panel.border = element_blank(),
+      panel.background = element_rect(fill = "transparent"),
+      legend.background =  element_rect(),
+      legend.key = element_blank(),
+      legend.title = element_text(face="bold", family=fontFamily)
+    )
+  
+  
+  
+  outFile <- file.path(outFolder, paste0("all_ds_fcc_fract_scores_withSymb_barplot.", plotType))
+  ggsave(plot = fract_plot_with_symb, filename = outFile, height=myHeightGG, width = myWidthGG*2)
+  cat(paste0("... written: ", outFile, "\n"))
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   
   tmp1 <- merge(nConserv_dt, overlapDT_bp, by="refID", all=TRUE)
   nConserv_nSyn_dt <- merge(tmp1, nBlocks_dt, by="queryID", all.x=TRUE, all.y=FALSE)
