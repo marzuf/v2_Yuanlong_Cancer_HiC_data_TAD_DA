@@ -14,13 +14,16 @@ require(doMC)
 require(foreach)
 registerDoMC(40)
 require(GenomicRanges)
-
+require(ggplot2)
 require(ggsci)
+
 
 ggsci_pal <- "d3"
 ggsci_subpal <- ""
 
 plotType <- "png"
+source("../FIGURES_V2_YUANLONG/settings.R")
+
 myWidth <- myHeight <- ifelse(plotType=="png", 400, 7)
 
 args <- commandArgs(trailingOnly = TRUE)
@@ -154,14 +157,14 @@ for(synType in c("inferCARs", "proCARs")) {
   xlabs <- as.character(sort((unique(bar_dt$nConserv))))
   bar_dt$nConserv <- factor(bar_dt$nConserv, levels=xlabs)
   
-   ggplot(bar_dt, aes(x=nConserv, y=fractRegion, fill=fractType, color=fractType)) + 
+  fract_conserv_synt <- ggplot(bar_dt, aes(x=nConserv, y=fractRegion, fill=fractType, color=fractType)) + 
     geom_bar(position="stack", stat="identity") +
     coord_cartesian(expand = FALSE) +
-    ggtitle("Synteny of conserved regions", subtitle = "(all datasets)")+
+    ggtitle("Synteny of conserved regions", subtitle = paste0("(", synType, ")"))+
     labs(fill="", color="")+
     eval(parse(text=paste0("scale_color_", ggsci_pal, "(", ggsci_subpal, ")")))+
     eval(parse(text=paste0("scale_fill_", ggsci_pal, "(", ggsci_subpal, ")")))+
-    scale_y_continuous(name=paste0("Fraction of TADs"),
+    scale_y_continuous(name=paste0("Fraction of regions from synt. blocks"),
                        breaks = scales::pretty_breaks(n = 10))+
     scale_x_discrete(name="# conservation", labels = xlabs)+
     theme( # Increase size of axis lines
@@ -185,20 +188,9 @@ for(synType in c("inferCARs", "proCARs")) {
   
   
   
-  outFile <- file.path(outFolder, paste0("all_ds_fcc_fract_scores_withSymb_barplot.", plotType))
-  ggsave(plot = fract_plot_with_symb, filename = outFile, height=myHeightGG, width = myWidthGG*2)
+  outFile <- file.path(outFolder, paste0(filePrefix, synType, "_nbrConserv_and_fractSynteny_barplot.", plotType))
+  ggsave(plot = fract_conserv_synt, filename = outFile, height=myHeightGG, width = myWidthGG*2)
   cat(paste0("... written: ", outFile, "\n"))
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
   
   
   
@@ -218,6 +210,9 @@ for(synType in c("inferCARs", "proCARs")) {
        ylab = "# dataset conserv.",
        main = paste0("signif. conserv. and synteny - ", cmpTit),
        pch=16,
+       cex.lab=plotCex,
+       cex.axis=plotCex,
+       cex.main=plotCex,
        cex=0.7)
   mtext(side=3, text = paste0(synType))
   foo <- dev.off()
@@ -229,6 +224,9 @@ for(synType in c("inferCARs", "proCARs")) {
         xlab = "# syn. spec.",
         ylab = "# dataset conserv.",
         main = paste0("signif. conserv. and synteny - ", cmpTit),
+        cex.lab=plotCex,
+        cex.axis=plotCex,
+        cex.main=plotCex,
        pch=16,
        cex=0.7)
   mtext(side=3, text = paste0(synType))
@@ -240,7 +238,10 @@ for(synType in c("inferCARs", "proCARs")) {
   boxplot(nConserv ~ nSyn, data=nConserv_nSyn_dt,
           xlab = "# syn. spec.",
           ylab = "# dataset conserv.",
-          main = paste0("signif. conserv. and synteny - ", cmpTit)
+          main = paste0("signif. conserv. and synteny - ", cmpTit),
+          cex.lab=plotCex,
+          cex.axis=plotCex,
+          cex.main=plotCex
           )
   mtext(side=3, text = paste0(synType))
   foo <- dev.off()
@@ -252,7 +253,10 @@ for(synType in c("inferCARs", "proCARs")) {
   boxplot(nConserv ~ nUniqueSyn, data=nConserv_nSyn_dt,
           xlab = "# syn. spec. (unique blocks)",
           ylab = "# dataset conserv.",
-          main = paste0("signif. conserv. and synteny - ", cmpTit)
+          main = paste0("signif. conserv. and synteny - ", cmpTit),
+          cex.lab=plotCex,
+          cex.axis=plotCex,
+          cex.main=plotCex
   )
   mtext(side=3, text = paste0(synType))
   foo <- dev.off()

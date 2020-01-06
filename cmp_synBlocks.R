@@ -1,6 +1,6 @@
 # Rscript cmp_synBlocks.R
 
-infercars_dt <- read.delim("Orthology.Blocks_processed_hg19.txt", stringsAsFactors = FALSE, header=TRUE)
+infercars_dt <- read.delim("inferCARs_data/Orthology.Blocks_processed_hg19.txt", stringsAsFactors = FALSE, header=TRUE)
 procars_dt <- read.delim("procars_orthology_blocks_processsed.txt", stringsAsFactors = FALSE, header=TRUE)
 
 infercars_dt <- infercars_dt[infercars_dt$genome == "hg19",]

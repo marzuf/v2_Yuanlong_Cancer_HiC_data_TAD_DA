@@ -129,6 +129,8 @@ if(buildData){
     
     ds_dt <- foreach(exprds = all_exprds[[paste0(hicds)]], .combine='rbind') %do% {
       
+      plotTit <- paste0(hicds, "\n", exprds)
+      
       result_dt <- final_dt[final_dt$hicds == hicds & final_dt$exprds == exprds, ]
       result_dt$tad_rank <- rank(result_dt$adjPvalComb, ties="min")
       result_dt$rev_tad_rank <- rank(-result_dt$adjPvalComb, ties="min")
@@ -165,13 +167,19 @@ if(buildData){
       plot_dt$dotCols <- ifelse(plot_dt$region %in% topTADs, top_col, 
                                 ifelse(plot_dt$region %in% lastTADs, last_col, mid_col))
       
+      # save(plot_dt, file="plot_dt.Rdata",version=2);stop("ok");
+      
+      my_x <- plot_dt$nTFs_byGenes
+      my_y <- plot_dt$nRegGenes_byGenes
+      my_tads <- plot_dt$region
+      
       outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_ratio_regGenes_nTFs_allTADs_densplot.", plotType))
       do.call(plotType, list(outFile, height=myHeight, width=myWidth))
       par(bty="l", family=fontFamily)
       densplot(
-        x = plot_dt$nTFs_byGenes,
-        y = plot_dt$nRegGenes_byGenes,
-        main=paste0(hicds, " - ", exprds),
+        x = my_x,
+        y = my_y,
+        main=paste0(plotTit),
         xlab = "# TFs in TAD/# genes in TAD",
         ylab = "# reg. genes in TAD/# genes in TAD",
         pch = 16,
@@ -180,7 +188,9 @@ if(buildData){
         cex.lab = plotCex,
         cex.main = plotCex
       )
-      mtext(side=3, text = paste(dsIn))
+      abline(lm(my_y~my_x), lty=2, col="grey")
+      addCorr(x = my_x, y = my_y, bty="n")
+      mtext(side=3, text = paste0(dsIn,  " - n =", nrow(plot_dt)))
       foo <- dev.off()
       cat(paste0("... written: ", outFile, "\n"))
       
@@ -189,9 +199,9 @@ if(buildData){
       do.call(plotType, list(outFile, height=myHeight, width=myWidth))
       par(bty="l", family=fontFamily)
       plot(
-        x = plot_dt$nTFs_byGenes,
-        y = plot_dt$nRegGenes_byGenes,
-        main=paste0(hicds, " - ", exprds),
+        x = my_x,
+        y = my_y,
+        main=paste0(plotTit),
         xlab = "# TFs in TAD/# genes in TAD",
         ylab = "# reg. genes in TAD/# genes in TAD",
         pch = 16,
@@ -202,14 +212,16 @@ if(buildData){
         cex.main = plotCex
       )
       legend(
-        "topright",
+        "bottomright",
         pch=16,
         col = c(top_col, last_col),
         legend=c(paste0("top TADs (n=", sum(plot_dt$region %in% topTADs), ")"),
                  paste0("last TADs (n=", sum(plot_dt$region %in% lastTADs), ")")),
         bty="n"
       )
-      mtext(side=3, text = paste(dsIn))
+      abline(lm(my_y~my_x), lty=2, col="grey")
+      addCorr(x = my_x, y = my_y, bty="n")
+      mtext(side=3, text = paste0(dsIn,  " - n =", nrow(plot_dt)))
       foo <- dev.off()
       cat(paste0("... written: ", outFile, "\n"))
       
@@ -229,10 +241,10 @@ if(buildData){
       do.call(plotType, list(outFile, height=myHeight, width=myWidth))
       par(bty="l", family=fontFamily)
       plot(
-        x = meancolPlot_dt$nTFs_byGenes,
-        y = meancolPlot_dt$nRegGenes_byGenes,
+        x = my_x,
+        y = my_y,
         col = meancolPlot_dt$dotCols, 
-        main=paste0(hicds, " - ", exprds),
+        main=paste0(plotTit),
         xlab = "# TFs in TAD/# genes in TAD",
         ylab = "# reg. genes in TAD/# genes in TAD",
         pch = 16,
@@ -241,14 +253,68 @@ if(buildData){
         cex.lab = plotCex,
         cex.main = plotCex
       )
-      mtext(side=3, text = paste(dsIn))
+      mtext(side=3, text = paste0(dsIn,  " - n =", nrow(meancolPlot_dt)))
       legend("bottomright",
-             pch=16,
-             legend=c(round(meancolPlot_dt$meanCorr[which.min(meancolPlot_dt$meanCorr)],2),
+             pch=c(-1,16,16),
+             legend=c("meanCorr", round(meancolPlot_dt$meanCorr[which.min(meancolPlot_dt$meanCorr)],2),
                       round(meancolPlot_dt$meanCorr[which.max(meancolPlot_dt$meanCorr)], 2)),
-             col=c(meancolPlot_dt$dotCols[which.min(meancolPlot_dt$meanCorr)],
+             col=c("black", meancolPlot_dt$dotCols[which.min(meancolPlot_dt$meanCorr)],
                           meancolPlot_dt$dotCols[which.max(meancolPlot_dt$meanCorr)]),
              bty='n')
+      abline(lm(my_y~my_x), lty=2, col="grey")
+      addCorr(x = my_x, y = my_y, bty="n")
+      foo <- dev.off()
+      cat(paste0("... written: ", outFile, "\n"))
+      
+      x_qt_val <- 0.8
+      y_qt_val <- 0.5
+      my_x_qt <- quantile(my_x, probs=x_qt_val)
+      my_y_qt <- quantile(my_y, probs=y_qt_val)
+      
+      # my_x_qt <- median(my_x)
+      # my_y_qt <- median(my_y)
+      
+      if(hicds == "Barutcu_MCF-10A_40kb") save(plot_dt, file="my_plot_dt.Rdata", version=2)
+      
+      
+      outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_ratio_regGenes_nTFs_allTADs_labPlot.", plotType))
+      do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+      # plotType="svg"
+      # outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_ratio_regGenes_nTFs_allTADs_labPlot.", plotType))
+      # do.call(plotType, list(outFile, height=7, width=7))
+      par(bty="l", family=fontFamily)
+      plot(
+        x = my_x,
+        y = my_y,
+        col = "grey", 
+        main=paste0(plotTit),
+        xlab = "# TFs in TAD/# genes in TAD",
+        ylab = "# reg. genes in TAD/# genes in TAD",
+        pch = 16,
+        cex = 0.2,
+        cex.axis = plotCex,
+        cex.lab = plotCex,
+        cex.main = plotCex
+      )
+      if(any(my_x <= my_x_qt & my_y >= my_y_qt))
+        text(
+          x = my_x[my_x <= my_x_qt & my_y >= my_y_qt],
+          y = my_y[my_x <= my_x_qt & my_y >= my_y_qt],
+          labels = my_tads[my_x <= my_x_qt & my_y >= my_y_qt],
+          cex = 0.8
+        )
+      legend("bottomright", legend=c(paste0("x<=", round(my_x_qt, 2), " (", x_qt_val, "-qt)"), 
+                                     paste0("y>=", round(my_y_qt, 2), " (", y_qt_val, "-qt)")), bty="n") 
+      mtext(side=3, text = paste0(dsIn,  " - n =", nrow(meancolPlot_dt)))
+      # legend("bottomright",
+      #        pch=c(-1,16,16),
+      #        legend=c("meanCorr", round(meancolPlot_dt$meanCorr[which.min(meancolPlot_dt$meanCorr)],2),
+      #                 round(meancolPlot_dt$meanCorr[which.max(meancolPlot_dt$meanCorr)], 2)),
+      #        col=c("black", meancolPlot_dt$dotCols[which.min(meancolPlot_dt$meanCorr)],
+      #              meancolPlot_dt$dotCols[which.max(meancolPlot_dt$meanCorr)]),
+      #        bty='n')
+      # abline(lm(my_y~my_x), lty=2, col="grey")
+      # addCorr(x = my_x, y = my_y, bty="n")
       foo <- dev.off()
       cat(paste0("... written: ", outFile, "\n"))
       

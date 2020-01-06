@@ -1,5 +1,7 @@
 
 # Rscript tadSignif_cnv.R LG1_40kb TCGAluad_norm_luad
+# Rscript tadSignif_cnv.R ENCSR489OCU_NCI-H460_40kb TCGAlusc_norm_lusc
+# Rscript tadSignif_cnv.R  ENCSR489OCU_NCI-H460_40kb TCGAluad_norm_luad
 # Rscript tadSignif_cnv.R <hicds> <exprds>
 
 source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
@@ -120,6 +122,7 @@ mean_dt_samp12_logFC$diff_cnv_samp12 <- mean_dt_samp12_logFC$mean_samp1-mean_dt_
 
 subTit <- paste0("#samp1=", nSamp1, "/", length(samp1), "; #samp2=", nSamp2, "/", length(samp2))
 plotTit <- paste0(hicds, " - ", exprds)
+plotTit <- paste0(hicds, "\n", exprds)
 
 outFile <- file.path(outFolder, paste0(hicds, "_", exprds,"_diffCNV_geneLogFC.", plotType))
 do.call(plotType, list(outFile, height=myHeight, width=myWidth))
@@ -133,9 +136,11 @@ densplot(
   cex.axis=plotCex,
   xlab = "Mean gene diff. CNV samp1-samp2",
   ylab = "Gene logFC",
+  sub=subTit,
   main = plotTit
 )
-mtext(side = 3, text = subTit)
+# mtext(side = 3, text = subTit)
+mtext(side = 3, text = paste0("n=", nrow(mean_dt_samp12_logFC)))
 foo <- dev.off()
 cat(paste0("... written: ", outFile, "\n"))
 
@@ -151,9 +156,11 @@ densplot(
   cex.axis=plotCex,
   xlab = "Mean gene diff. CNV samp1-samp2",
   ylab = "Gene adj.P.Val",
+  sub=subTit,
   main = plotTit
 )
-mtext(side = 3, text = subTit)
+# mtext(side = 3, text = subTit)
+mtext(side = 3, text = paste0("n=", nrow(mean_dt_samp12_logFC)))
 foo <- dev.off()
 cat(paste0("... written: ", outFile, "\n"))
 
@@ -186,10 +193,11 @@ densplot(
   cex.axis=plotCex,
   xlab = "Mean TAD diff. CNV samp1-samp2",
   ylab = "TAD meanLogFC",
+  sub=subTit,
   main = plotTit
 )
-mtext(side = 3, text = subTit)
-
+# mtext(side = 3, text = subTit)
+mtext(side = 3, text = paste0("n=", nrow(mean_dt_samp12_logFC)))
 foo <- dev.off()
 cat(paste0("... written: ", outFile, "\n"))
 
@@ -206,9 +214,11 @@ densplot(
   cex.axis=plotCex,
   xlab = "Mean TAD diff. CNV samp1-samp2",
   ylab = "TAD adj. comb. p-val.",
+  sub=subTit,
   main = plotTit
 )
-mtext(side = 3, text = subTit)
+# mtext(side = 3, text = subTit)
+mtext(side = 3, text = paste0("n=", nrow(mean_dt_samp12_logFC)))
 foo <- dev.off()
 cat(paste0("... written: ", outFile, "\n"))
 
