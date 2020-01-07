@@ -49,6 +49,9 @@ proCARsBlocks <- read.delim("procars_orthology_blocks_processsed.txt", header=TR
 proCARsBlocks$genome[proCARsBlocks$genome == "homo_sapiens"] <- "hg19"
 
 
+settingSuffix <- "tadsadjPvalComb0.01_minBpRatio0.8_minInterGenes3"
+
+# inFile <- file.path("CREATE_COORD_CONSERVED_SIGNIF_REGIONS", cmpType, paste0(filePrefix, "conserved_signif_tads_coord.Rdata"))
 inFile <- file.path("CREATE_COORD_CONSERVED_SIGNIF_REGIONS", cmpType, paste0(filePrefix, "conserved_signif_tads_coord.Rdata"))
 coord_conserved_signif_tads <- get(load(inFile))
 
@@ -69,12 +72,12 @@ stopifnot(!is.na(conserved_regions_dt$end))
 conserved_regions_dt$region <- rownames(conserved_regions_dt)
 stopifnot(conserved_regions_dt$end > conserved_regions_dt$start)
 
-inFile <- file.path("TAD_MATCHING_SIGNIF_ACROSS_HICDS_ALLMATCH_v2", cmpType, paste0(filePrefix, "conserved_signif_tadsadjPvalComb0.01_minBpRatio0.8_minInterGenes3.Rdata"))
+inFile <- file.path("TAD_MATCHING_SIGNIF_ACROSS_HICDS_ALLMATCH_v2", cmpType, paste0(filePrefix, "conserved_signif_", settingSuffix, ".Rdata"))
 cat(inFile,"\n")
 stopifnot(file.exists(inFile))
 conserved_signif_tads <- get(load(inFile))
 
-inFile <- file.path("TAD_MATCHING_SIGNIF_ACROSS_HICDS_ALLMATCH_v2", cmpType, paste0("plot_matching_dt.Rdata"))
+inFile <- file.path("TAD_MATCHING_SIGNIF_ACROSS_HICDS_ALLMATCH_v2", cmpType, paste0("plot_matching_dt_", settingSuffix, ".Rdata"))
 cat(inFile,"\n")
 stopifnot(file.exists(inFile))
 conserved_by_ds_dt <- get(load(inFile))

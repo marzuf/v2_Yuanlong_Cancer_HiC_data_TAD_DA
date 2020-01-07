@@ -66,7 +66,6 @@ symb2entrez <- setNames(gff_dt$entrezID, gff_dt$symbol)
 final_dt <- get(load("CREATE_FINAL_TABLE/all_result_dt.Rdata"))
 
 
-
 if(buildData){
   foo <- foreach(hicds = all_hicds, .combine='rbind') %dopar%{
   
@@ -142,6 +141,7 @@ if(buildData){
       geneList <- get(load(file.path("PIPELINE", "OUTPUT_FOLDER", hicds, exprds, "0_prepGeneData", "pipeline_geneList.Rdata") ))
       stopifnot(geneList %in% g2t_dt$entrezID)
       gByTAD <- g2t_dt[g2t_dt$entrezID %in% geneList,]
+      
       # 1) # of genes in TAD
       tad_nGenes_dt <- aggregate(entrezID ~ region, data=gByTAD, FUN=function(x) length(x))
       colnames(tad_nGenes_dt)[colnames(tad_nGenes_dt) == "entrezID"] <- "nGenes"

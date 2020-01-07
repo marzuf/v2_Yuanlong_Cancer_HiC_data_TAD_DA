@@ -1,10 +1,10 @@
 
-# Rscript create_coord_conserved_signif_regions
-# Rscript create_coord_conserved_signif_regions norm_vs_tumor
-# Rscript create_coord_conserved_signif_regions subtypes
-# Rscript create_coord_conserved_signif_regions wt_vs_mut
+# Rscript create_coord_conserved_signif_regions.R
+# Rscript create_coord_conserved_signif_regions.R norm_vs_tumor
+# Rscript create_coord_conserved_signif_regions.R subtypes
+# Rscript create_coord_conserved_signif_regions.R wt_vs_mut
 
-# Rscript create_coord_conserved_signif_regions <cmpType>
+# Rscript create_coord_conserved_signif_regions.R <cmpType>
 
 require(doMC)
 require(foreach)
@@ -26,8 +26,9 @@ if(length(args) == 0) {
 outFolder <- file.path("CREATE_COORD_CONSERVED_SIGNIF_REGIONS", cmpType)
 dir.create(outFolder, recursive = TRUE)
 
+settingSuffix <- "tadsadjPvalComb0.01_minBpRatio0.8_minInterGenes3"
 
-inFile <- file.path("TAD_MATCHING_SIGNIF_ACROSS_HICDS_ALLMATCH_v2", cmpType, paste0(filePrefix, "conserved_signif_tadsadjPvalComb0.01_minBpRatio0.8_minInterGenes3.Rdata"))
+inFile <- file.path("TAD_MATCHING_SIGNIF_ACROSS_HICDS_ALLMATCH_v2", cmpType, paste0(filePrefix, "conserved_signif_", settingSuffix, ".Rdata"))
 stopifnot(file.exists(inFile))
 conserved_signif_tads <- get(load(inFile))
 
@@ -53,7 +54,8 @@ conserved_signif_tads_coord <- foreach(cr = names(conserved_signif_tads)) %dopar
 
 names(conserved_signif_tads_coord) <- names(conserved_signif_tads)
 
-outFile <- file.path(outFolder, paste0(filePrefix, "conserved_signif_tads_coord.Rdata"))
+# outFile <- file.path(outFolder, paste0(filePrefix, "conserved_signif_tads_coord.Rdata"))
+outFile <- file.path(outFolder, paste0(filePrefix, "conserved_signif_tads_coord_", settingSuffix, ".Rdata"))
 save(conserved_signif_tads_coord, file = outFile, version=2)
 cat(paste0("... written: ", outFile, "\n"))
 

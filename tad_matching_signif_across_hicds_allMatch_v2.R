@@ -679,7 +679,8 @@ my_heatmap.2(plot_matching_dt[,paste0(region_levels)], col=c("white", "black"),
 foo <- dev.off()
 cat(paste0("... written: ", outFile, "\n"))
 
-save(plot_matching_dt, file = file.path(outFolder, "plot_matching_dt.Rdata"), version=2)
+save(plot_matching_dt, file = file.path(outFolder, paste0("plot_matching_dt_signif_tads", signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, ".Rdata")), 
+     version=2)
 
 par(mar = initmar)
 
