@@ -31,6 +31,12 @@ last_col <- pal_d3()(2)[2]
 # yarrr::transparent("grey", trans.val = .6)
 mid_col <- "#BEBEBE66"
 
+tad_signif_thresh <- 0.01
+signif_col <- "red"
+
+x_qt_val <- 0.2
+y_qt_val <- 0.95
+
 
 dsIn <- "crisp"
 args <- commandArgs(trailingOnly = TRUE)
@@ -126,6 +132,7 @@ if(buildData){
       
     nbrReg_TADs_dt <- aggregate(regSymbol~targetRegion, data=reg_dt, function(x) length(unique(x)))
     
+    exprds = all_exprds[[paste0(hicds)]][1]
     ds_dt <- foreach(exprds = all_exprds[[paste0(hicds)]], .combine='rbind') %do% {
       
       plotTit <- paste0(hicds, "\n", exprds)
@@ -138,9 +145,14 @@ if(buildData){
       lastTADs <- result_dt$region[result_dt$rev_tad_rank <= nTop]
       
       
+      signifTADs <- result_dt$region[result_dt$adjPvalComb <= tad_signif_thresh]
+      
+      
       geneList <- get(load(file.path("PIPELINE", "OUTPUT_FOLDER", hicds, exprds, "0_prepGeneData", "pipeline_geneList.Rdata") ))
       stopifnot(geneList %in% g2t_dt$entrezID)
       gByTAD <- g2t_dt[g2t_dt$entrezID %in% geneList,]
+      
+      reg_dt <- reg_dt[reg_dt$targetEntrezID %in% geneList,]  # update 08.01.20 -> NEED ALSO TO SUBSET THE REGULATED FEATURES !
       
       # 1) # of genes in TAD
       tad_nGenes_dt <- aggregate(entrezID ~ region, data=gByTAD, FUN=function(x) length(x))
@@ -158,6 +170,8 @@ if(buildData){
       colnames(tad_nTFs_dt)[colnames(tad_nTFs_dt) == "regSymbol"] <- "nTFs"
       
       plot_dt <- merge(tad_nTFs_dt, merge(tad_nGenes_dt, tad_nRegGenes_dt,by="region"), by="region")
+      
+      stopifnot(plot_dt$nRegGenes <= plot_dt$nGenes)
       
       plot_dt$nTFs_byGenes <- plot_dt$nTFs/plot_dt$nGenes
       plot_dt$nRegGenes_byGenes <- plot_dt$nRegGenes/plot_dt$nGenes
@@ -211,6 +225,33 @@ if(buildData){
         cex.lab = plotCex,
         cex.main = plotCex
       )
+      
+      
+      points(
+        x = plot_dt$nTFs_byGenes[plot_dt$dotCols == top_col],
+        y = plot_dt$nRegGenes_byGenes[plot_dt$dotCols == top_col],
+        col = top_col,
+        pch = 16,
+        cex = 1.2
+      )
+      
+      
+      points(
+        x = plot_dt$nTFs_byGenes[plot_dt$dotCols == last_col],
+        y = plot_dt$nRegGenes_byGenes[plot_dt$dotCols == last_col],
+        col = last_col,
+        pch = 16,
+        cex = 1.2
+      )
+      
+      
+      
+      
+      
+      
+      
+      
+      
       legend(
         "bottomright",
         pch=16,
@@ -224,6 +265,50 @@ if(buildData){
       mtext(side=3, text = paste0(dsIn,  " - n =", nrow(plot_dt)))
       foo <- dev.off()
       cat(paste0("... written: ", outFile, "\n"))
+      
+      
+      # signif in red
+      plot_dt$dotSignifCols <- ifelse(plot_dt$region %in% signifTADs, signif_col, "grey")
+                                
+      
+      outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_ratio_regGenes_nTFs_allTADs_signifcolplot.", plotType))
+      do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+      par(bty="l", family=fontFamily)
+      plot(
+        x = my_x,
+        y = my_y,
+        main=paste0(plotTit),
+        xlab = "# TFs in TAD/# genes in TAD",
+        ylab = "# reg. genes in TAD/# genes in TAD",
+        pch = 16,
+        col = plot_dt$dotSignifCols,
+        cex = 0.7,
+        cex.axis = plotCex,
+        cex.lab = plotCex,
+        cex.main = plotCex
+      )
+      
+      points(
+        x = plot_dt$nTFs_byGenes[plot_dt$dotSignifCols == signif_col],
+        y = plot_dt$nRegGenes_byGenes[plot_dt$dotSignifCols == signif_col],
+        col = signif_col,
+        pch = 16,
+        cex = 1.2
+      )
+      
+      legend(
+        "bottomright",
+        pch=16,
+        col = c(signif_col),
+        legend=c(paste0("signif. TADs (p-val <= ", tad_signif_thresh, ")")),
+        bty="n"
+      )
+      abline(lm(my_y~my_x), lty=2, col="grey")
+      addCorr(x = my_x, y = my_y, bty="n")
+      mtext(side=3, text = paste0(dsIn,  " - n =", nrow(plot_dt)))
+      foo <- dev.off()
+      cat(paste0("... written: ", outFile, "\n"))
+      
       
       
       
@@ -266,8 +351,6 @@ if(buildData){
       foo <- dev.off()
       cat(paste0("... written: ", outFile, "\n"))
       
-      x_qt_val <- 0.8
-      y_qt_val <- 0.5
       my_x_qt <- quantile(my_x, probs=x_qt_val)
       my_y_qt <- quantile(my_y, probs=y_qt_val)
       
