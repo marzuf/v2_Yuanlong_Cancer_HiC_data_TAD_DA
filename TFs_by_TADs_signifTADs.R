@@ -15,12 +15,14 @@ registerDoMC(40)
 # Rscript TFs_by_TADs_signifTADs.R tftg
 # Rscript TFs_by_TADs_signifTADs.R motifmap
 # Rscript TFs_by_TADs_signifTADs.R kegg
+# 
+
 
 plotCex <- 1.4
 
-plotType <- "png"
-myHeight <- 400
-myWidth <- 400
+plotType <- "svg"
+myHeight <- ifelse(plotType == "png", 400, 7)
+myWidth <- ifelse(plotType == "png", 600, 9)
 plotCex <- 1.4
 
 nTop <- 10
@@ -75,7 +77,7 @@ final_dt <- get(load("CREATE_FINAL_TABLE/all_result_dt.Rdata"))
 
 
 if(buildData){
-  foo <- foreach(hicds = all_hicds, .combine='rbind') %dopar%{
+  nRegFeat_dt <- foreach(hicds = all_hicds, .combine='rbind') %dopar%{
   
     cat(paste0("> START - ", hicds,"\n"))
   
@@ -135,7 +137,7 @@ if(buildData){
     nbrReg_TADs_dt <- aggregate(regSymbol~targetRegion, data=reg_dt, function(x) length(unique(x)))
     
     exprds = all_exprds[[paste0(hicds)]][1]
-    ds_dt <- foreach(exprds = all_exprds[[paste0(hicds)]], .combine='rbind') %do% {
+    exprds_dt <- foreach(exprds = all_exprds[[paste0(hicds)]], .combine='rbind') %do% {
       
       plotTit <- paste0(hicds, "\n", exprds)
       
@@ -188,6 +190,7 @@ if(buildData){
         signif_plot_dt$nTFs ~ signif_plot_dt$signif_lab,
         xlab = "",
         ylab = "nTFs",
+        main=paste0(hicds, " - ", exprds),
         cex.main = plotCex,
         cex.lab = plotCex,
         cex.axis = plotCex
@@ -203,10 +206,13 @@ if(buildData){
         signif_plot_dt$nRegGenes ~ signif_plot_dt$signif_lab,
         xlab = "",
         ylab = "nRegGenes",
+        main=paste0(hicds, " - ", exprds),
         cex.main = plotCex,
         cex.lab = plotCex,
         cex.axis = plotCex
       )
+      foo <- dev.off()
+      cat(paste0("... written: ", outFile, "\n"))
       
       
       outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_nRegTFsByGenes_signif_notSignif_boxplot.", plotType))
@@ -215,6 +221,7 @@ if(buildData){
         signif_plot_dt$nTFs/signif_plot_dt$nGenes ~ signif_plot_dt$signif_lab,
         xlab = "",
         ylab = "nTFs/nGenes",
+        main=paste0(hicds, " - ", exprds),
         cex.main = plotCex,
         cex.lab = plotCex,
         cex.axis = plotCex
@@ -230,6 +237,7 @@ if(buildData){
         signif_plot_dt$nRegGenes/signif_plot_dt$nGenes ~ signif_plot_dt$signif_lab,
         xlab = "",
         ylab = "nRegGenes/nGenes",
+        main=paste0(hicds, " - ", exprds),
         cex.main = plotCex,
         cex.lab = plotCex,
         cex.axis = plotCex
@@ -237,17 +245,50 @@ if(buildData){
       mtext(side=3, text = paste0(dsIn,  " - n =", nrow(plot_dt)))
       foo <- dev.off()
       cat(paste0("... written: ", outFile, "\n"))
+
       
+      nTFs_signif <- signif_plot_dt$nTFs[signif_plot_dt$signif_lab == "signif."]
+      nTFs_notSignif <- signif_plot_dt$nTFs[signif_plot_dt$signif_lab == "not signif."]
       
+      nRegGenes_signif <- signif_plot_dt$nRegGenes[signif_plot_dt$signif_lab == "signif."]
+      nRegGenes_notSignif <- signif_plot_dt$nRegGenes[signif_plot_dt$signif_lab == "not signif."]
       
+      nTFsOVERnGenes_signif <- signif_plot_dt$nTFs[signif_plot_dt$signif_lab == "signif."]/signif_plot_dt$nGenes[signif_plot_dt$signif_lab == "signif."]
+      nTFsOVERnGenes_notSignif <- signif_plot_dt$nTFs[signif_plot_dt$signif_lab == "not signif."]/signif_plot_dt$nGenes[signif_plot_dt$signif_lab == "not signif."]
+      
+      nRegGenesOVERnGenes_signif <- signif_plot_dt$nRegGenes[signif_plot_dt$signif_lab == "signif."]/signif_plot_dt$nGenes[signif_plot_dt$signif_lab == "signif."]
+      nRegGenesOVERnGenes_notSignif <- signif_plot_dt$nRegGenes[signif_plot_dt$signif_lab == "not signif."]/signif_plot_dt$nGenes[signif_plot_dt$signif_lab == "not signif."]
+      
+      data.frame(
+        hicds = hicds,
+        exprds = exprds, 
+        mean_nTFs_signif = mean(nTFs_signif),
+        mean_nTFs_notSignif = mean(nTFs_notSignif),
+        mean_nRegGenes_signif = mean(nRegGenes_signif),
+        mean_nRegGenes_notSignif = mean(nRegGenes_notSignif),
+        mean_nTFsOVERnGenes_signif = mean(nTFsOVERnGenes_signif),
+        mean_nTFsOVERnGenes_notSignif = mean(nTFsOVERnGenes_notSignif),
+        mean_nRegGenesOVERnGenes_signif = mean(nRegGenesOVERnGenes_signif),
+        mean_nRegGenesOVERnGenes_notSignif = mean(nRegGenesOVERnGenes_notSignif),
+        stringsAsFactors = FALSE
+      )
     }# end-for iterating over exprds
+    exprds_dt
   } # end-for iterating over hicds
+  outFile <- file.path(outFolder, "nRegFeat_dt.Rdata")  
+  save(nRegFeat_dt, file = outFile, version=2)
+  cat(paste0("... written: ", outFile, "\n"))
 } else {
-  stop("-")
+  outFile <- file.path(outFolder, "nRegFeat_dt.Rdata")  
+  nRegFeat_dt <- get(load(outFile))
 }  
-
-
-
+# load("TFS_BY_TADS_SIGNIFTADS_C3.TFT/nRegFeat_dt.Rdata")
+outFile <- file.path(outFolder, paste0("nRegFeat_boxplot_allDS.", plotType))  
+do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+par(mar=par()$mar+c(9,0,0,0))
+boxplot(nRegFeat_dt[,!colnames(nRegFeat_dt) %in% c("hicds", "exprds")], las=2, main=paste0("all ds (n=", length(unique(file.path(nRegFeat_dt$hicds, nRegFeat_dt$exprds))),")"),  cex.axis=0.8)
+mtext(side=3, text = paste0(dsIn))
+cat(paste0("... written: ", outFile, "\n"))
 
 #####################################################################
 cat("*** DONE\n")

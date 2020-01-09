@@ -15,6 +15,8 @@ registerDoMC(40)
 # Rscript TFs_by_TADs_ratio_hicds.R tftg
 # Rscript TFs_by_TADs_ratio_hicds.R motifmap
 # Rscript TFs_by_TADs_ratio_hicds.R kegg
+# 
+
 
 plotType <- "png"
 myHeight <- 400
@@ -31,7 +33,7 @@ last_col <- pal_d3()(2)[2]
 # yarrr::transparent("grey", trans.val = .6)
 mid_col <- "#BEBEBE66"
 
-x_qt_val <- 0.2
+x_qt_val <- 0.05
 y_qt_val <- 0.95
 
 

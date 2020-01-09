@@ -7,20 +7,18 @@ source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 require(doMC)
 registerDoMC(40)
 
-# Rscript TFs_by_TADs_ratio.R crisp
-# Rscript TFs_by_TADs_ratio.R c3.mir
-# Rscript TFs_by_TADs_ratio.R c3.tft
-# Rscript TFs_by_TADs_ratio.R c3.all
-# Rscript TFs_by_TADs_ratio.R trrust
-# Rscript TFs_by_TADs_ratio.R tftg
-# Rscript TFs_by_TADs_ratio.R motifmap
-# Rscript TFs_by_TADs_ratio.R kegg
-# 
+# Rscript TFs_by_TADs_ratio_exprOnlyTF.R crisp
+# Rscript TFs_by_TADs_ratio_exprOnlyTF.R c3.mir
+# Rscript TFs_by_TADs_ratio_exprOnlyTF.R c3.tft
+# Rscript TFs_by_TADs_ratio_exprOnlyTF.R c3.all
+# Rscript TFs_by_TADs_ratio_exprOnlyTF.R trrust
+# Rscript TFs_by_TADs_ratio_exprOnlyTF.R tftg
+# Rscript TFs_by_TADs_ratio_exprOnlyTF.R motifmap
+# Rscript TFs_by_TADs_ratio_exprOnlyTF.R kegg
 
-
-plotType <- "svg"
-myHeight <- ifelse(plotType=="png", 400, 7)
-myWidth <- ifelse(plotType=="png", 400, 7)
+plotType <- "png"
+myHeight <- 400
+myWidth <- 400
 plotCex <- 1.4
 
 nTop <- 10
@@ -55,10 +53,12 @@ if(length(args) == 3) {
 
 stopifnot(dsIn %in% c("crisp", "c3.mir", "c3.all", "c3.tft", "trrust", "tftg", "motifmap", "kegg"))
 
-outFolder <- file.path(paste0("TFS_BY_TADS_RATIO_", toupper(dsIn)))
+outFolder <- file.path(paste0("TFS_BY_TADS_RATIO_EXPRONLY_TF_", toupper(dsIn)))
 dir.create(outFolder, recursive = TRUE)
 
 buildData <- TRUE
+
+script1_name <- "1_runGeneDE"
 
 setDir <- "/media/electron"
 setDir <- ""
@@ -75,8 +75,8 @@ final_dt <- get(load("CREATE_FINAL_TABLE/all_result_dt.Rdata"))
 
 
 if(buildData){
-  allQt_dt <- foreach(hicds = all_hicds, .combine='rbind') %dopar%{
-  
+  # foo <- foreach(hicds = all_hicds, .combine='rbind') %dopar%{
+    foo <- foreach(hicds = all_hicds[1], .combine='rbind') %dopar%{
     cat(paste0("> START - ", hicds,"\n"))
   
     if(dsIn == "crisp") {
@@ -135,7 +135,8 @@ if(buildData){
     nbrReg_TADs_dt <- aggregate(regSymbol~targetRegion, data=reg_dt, function(x) length(unique(x)))
     
     exprds = all_exprds[[paste0(hicds)]][1]
-    exprds_dt <- foreach(exprds = all_exprds[[paste0(hicds)]], .combine='rbind') %do% {
+    # ds_dt <- foreach(exprds = all_exprds[[paste0(hicds)]], .combine='rbind') %do% {
+      ds_dt <- foreach(exprds = all_exprds[[paste0(hicds)]][1], .combine='rbind') %do% {
       
       plotTit <- paste0(hicds, "\n", exprds)
       
@@ -155,6 +156,12 @@ if(buildData){
       gByTAD <- g2t_dt[g2t_dt$entrezID %in% geneList,]
       
       reg_dt <- reg_dt[reg_dt$targetEntrezID %in% geneList,]  # update 08.01.20 -> NEED ALSO TO SUBSET THE REGULATED FEATURES !
+      
+      save(reg_dt, file="reg_dt.Rdata", version=2); stop("-ok")
+      
+      # UPDATE HERE -> take only the TF that are in the DE data !
+      de_dt <- get(load(file.path("PIPELINE", "OUTPUT_FOLDER", hicds, exprds, script1_name, "DE_topTable.Rdata") ))
+      
       
       # 1) # of genes in TAD
       tad_nGenes_dt <- aggregate(entrezID ~ region, data=gByTAD, FUN=function(x) length(x))
@@ -316,10 +323,6 @@ if(buildData){
       
       # dot color meanCorr
       
-      
-
-      
-      
       meancolPlot_dt <- merge(plot_dt, result_dt[,c("region", "meanCorr")], by="region")
       stopifnot(nrow(meancolPlot_dt) == nrow(plot_dt))
       
@@ -393,22 +396,7 @@ if(buildData){
           cex = 0.8
         )
       legend("bottomright", legend=c(paste0("x<=", round(my_x_qt, 2), " (", x_qt_val, "-qt)"), 
-                                     paste0("y>=", round(my_y_qt, 2), " (", y_qt_val, "-qt)"),
-                                     paste0("(in qt: ", sum(my_x <= my_x_qt & my_y >= my_y_qt),  ")")
-                                     ), bty="n") 
-      
-      
-      qtTADs <- my_tads[my_x <= my_x_qt & my_y >= my_y_qt]
-      
-      
-      signifInQt <- sum(qtTADs %in% signifTADs)/ length(signifTADs)
-      
-      legend("topright",
-             legend = c(paste0("signif. in qt: ", sum(qtTADs %in% signifTADs), "/", length(signifTADs), "\n(", round(signifInQt*100, 2), "%)" )),
-             bty="n"
-      )
-      
-      
+                                     paste0("y>=", round(my_y_qt, 2), " (", y_qt_val, "-qt)")), bty="n") 
       mtext(side=3, text = paste0(dsIn,  " - n =", nrow(meancolPlot_dt)))
       # legend("bottomright",
       #        pch=c(-1,16,16),
@@ -422,56 +410,16 @@ if(buildData){
       foo <- dev.off()
       cat(paste0("... written: ", outFile, "\n"))
       
-      data.frame(
-        hicds = hicds,
-        exprds = exprds,
-        qtTADs = paste0(qtTADs, collapse=","),
-        qtSignifTADs = paste0(qtTADs[qtTADs %in% signifTADs], collapse=","),
-        nInQt = length(qtTADs),
-        ratioSignifInQt = round(signifInQt,4),
-        stringsAsFactors = FALSE
-      )
+      
+      
+      
     }
-    exprds_dt
   } # end-for iterating over hicds
-  outFile <- file.path(outFolder, paste0("allQt_xQt", x_qt_val, "_yQt", y_qt_val, "_dt.Rdata"))
-  save(allQt_dt, file = outFile, version=2)
-  cat(paste0("... written: ", outFile, "\n"))
 } else {
-  outFile <- file.path(outFolder, paste0("allQt_xQt", x_qt_val, "_yQt", y_qt_val, "_dt.Rdata"))
-  allQt_dt <- get(load(outFile))
+  stop("-")
 }  
 
-# allQt_dt <- get(load("TFS_BY_TADS_RATIO_C3.TFT/allQt_xQt0.2_yQt0.95_dt.Rdata"))
 
-nDS <- length(unique(file.path(allQt_dt$hicds, allQt_dt$exprds)))
-
-outFile <- file.path(outFolder, paste0(dsIn, "_all_ds_ratioSignifTADsInQt_xQt", x_qt_val, "_yQt", y_qt_val, "_boxplot.", plotType))
-do.call(plotType, list(outFile, height=myHeight, width=myWidth))
-boxplot(allQt_dt$ratioSignifInQt,
-        main = paste0("Ratio of signif. TADs (x<=", x_qt_val, "-qt & y>=", y_qt_val, "-qt)"),
-        ylab = "Ratio signif. TADs in qt"
-        )
-mtext(side=3, text = paste0(dsIn,  " - n =", nDS))
-foo <- dev.off()
-cat(paste0("... written: ", outFile, "\n"))
-
-outFile <- file.path(outFolder, paste0(dsIn, "_all_ds_nTADsInQt_xQt", x_qt_val, "_yQt", y_qt_val, "_boxplot.", plotType))
-do.call(plotType, list(outFile, height=myHeight, width=myWidth))
-boxplot(allQt_dt$nInQt,
-        main = paste0("# TADs in qt (x<=", x_qt_val, "-qt & y>=", y_qt_val, "-qt)"),
-        ylab = "# TADs in qt"
-)
-mtext(side=3, text = paste0(dsIn,  " - n =", nDS))
-foo <- dev.off()
-cat(paste0("... written: ", outFile, "\n"))
-
-
-
-load("TFS_BY_TADS_RATIO_C3.TFT/allQt_xQt0.2_yQt0.95_dt.Rdata")
-dt=allQt_dt
-dt = dt[order(dt$ratioSignifInQt, decreasing=T),]          
-write.table(dt, file="TFS_BY_TADS_RATIO_C3.TFT/allQt_xQt0.2_yQt0.95_dt_result.txt", sep="\t", col.names=T, row.names=F, quote=F, append=F)
 
 
 #####################################################################
