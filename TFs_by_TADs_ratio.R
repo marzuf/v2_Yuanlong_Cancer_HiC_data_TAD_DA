@@ -87,6 +87,11 @@ if(buildData){
       cat(paste0("with Entrez: nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
       reg_dt$targetEntrezID <- symb2entrez[reg_dt$targetSymbol]
       reg_dt$targetEntrezID <- as.character(reg_dt$targetEntrezID)
+      # regSymbol targetSymbol targetEntrezID
+      # 2    ARID3A         A1BG              1
+      # 3    ARID3A     A1BG-AS1         503538
+      # 4    ARID3A         A1CF          29974
+      
     } else if(dsIn == "trrust"){
       reg_file <- file.path("trrust_rawdata.human.tsv")
       reg_dt <- read.delim(reg_file, sep="\t", header=FALSE, stringsAsFactors = FALSE,
