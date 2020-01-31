@@ -7,15 +7,13 @@ source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 require(doMC)
 registerDoMC(40)
 
-# Rscript TFs_by_TADs_ratio.R crisp
-# Rscript TFs_by_TADs_ratio.R c3.mir
-# Rscript TFs_by_TADs_ratio.R c3.tft
-# Rscript TFs_by_TADs_ratio.R c3.all
-# Rscript TFs_by_TADs_ratio.R trrust
-# Rscript TFs_by_TADs_ratio.R tftg
-# Rscript TFs_by_TADs_ratio.R motifmap
-# Rscript TFs_by_TADs_ratio.R kegg
+# Rscript TFs_by_TADs_ratio_onlyExprTF.R crisp
+# Rscript TFs_by_TADs_ratio_onlyExprTF.R chea3_all
+# Rscript TFs_by_TADs_ratio_onlyExprTF.R chea3_lung
+# Rscript TFs_by_TADs_ratio_onlyExprTF.R trrust
+# Rscript TFs_by_TADs_ratio_onlyExprTF.R motifmap
 # 
+
 
 
 plotType <- "svg"
@@ -47,15 +45,15 @@ dsIn <- args[1]
 if(length(args) == 3) {
   all_hicds <- args[2]
   all_exprds <- args[3]
-
+  
 } else {
   all_hicds <- list.files("PIPELINE/OUTPUT_FOLDER")
   all_exprds <- sapply(all_hicds, function(x) list.files(file.path("PIPELINE/OUTPUT_FOLDER", x)))
 }
 
-stopifnot(dsIn %in% c("crisp", "c3.mir", "c3.all", "c3.tft", "trrust", "tftg", "motifmap", "kegg", "chea3_all", "chea3_lung"))
+stopifnot(dsIn %in% c("crisp",  "trrust", "motifmap", "chea3_all", "chea3_lung"))
 
-outFolder <- file.path(paste0("TFS_BY_TADS_RATIO_", toupper(dsIn)))
+outFolder <- file.path(paste0("TFS_BY_TADS_RATIO_ONLYEXPRTF_", toupper(dsIn)))
 dir.create(outFolder, recursive = TRUE)
 
 buildData <- TRUE
@@ -75,70 +73,94 @@ final_dt <- get(load("CREATE_FINAL_TABLE/all_result_dt.Rdata"))
 
 
 if(buildData){
+  
+  
+  if(dsIn == "crisp") {
+    reg_file <- file.path("gene_set_library_crisp_processed.txt")
+    reg_dt <- read.delim(reg_file, sep="\t", header=TRUE, stringsAsFactors = FALSE)
+    cat(paste0("init nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
+    reg_dt <- reg_dt[reg_dt$targetSymbol %in% names(symb2entrez),]
+    cat(paste0("with Entrez: nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
+    reg_dt$targetEntrezID <- symb2entrez[reg_dt$targetSymbol]
+    reg_dt$targetEntrezID <- as.character(reg_dt$targetEntrezID)
+    # regSymbol targetSymbol targetEntrezID
+    # 2    ARID3A         A1BG              1
+    # 3    ARID3A     A1BG-AS1         503538
+    # 4    ARID3A         A1CF          29974
+    
+  } else if(dsIn == "chea3_all") {
+    reg_file <- file.path("chea3_all_tissues_TFs_processed.txt")
+    reg_dt <- read.delim(reg_file, sep="\t", header=TRUE, stringsAsFactors = FALSE)
+    cat(paste0("init nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
+    reg_dt <- reg_dt[reg_dt$targetSymbol %in% names(symb2entrez),]
+    cat(paste0("with target Entrez: nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
+    reg_dt$targetEntrezID <- symb2entrez[reg_dt$targetSymbol]
+    reg_dt$targetEntrezID <- as.character(reg_dt$targetEntrezID)
+  } else if(dsIn == "chea3_lung") {
+    reg_file <- file.path("chea3_lung_TFs_processed.txt")
+    reg_dt <- read.delim(reg_file, sep="\t", header=TRUE, stringsAsFactors = FALSE)
+    cat(paste0("init nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
+    reg_dt <- reg_dt[reg_dt$targetSymbol %in% names(symb2entrez),]
+    cat(paste0("with target Entrez: nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
+    reg_dt$targetEntrezID <- symb2entrez[reg_dt$targetSymbol]
+    reg_dt$targetEntrezID <- as.character(reg_dt$targetEntrezID)
+  } else if(dsIn == "trrust"){
+    reg_file <- file.path("trrust_rawdata.human.tsv")
+    reg_dt <- read.delim(reg_file, sep="\t", header=FALSE, stringsAsFactors = FALSE,
+                         col.names = c("regSymbol", "targetSymbol", "direction", "ID"))
+    cat(paste0("init nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
+    reg_dt <- reg_dt[reg_dt$targetSymbol %in% names(symb2entrez),]
+    cat(paste0("with target Entrez: nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
+    reg_dt$targetEntrezID <- symb2entrez[reg_dt$targetSymbol]
+    reg_dt$targetEntrezID <- as.character(reg_dt$targetEntrezID)
+    
+    
+  }  else if(dsIn == "motifmap"){
+    reg_file <- file.path("MOTIFMAP_ALLGENES/overlapDT_bp.Rdata")
+    reg_dt <- get(load(reg_file))
+    colnames(reg_dt)[colnames(reg_dt)=="entrezID"] <- "targetEntrezID"
+    cat(paste0("init nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
+    
+    
+    reg_dt$regSymbol_init <- reg_dt$regSymbol
+    
+    reg_dt$regSymbol <- toupper(gsub(".+=(.+)", "\\1", reg_dt$regSymbol_init) )
+    
+    
+    
+    
+  }
+  
+  
+  stopifnot(!is.na(reg_dt$targetEntrezID))
+  reg_dt <- reg_dt[reg_dt$regSymbol %in% names(symb2entrez),]
+  cat(paste0("with Reg Entrez: nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
+  reg_dt$regEntrezID <- symb2entrez[reg_dt$regSymbol]
+  reg_dt$regEntrezID <- as.character(reg_dt$regEntrezID)
+  stopifnot(!is.na(reg_dt$regEntrezID))
+  
+  
+  
+  init_reg_dt <- reg_dt
+  rm("reg_dt")
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   allQt_dt <- foreach(hicds = all_hicds, .combine='rbind') %dopar%{
-  
+    # allQt_dt <- foreach(hicds = all_hicds[1], .combine='rbind') %dopar%{
+    
+    reg_dt <- init_reg_dt
+    
     cat(paste0("> START - ", hicds,"\n"))
-  
-    if(dsIn == "crisp") {
-      reg_file <- file.path("gene_set_library_crisp_processed.txt")
-      reg_dt <- read.delim(reg_file, sep="\t", header=TRUE, stringsAsFactors = FALSE)
-      cat(paste0("init nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
-      reg_dt <- reg_dt[reg_dt$targetSymbol %in% names(symb2entrez),]
-      cat(paste0("with Entrez: nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
-      reg_dt$targetEntrezID <- symb2entrez[reg_dt$targetSymbol]
-      reg_dt$targetEntrezID <- as.character(reg_dt$targetEntrezID)
-      # regSymbol targetSymbol targetEntrezID
-      # 2    ARID3A         A1BG              1
-      # 3    ARID3A     A1BG-AS1         503538
-      # 4    ARID3A         A1CF          29974
-      
-    } else if(dsIn == "chea3_all") {
-      reg_file <- file.path("chea3_all_tissues_TFs_processed.txt")
-      reg_dt <- read.delim(reg_file, sep="\t", header=TRUE, stringsAsFactors = FALSE)
-      cat(paste0("init nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
-      reg_dt <- reg_dt[reg_dt$targetSymbol %in% names(symb2entrez),]
-      cat(paste0("with Entrez: nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
-      reg_dt$targetEntrezID <- symb2entrez[reg_dt$targetSymbol]
-      reg_dt$targetEntrezID <- as.character(reg_dt$targetEntrezID)
-    } else if(dsIn == "chea3_lung") {
-      reg_file <- file.path("chea3_lung_TFs_processed.txt")
-      reg_dt <- read.delim(reg_file, sep="\t", header=TRUE, stringsAsFactors = FALSE)
-      cat(paste0("init nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
-      reg_dt <- reg_dt[reg_dt$targetSymbol %in% names(symb2entrez),]
-      cat(paste0("with Entrez: nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
-      reg_dt$targetEntrezID <- symb2entrez[reg_dt$targetSymbol]
-      reg_dt$targetEntrezID <- as.character(reg_dt$targetEntrezID)
-    } else if(dsIn == "trrust"){
-      reg_file <- file.path("trrust_rawdata.human.tsv")
-      reg_dt <- read.delim(reg_file, sep="\t", header=FALSE, stringsAsFactors = FALSE,
-                           col.names = c("regSymbol", "targetSymbol", "direction", "ID"))
-      cat(paste0("init nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
-      reg_dt <- reg_dt[reg_dt$targetSymbol %in% names(symb2entrez),]
-      cat(paste0("with Entrez: nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
-      reg_dt$targetEntrezID <- symb2entrez[reg_dt$targetSymbol]
-      reg_dt$targetEntrezID <- as.character(reg_dt$targetEntrezID)
-    } else if(dsIn == "tftg") {
-      reg_file <- file.path("tftg_db_all_processed.txt")
-      reg_dt <- read.delim(reg_file, sep="\t", header=TRUE, stringsAsFactors = FALSE, 
-                           col.names=c("regSymbol", "targetEntrezID"))
-      cat(paste0("init nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
-    } else if(dsIn == "motifmap"){
-      reg_file <- file.path("MOTIFMAP_ALLGENES/overlapDT_bp.Rdata")
-      reg_dt <- get(load(reg_file))
-      colnames(reg_dt)[colnames(reg_dt)=="entrezID"] <- "targetEntrezID"
-      cat(paste0("init nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
-    } else if(dsIn == "kegg"){
-      reg_file <- file.path("hsa_kegg_entrez.txt")
-      reg_dt <- read.delim(reg_file, sep="\t", header=FALSE, stringsAsFactors = FALSE,
-                           col.names = c("targetEntrezID", "regSymbol"))
-      reg_dt$targetEntrezID <- gsub("hsa:", "",reg_dt$targetEntrezID )
-      cat(paste0("init nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
-    }else {
-      reg_file <- file.path(paste0(dsIn, ".v7.0.entrez_processed.txt"))
-      reg_dt <- read.delim(reg_file, sep="\t", header=TRUE, stringsAsFactors = FALSE, 
-                           col.names=c("regSymbol", "targetEntrezID"))
-      cat(paste0("init nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
-    }
+    
+    
     
     g2t_file <- file.path(hicds, "genes2tad", "all_genes_positions.txt")
     g2t_dt <- read.delim(g2t_file, stringsAsFactors = FALSE, header=FALSE, col.names=c("entrezID", "chromo", "start", "end", "region"))
@@ -152,15 +174,23 @@ if(buildData){
     cat(paste0("with g2t assignment: nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
     reg_dt$targetRegion <- g2t_vect[paste0(reg_dt$targetEntrezID)]
     stopifnot(!is.na(reg_dt))
-      
+    
     nbrReg_TADs_dt <- aggregate(regSymbol~targetRegion, data=reg_dt, function(x) length(unique(x)))
     
     exprds = all_exprds[[paste0(hicds)]][1]
     exprds_dt <- foreach(exprds = all_exprds[[paste0(hicds)]], .combine='rbind') %do% {
+      # exprds_dt <- foreach(exprds = all_exprds[[paste0(hicds)]][1], .combine='rbind') %do% {
       
       if(dsIn == "chea3_lung") {
         if(! (grepl("lusc", exprds) | grepl("luad", exprds))) return(NULL)
       }
+      
+      ## => change here, take only the expressed TFs
+      de_dt <- get(load(file.path("PIPELINE", "OUTPUT_FOLDER", hicds, exprds, "1_runGeneDE", "DE_topTable.Rdata") ))
+      
+      reg_dt <- reg_dt[reg_dt$regEntrezID %in% de_dt$genes,]
+      cat(paste0("with expressed Reg Entrez: nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
+      
       
       
       plotTit <- paste0(hicds, "\n", exprds)
@@ -236,7 +266,7 @@ if(buildData){
       foo <- dev.off()
       cat(paste0("... written: ", outFile, "\n"))
       
-
+      
       outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_ratio_regGenes_nTFs_allTADs_colplot.", plotType))
       do.call(plotType, list(outFile, height=myHeight, width=myWidth))
       par(bty="l", family=fontFamily)
@@ -297,7 +327,7 @@ if(buildData){
       
       # signif in red
       plot_dt$dotSignifCols <- ifelse(plot_dt$region %in% signifTADs, signif_col, "grey")
-                                
+      
       
       outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_ratio_regGenes_nTFs_allTADs_signifcolplot.", plotType))
       do.call(plotType, list(outFile, height=myHeight, width=myWidth))
@@ -343,7 +373,7 @@ if(buildData){
       # dot color meanCorr
       
       
-
+      
       
       
       meancolPlot_dt <- merge(plot_dt, result_dt[,c("region", "meanCorr")], by="region")
@@ -353,7 +383,7 @@ if(buildData){
       rbPal <- colorRampPalette(c('red','blue'))
       meancolPlot_dt$dotCols <- rev(rbPal(10))[as.numeric(cut(meancolPlot_dt$meanCorr,breaks = 10))]
       
-
+      
       outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_ratio_regGenes_nTFs_allTADs_meanCorrColplot.", plotType))
       do.call(plotType, list(outFile, height=myHeight, width=myWidth))
       par(bty="l", family=fontFamily)
@@ -376,7 +406,7 @@ if(buildData){
              legend=c("meanCorr", round(meancolPlot_dt$meanCorr[which.min(meancolPlot_dt$meanCorr)],2),
                       round(meancolPlot_dt$meanCorr[which.max(meancolPlot_dt$meanCorr)], 2)),
              col=c("black", meancolPlot_dt$dotCols[which.min(meancolPlot_dt$meanCorr)],
-                          meancolPlot_dt$dotCols[which.max(meancolPlot_dt$meanCorr)]),
+                   meancolPlot_dt$dotCols[which.max(meancolPlot_dt$meanCorr)]),
              bty='n')
       abline(lm(my_y~my_x), lty=2, col="grey")
       addCorr(x = my_x, y = my_y, bty="n")
@@ -421,7 +451,7 @@ if(buildData){
       legend("bottomright", legend=c(paste0("x<=", round(my_x_qt, 2), " (", x_qt_val, "-qt)"), 
                                      paste0("y>=", round(my_y_qt, 2), " (", y_qt_val, "-qt)"),
                                      paste0("(in qt: ", sum(my_x <= my_x_qt & my_y >= my_y_qt),  ")")
-                                     ), bty="n") 
+      ), bty="n") 
       
       
       qtTADs <- my_tads[my_x <= my_x_qt & my_y >= my_y_qt]
@@ -477,7 +507,7 @@ do.call(plotType, list(outFile, height=myHeight, width=myWidth))
 boxplot(allQt_dt$ratioSignifInQt,
         main = paste0("Ratio of signif. TADs (x<=", x_qt_val, "-qt & y>=", y_qt_val, "-qt)"),
         ylab = "Ratio signif. TADs in qt"
-        )
+)
 mtext(side=3, text = paste0(dsIn,  " - n =", nDS))
 foo <- dev.off()
 cat(paste0("... written: ", outFile, "\n"))
