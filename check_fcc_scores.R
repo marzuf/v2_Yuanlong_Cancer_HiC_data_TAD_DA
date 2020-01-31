@@ -29,6 +29,7 @@ dir.create(outFolder, recursive = TRUE)
 plotCex <- 1.4
 plotType <- "png"
 myHeight <- 400
+myWidthLeg <- 500
 myWidth <- 400
 
 all_fcc_obs_files <- list.files("PIPELINE/OUTPUT_FOLDER", pattern = "all_obs_prodSignedRatio.Rdata", recursive = TRUE, full.names = TRUE)
@@ -97,7 +98,10 @@ all_values_dt$dotCols <- rev(rbPal(10))[as.numeric(cut(all_values_dt$FCCscore,br
 nDS <- length(unique(file.path(all_values_dt$hicds, all_values_dt$exprds)))
 
 outFile <- file.path(outFolder, paste0("ratioDown_ratioFC_colFCC.", plotType))
-do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+do.call(plotType, list(outFile, height=myHeight, width=myWidthLeg))
+
+par(xpd = T, mar = par()$mar + c(0,0,0,6))
+
 plot(
   x = all_values_dt$ratioFC,
   y = all_values_dt$rD,
@@ -112,12 +116,15 @@ plot(
 )
 mtext(side=3, text = paste0("# DS = ", nDS, "; # TADs = ", nrow(all_values_dt)))
 
-legend("bottomright",
+# legend("bottomright",
+       legend(1.1,1,
        title="FCC score",
        legend=rev(levels(cut(all_values_dt$FCCscore,breaks = 10))),
        col =rbPal(10),
        pch=20,
-       horiz = TRUE,
+       cex = 0.8,
+       ncol=1,
+       horiz = F,
        bty="n")
 
 foo <- dev.off()
