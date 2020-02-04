@@ -7,16 +7,16 @@ source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 require(doMC)
 registerDoMC(40)
 
-# Rscript TFs_by_TADs_signifTADs_v2.R crisp
-# Rscript TFs_by_TADs_signifTADs_v2.R c3.mir
-# Rscript TFs_by_TADs_signifTADs_v2.R c3.tft
-# Rscript TFs_by_TADs_signifTADs_v2.R c3.all
-# Rscript TFs_by_TADs_signifTADs_v2.R trrust
-# Rscript TFs_by_TADs_signifTADs_v2.R tftg
-# Rscript TFs_by_TADs_signifTADs_v2.R motifmap
-# Rscript TFs_by_TADs_signifTADs_v2.R kegg
-# Rscript TFs_by_TADs_signifTADs_v2.R chea3_all
-# Rscript TFs_by_TADs_signifTADs_v2.R chea3_lung
+# Rscript TFs_by_TADs_signifTADs_v2_permutG2t.R crisp
+# Rscript TFs_by_TADs_signifTADs_v2_permutG2t.R c3.mir
+# Rscript TFs_by_TADs_signifTADs_v2_permutG2t.R c3.tft
+# Rscript TFs_by_TADs_signifTADs_v2_permutG2t.R c3.all
+# Rscript TFs_by_TADs_signifTADs_v2_permutG2t.R trrust
+# Rscript TFs_by_TADs_signifTADs_v2_permutG2t.R tftg
+# Rscript TFs_by_TADs_signifTADs_v2_permutG2t.R motifmap
+# Rscript TFs_by_TADs_signifTADs_v2_permutG2t.R kegg
+# Rscript TFs_by_TADs_signifTADs_v2_permutG2t.R chea3_all
+# Rscript TFs_by_TADs_signifTADs_v2_permutG2t.R chea3_lung
 
 # 
 
@@ -57,12 +57,12 @@ if(length(args) == 3) {
 
 stopifnot(dsIn %in% c("crisp", "c3.mir", "c3.all", "c3.tft", "trrust", "tftg", "motifmap", "kegg", "chea3_all", "chea3_lung"))
 
-outFolder <- file.path(paste0("TFS_BY_TADS_SIGNIFTADS_V2_", toupper(dsIn)))
+outFolder <- file.path(paste0("TFS_BY_TADS_SIGNIFTADS_V2_PERMUTG2T_", toupper(dsIn)))
 dir.create(outFolder, recursive = TRUE)
 
 buildData <- TRUE
 
-tad_signif_thresh <- 0.01
+nPermut <- 1000
 
 
 setDir <- "/media/electron"
@@ -76,11 +76,11 @@ stopifnot(!duplicated(gff_dt$symbol))
 entrez2symb <- setNames(gff_dt$symbol, gff_dt$entrezID)
 symb2entrez <- setNames(gff_dt$entrezID, gff_dt$symbol)
 
-final_dt <- get(load("CREATE_FINAL_TABLE/all_result_dt.Rdata"))
+
 
 
 if(buildData){
-  nRegFeat_dt <- foreach(hicds = all_hicds, .combine='rbind') %dopar%{
+  permutG2t_nRegFeat_dt <- foreach(hicds = all_hicds, .combine='rbind') %do%{
   
     cat(paste0("> START - ", hicds,"\n"))
   
@@ -140,20 +140,8 @@ if(buildData){
       cat(paste0("init nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
     }
     
-    g2t_file <- file.path(hicds, "genes2tad", "all_genes_positions.txt")
-    g2t_dt <- read.delim(g2t_file, stringsAsFactors = FALSE, header=FALSE, col.names=c("entrezID", "chromo", "start", "end", "region"))
-    g2t_dt$entrezID <- as.character(g2t_dt$entrezID)
-    
-    g2t_dt <- g2t_dt[grepl("_TAD", g2t_dt$region),]
-    stopifnot(!duplicated(g2t_dt$entrezID))
-    g2t_vect <- setNames(g2t_dt$region, g2t_dt$entrezID)
-    
-    reg_dt <- reg_dt[reg_dt$targetEntrezID %in% g2t_dt$entrezID,]
-    cat(paste0("with g2t assignment: nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
-    reg_dt$targetRegion <- g2t_vect[paste0(reg_dt$targetEntrezID)]
-    stopifnot(!is.na(reg_dt))
-      
-    nbrReg_TADs_dt <- aggregate(regSymbol~targetRegion, data=reg_dt, function(x) length(unique(x)))
+    hicds_reg_dt <- reg_dt 
+    rm("reg_dt")
     
     exprds = all_exprds[[paste0(hicds)]][1]
     exprds_dt <- foreach(exprds = all_exprds[[paste0(hicds)]], .combine='rbind') %do% {
@@ -163,14 +151,41 @@ if(buildData){
         if(! (grepl("lusc", exprds) | grepl("luad", exprds))) return(NULL)
       }
       
+      
+    
+    cat(paste0("... load permut data ...\n"))
+    permut_dt <- get(load(file.path("PIPELINE", "OUTPUT_FOLDER", hicds, exprds, "5_runPermutationsMedian", "permutationsDT.Rdata") ))
+    cat(paste0("... loaded ...\n"))
+    
+    stopifnot(ncol(permut_dt) >= nPermut)
+    permut_dt <- permut_dt[,1:nPermut]
+    
+    permut_data <- foreach(i_permut = 1:ncol(permut_dt)) %dopar% {
+      
+      g2t_dt <- data.frame(
+        entrezID = as.character(rownames(permut_dt)),
+        region = as.character(permut_dt[, i_permut]),
+        stringsAsFactors = FALSE
+      )
+      
+  
+    g2t_vect <- setNames(g2t_dt$region, g2t_dt$entrezID)
+    
+    reg_dt <- hicds_reg_dt[hicds_reg_dt$targetEntrezID %in% g2t_dt$entrezID,]
+    cat(paste0("with g2t assignment: nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
+    reg_dt$targetRegion <- g2t_vect[paste0(reg_dt$targetEntrezID)]
+    stopifnot(!is.na(reg_dt))
+      
+    nbrReg_TADs_dt <- aggregate(regSymbol~targetRegion, data=reg_dt, function(x) length(unique(x)))
+    
+
+  
       plotTit <- paste0(hicds, "\n", exprds)
       
-      result_dt <- final_dt[final_dt$hicds == hicds & final_dt$exprds == exprds, ]
-      result_dt$tad_rank <- rank(result_dt$adjPvalComb, ties="min")
-      result_dt$rev_tad_rank <- rank(-result_dt$adjPvalComb, ties="min")
+
       
       geneList <- get(load(file.path("PIPELINE", "OUTPUT_FOLDER", hicds, exprds, "0_prepGeneData", "pipeline_geneList.Rdata") ))
-      stopifnot(geneList %in% g2t_dt$entrezID)
+      # stopifnot(geneList %in% g2t_dt$entrezID) # not for permut
       gByTAD <- g2t_dt[g2t_dt$entrezID %in% geneList,]
       
       
@@ -206,73 +221,67 @@ if(buildData){
       plot_dt$hicds <- hicds
       plot_dt$exprds <- exprds
       
-      signif_plot_dt <- merge(plot_dt, result_dt[,c("hicds", "exprds", "region", "adjPvalComb")], by=c("hicds", "exprds", "region"))
+      permutG2t_plot_dt <- plot_dt
       
-      stopifnot(signif_plot_dt$region %in% names(nGbyT))
-      signif_plot_dt$nGenes <- nGbyT[paste0(signif_plot_dt$region)]
-      stopifnot(!is.na(signif_plot_dt$nGenes))
+      stopifnot(permutG2t_plot_dt$region %in% names(nGbyT))
+      permutG2t_plot_dt$nGenes <- nGbyT[paste0(permutG2t_plot_dt$region)]
+      stopifnot(!is.na(permutG2t_plot_dt$nGenes))
       
       
-      signif_plot_dt$signif_lab <- ifelse(signif_plot_dt$adjPvalComb <= tad_signif_thresh, "signif.", "not signif.")
+      
       
      
-      nGenes_signif <- signif_plot_dt$nGenes[signif_plot_dt$signif_lab == "signif."]
-      nGenes_notSignif <- signif_plot_dt$nGenes[signif_plot_dt$signif_lab == "not signif."]
-
+      list(nGenes_permutG2t = permutG2t_plot_dt$nGenes, 
+            nTFs_permutG2t = permutG2t_plot_dt$nTFs,
+            nRegGenes_permutG2t= permutG2t_plot_dt$nRegGenes,
+            nTFsOVERnGenes_permutG2t = permutG2t_plot_dt$nTFs,
+            nRegGenesOVERnGenes_permutG2t = permutG2t_plot_dt$nRegGenes)
       
-      nTFs_signif <- signif_plot_dt$nTFs[signif_plot_dt$signif_lab == "signif."]
-      nTFs_notSignif <- signif_plot_dt$nTFs[signif_plot_dt$signif_lab == "not signif."]
       
-      nRegGenes_signif <- signif_plot_dt$nRegGenes[signif_plot_dt$signif_lab == "signif."]
-      nRegGenes_notSignif <- signif_plot_dt$nRegGenes[signif_plot_dt$signif_lab == "not signif."]
-      
-      nTFsOVERnGenes_signif <- signif_plot_dt$nTFs[signif_plot_dt$signif_lab == "signif."]/signif_plot_dt$nGenes[signif_plot_dt$signif_lab == "signif."]
-      nTFsOVERnGenes_notSignif <- signif_plot_dt$nTFs[signif_plot_dt$signif_lab == "not signif."]/signif_plot_dt$nGenes[signif_plot_dt$signif_lab == "not signif."]
-      
-      nRegGenesOVERnGenes_signif <- signif_plot_dt$nRegGenes[signif_plot_dt$signif_lab == "signif."]/signif_plot_dt$nGenes[signif_plot_dt$signif_lab == "signif."]
-      nRegGenesOVERnGenes_notSignif <- signif_plot_dt$nRegGenes[signif_plot_dt$signif_lab == "not signif."]/signif_plot_dt$nGenes[signif_plot_dt$signif_lab == "not signif."]
-      
+      } #end-foreach iterating over permut
+    
+    
       data.frame(
         hicds = hicds,
         exprds = exprds, 
-        mean_nTFs_signif = mean(nTFs_signif),
-        mean_nTFs_notSignif = mean(nTFs_notSignif),
-        mean_nRegGenes_signif = mean(nRegGenes_signif),
-        mean_nRegGenes_notSignif = mean(nRegGenes_notSignif),
-        mean_nTFsOVERnGenes_signif = mean(nTFsOVERnGenes_signif),
-        mean_nTFsOVERnGenes_notSignif = mean(nTFsOVERnGenes_notSignif),
-        mean_nRegGenesOVERnGenes_signif = mean(nRegGenesOVERnGenes_signif),
-        mean_nRegGenesOVERnGenes_notSignif = mean(nRegGenesOVERnGenes_notSignif),
-        mean_nGenes_signif = mean(nGenes_signif),
-        mean_nGenes_notSignif = mean(nGenes_notSignif),
+        mean_nTFs_permutG2t = mean(unlist(lapply(permut_data, function(x)x[["nTFs_permutG2t"]]))),
+        mean_nRegGenes_permutG2t = mean(unlist(lapply(permut_data, function(x)x[["nRegGenes_permutG2t"]]))),
+        mean_nTFsOVERnGenes_permutG2t = mean(unlist(lapply(permut_data, function(x)x[["nTFsOVERnGenes_permutG2t"]]))),
+        mean_nRegGenesOVERnGenes_permutG2t = mean(unlist(lapply(permut_data, function(x)x[["nRegGenesOVERnGenes_permutG2t"]]))),
+        mean_nGenes_permutG2t = mean(unlist(lapply(permut_data, function(x)x[["nGenes_permutG2t"]]))), 
         stringsAsFactors = FALSE
       )
     }# end-for iterating over exprds
     exprds_dt
   } # end-for iterating over hicds
-  outFile <- file.path(outFolder, "nRegFeat_dt.Rdata")  
-  save(nRegFeat_dt, file = outFile, version=2)
+  outFile <- file.path(outFolder, "permutG2t_nRegFeat_dt.Rdata")  
+  save(permutG2t_nRegFeat_dt, file = outFile, version=2)
   cat(paste0("... written: ", outFile, "\n"))
 } else {
-  outFile <- file.path(outFolder, "nRegFeat_dt.Rdata")  
-  nRegFeat_dt <- get(load(outFile))
+  outFile <- file.path(outFolder, "permutG2t_nRegFeat_dt.Rdata")  
+  permutG2t_nRegFeat_dt <- get(load(outFile))
 }  
-# load("TFS_BY_TADS_SIGNIFTADS_C3.TFT/nRegFeat_dt.Rdata")
-outFile <- file.path(outFolder, paste0("nRegFeat_boxplot_allDS.", plotType))  
+# load("TFS_BY_TADS_SIGNIFTADS_C3.TFT/permutG2t_nRegFeat_dt.Rdata")
+outFile <- file.path(outFolder, paste0("permutG2t_nRegFeat_boxplot_allDS.", plotType))  
 do.call(plotType, list(outFile, height=myHeight, width=myWidth))
 par(mar=par()$mar+c(9,0,0,0))
-boxplot(nRegFeat_dt[,!colnames(nRegFeat_dt) %in% c("hicds", "exprds")], las=2, main=paste0("all ds (n=", length(unique(file.path(nRegFeat_dt$hicds, nRegFeat_dt$exprds))),")"),  cex.axis=0.8)
+boxplot(permutG2t_nRegFeat_dt[,!colnames(permutG2t_nRegFeat_dt) %in% c("hicds", "exprds")],
+        las=2, 
+        main=paste0("all ds (n=", length(unique(file.path(permutG2t_nRegFeat_dt$hicds, permutG2t_nRegFeat_dt$exprds))),")"),  
+        cex.axis=0.8)
 mtext(side=3, text = paste0(dsIn))
 cat(paste0("... written: ", outFile, "\n"))
 
-# load("TFS_BY_TADS_SIGNIFTADS_C3.TFT/nRegFeat_dt.Rdata")
+# load("TFS_BY_TADS_SIGNIFTADS_C3.TFT/permutG2t_nRegFeat_dt.Rdata")
 
-keepCols <- c("mean_nTFs_signif", "mean_nTFs_notSignif", "mean_nGenes_signif", "mean_nGenes_notSignif", "mean_nTFsOVERnGenes_signif", "mean_nTFsOVERnGenes_notSignif")
+keepCols <- c("mean_nTFs_permutG2t", "mean_nGenes_permutG2t", "mean_nTFsOVERnGenes_permutG2t")
 
-outFile <- file.path(outFolder, paste0("nRegFeat_boxplot_allDS_keepCols.", plotType))  
+outFile <- file.path(outFolder, paste0("permutG2t_nRegFeat_boxplot_allDS_keepCols.", plotType))  
 do.call(plotType, list(outFile, height=myHeight, width=myWidth))
 par(mar=par()$mar+c(9,0,0,0))
-boxplot(nRegFeat_dt[, keepCols], las=2, main=paste0("all ds (n=", length(unique(file.path(nRegFeat_dt$hicds, nRegFeat_dt$exprds))),")"),  cex.axis=0.8)
+boxplot(permutG2t_nRegFeat_dt[, keepCols], las=2, 
+        main=paste0("all ds (n=", length(unique(file.path(permutG2t_nRegFeat_dt$hicds, permutG2t_nRegFeat_dt$exprds))),")"),  
+        cex.axis=0.8)
 mtext(side=3, text = paste0(dsIn))
 cat(paste0("... written: ", outFile, "\n"))
 
