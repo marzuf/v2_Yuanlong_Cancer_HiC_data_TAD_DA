@@ -85,7 +85,7 @@ do.call(plotType, list(outFile, height=myHeight, width=myWidth))
 par(mar=par()$mar+c(9,0,0,0))
 boxplot(plot_dt[,plot_cols],
         las=2, 
-        main=paste0("all ds (n=", length(unique(file.path(plot_dt$hicds, plot_dt$exprds))),")"),  
+        main=paste0("all ds (n=", length(unique(file.path(plot_dt$hicds, plot_dt$exprds))),") - ", dsIn),  
         cex.axis=0.8)
 mtext(side=3, text = paste0(dsIn))
 cat(paste0("... written: ", outFile, "\n"))
@@ -100,7 +100,7 @@ outFile <- file.path(outFolder, paste0("permutCorr_nRegFeat_boxplot_allDS_keepCo
 do.call(plotType, list(outFile, height=myHeight, width=myWidth))
 par(mar=par()$mar+c(9,0,0,0))
 boxplot(plot_dt[, keepCols], las=2, 
-        main=paste0("all ds (n=", length(unique(file.path(permutCorr_nRegFeat_dt$hicds, permutCorr_nRegFeat_dt$exprds))),")"),  
+        main=paste0("all ds (n=", length(unique(file.path(permutCorr_nRegFeat_dt$hicds, permutCorr_nRegFeat_dt$exprds))),") - ", dsIn),  
         cex.axis=0.8)
 mtext(side=3, text = paste0(dsIn))
 cat(paste0("... written: ", outFile, "\n"))

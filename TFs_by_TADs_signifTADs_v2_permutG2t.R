@@ -25,7 +25,7 @@ plotCex <- 1.4
 
 plotType <- "svg"
 myHeight <- ifelse(plotType == "png", 400, 7)
-myWidth <- ifelse(plotType == "png", 600, 9)
+myWidth <- ifelse(plotType == "png", 500, 8)
 plotCex <- 1.4
 
 nTop <- 10
@@ -60,7 +60,7 @@ stopifnot(dsIn %in% c("crisp", "c3.mir", "c3.all", "c3.tft", "trrust", "tftg", "
 outFolder <- file.path(paste0("TFS_BY_TADS_SIGNIFTADS_V2_PERMUTG2T_", toupper(dsIn)))
 dir.create(outFolder, recursive = TRUE)
 
-buildData <- TRUE
+buildData <- FALSE
 
 nPermut <- 1000
 
@@ -268,8 +268,9 @@ par(mar=par()$mar+c(9,0,0,0))
 boxplot(permutG2t_nRegFeat_dt[,!colnames(permutG2t_nRegFeat_dt) %in% c("hicds", "exprds")],
         las=2, 
         main=paste0("all ds (n=", length(unique(file.path(permutG2t_nRegFeat_dt$hicds, permutG2t_nRegFeat_dt$exprds))),")"),  
+        cex.main = plotCex, cex.lab = plotCex,
         cex.axis=0.8)
-mtext(side=3, text = paste0(dsIn))
+mtext(side=3, text = paste0("permutG2t - ", dsIn))
 cat(paste0("... written: ", outFile, "\n"))
 
 # load("TFS_BY_TADS_SIGNIFTADS_C3.TFT/permutG2t_nRegFeat_dt.Rdata")
@@ -281,8 +282,9 @@ do.call(plotType, list(outFile, height=myHeight, width=myWidth))
 par(mar=par()$mar+c(9,0,0,0))
 boxplot(permutG2t_nRegFeat_dt[, keepCols], las=2, 
         main=paste0("all ds (n=", length(unique(file.path(permutG2t_nRegFeat_dt$hicds, permutG2t_nRegFeat_dt$exprds))),")"),  
+        cex.main = plotCex, cex.lab = plotCex,
         cex.axis=0.8)
-mtext(side=3, text = paste0(dsIn))
+mtext(side=3, text = paste0("permutG2t - ", dsIn))
 cat(paste0("... written: ", outFile, "\n"))
 
 

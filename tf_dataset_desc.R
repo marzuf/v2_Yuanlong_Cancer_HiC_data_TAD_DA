@@ -12,7 +12,7 @@ require(dplyr)
 
 plotType <- "svg"
 myHeight <- ifelse(plotType=="png", 400, 7)
-myWidth <- ifelse(plotType=="png", 600, 9)
+myWidth <- ifelse(plotType=="png", 500, 8)
 plotCex <- 1.4
 
 hicds="ENCSR489OCU_NCI-H460_40kb"
@@ -152,7 +152,8 @@ outFile <- file.path(outFolder, paste0("nUniqueTarget_tfDS.", plotType))
 do.call(plotType, list(outFile, height=myHeight, width=myWidth))
 
 plot_multiDens(
-   by(out_dt, out_dt$tf_ds, function(x) log10(x$"nUniqueTarget"))
+   by(out_dt, out_dt$tf_ds, function(x) log10(x$"nUniqueTarget")),
+plotTit = "# unique targets"
 )
 
 foo <- dev.off()
@@ -162,7 +163,7 @@ outFile <- file.path(outFolder, paste0("nUniqueReg_tfDS.", plotType))
 do.call(plotType, list(outFile, height=myHeight, width=myWidth))
 
 plot_multiDens(
-  by(out_dt, out_dt$tf_ds, function(x) log10(x$"nUniqueReg"))
+  by(out_dt, out_dt$tf_ds, function(x) log10(x$"nUniqueReg")), plotTit = "# unique reg. elements"
 )
 foo <- dev.off()
 cat(paste0("... written: ", outFile, "\n"))

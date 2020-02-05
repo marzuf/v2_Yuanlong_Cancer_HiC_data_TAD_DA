@@ -176,7 +176,7 @@ for(curr_var in all_vars) {
     plot_list,
     plotTit = paste0(curr_var)
   )
-  mtext(side=3, text = paste0("all data"))
+  mtext(side=3, text = paste0("all data - ", dsIn))
   foo <- dev.off()
   cat(paste0("... written: ", outFile, "\n"))
 
@@ -298,7 +298,7 @@ for(i_ds in 1:length(n_hicds)) {
       plot_list,
       plotTit = paste0(curr_var)
     )
-    mtext(side=3, text = paste0(hicds, " - ", exprds))
+    mtext(side=3, text = paste0(hicds, " - ", exprds, " - ", dsIn))
     foo <- dev.off()
     cat(paste0("... written: ", outFile, "\n"))
     
