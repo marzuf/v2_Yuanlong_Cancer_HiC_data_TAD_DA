@@ -1,5 +1,7 @@
 #!/usr/bin/bash
 
+# ./call_run_pipeline_allDS.sh
+
 ######
 # usual datasets
 ######
@@ -11,8 +13,8 @@
 ./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_40kb TCGAskcm_wt_mutBRAF  # 5,6,7 - pos ok
 ./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_40kb TCGAskcm_wt_mutCTNNB1  # 5,6,7 - pos ok
 
-./run_pipeline_56.sh ENCSR862OGI_RPMI-7951_40kb TCGAskcm_lowInf_highInf  # neutrino - pip1 5,6 ok
-./run_pipeline_56.sh ENCSR862OGI_RPMI-7951_40kb TCGAskcm_wt_mutBRAF   # neutrino - pip2 5,6 ok
+./run_pipeline.sh ENCSR862OGI_RPMI-7951_40kb TCGAskcm_lowInf_highInf  # neutrino - pip1 5,6 ok
+./run_pipeline.sh ENCSR862OGI_RPMI-7951_40kb TCGAskcm_wt_mutBRAF   # neutrino - pip2 5,6 ok
 ./run_pipeline.sh ENCSR862OGI_RPMI-7951_40kb TCGAskcm_wt_mutCTNNB1   # neutrino - ok
 
 

@@ -2,6 +2,8 @@
 
 ######## #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### for 6v2 and 9v2
 
+# TCGA data have been prepared according to scripts in folder /mnt/etemp/marie/scripts/TAD_DE_pipeline_v2_TCGAdata
+
 # LIVER
 # ./run_pipeline.sh GSE105381_HepG2_40kb TCGAlihc_norm_lihc  
 # ./run_pipeline.sh GSE105381_HepG2_40kb TCGAlihc_wt_mutCTNNB1  
@@ -129,7 +131,8 @@ step2=1    # run the pipeline
 #TAD_DE_pipSteps=( "8cOnlyRatioDownFastSave" ) ### !!! USE FAST SAVE FOR STEP 8 !!! 
 # use fast save and permut version
 #TAD_DE_pipSteps=( "5fastSavePermut" "6fastSave")
-TAD_DE_pipSteps=( "11")
+#TAD_DE_pipSteps=( "11")
+TAD_DE_pipSteps=( "19sameNbrPartial" )
 
 # STEP 9; STEP10sameNbr; STEP11sameNbr
 
