@@ -152,7 +152,7 @@ outFile <- file.path(outFolder, paste0("nUniqueTarget_tfDS.", plotType))
 do.call(plotType, list(outFile, height=myHeight, width=myWidth))
 
 plot_multiDens(
-   by(out_dt, out_dt$tf_ds, function(x) log10(x$"nUniqueTarget")),
+   by(out_dt, out_dt$tf_ds, function(x) log10(x$"nUniqueTarget")), legPos = "topleft",
 plotTit = "# unique targets"
 )
 
@@ -163,7 +163,7 @@ outFile <- file.path(outFolder, paste0("nUniqueReg_tfDS.", plotType))
 do.call(plotType, list(outFile, height=myHeight, width=myWidth))
 
 plot_multiDens(
-  by(out_dt, out_dt$tf_ds, function(x) log10(x$"nUniqueReg")), plotTit = "# unique reg. elements"
+  by(out_dt, out_dt$tf_ds, function(x) log10(x$"nUniqueReg")), plotTit = "# unique reg. elements",legPos = "topleft",
 )
 foo <- dev.off()
 cat(paste0("... written: ", outFile, "\n"))

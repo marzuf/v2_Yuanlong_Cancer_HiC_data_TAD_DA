@@ -42,7 +42,7 @@ x_qt_val <- 0.2
 y_qt_val <- 0.95
 
 
-dsIn <- "crisp"
+dsIn <- " c3.tft"
 args <- commandArgs(trailingOnly = TRUE)
 stopifnot(length(args) == 1 | length(args) == 3)
 dsIn <- args[1]
@@ -57,7 +57,7 @@ if(length(args) == 3) {
 
 stopifnot(dsIn %in% c("crisp", "c3.mir", "c3.all", "c3.tft", "trrust", "tftg", "motifmap", "kegg", "chea3_all", "chea3_lung"))
 
-outFolder <- file.path(paste0("TFS_BY_TADS_SIGNIFTADS_V2_PERMUTCORR_", toupper(dsIn)))
+outFolder <- file.path(paste0("TFS_BY_TADS_SIGNIFTADS_V2_CMP_OBS_PERMUT_", toupper(dsIn)))
 dir.create(outFolder, recursive = TRUE)
 
 buildData <- TRUE
@@ -66,41 +66,46 @@ buildData <- TRUE
 
 obs_data <- get(load(file.path(paste0("TFS_BY_TADS_SIGNIFTADS_V2_", toupper(dsIn)), "nRegFeat_dt.Rdata")))
 permutCorr_data <- get(load(file.path(paste0("TFS_BY_TADS_SIGNIFTADS_V2_PERMUTCORR_", toupper(dsIn)), "permutCorr_nRegFeat_dt.Rdata")))
+permutG2t_data <- get(load(file.path(paste0("TFS_BY_TADS_SIGNIFTADS_V2_PERMUTG2T_", toupper(dsIn)), "permutG2t_nRegFeat_dt.Rdata")))
 
-plot_dt <- merge(obs_data, permutCorr_data, by =c("hicds", "exprds"))
-plot_dt <- plot_dt[,sort(colnames(plot_dt))]
+plot_dt <- merge(obs_data, merge(permutG2t_data, permutCorr_data, by =c("hicds", "exprds")), by =c("hicds", "exprds"))
 
 plot_cols <- c(
-  "mean_nGenes_signif"  ,"mean_nGenes_notSignif", "mean_nGenes_permutCorr"    ,
-  "mean_nRegGenes_signif","mean_nRegGenes_notSignif","mean_nRegGenes_permutCorr"   ,
-  "mean_nRegGenesOVERnGenes_signif","mean_nRegGenesOVERnGenes_notSignif","mean_nRegGenesOVERnGenes_permutCorr",
-  "mean_nTFsOVERnGenes_signif","mean_nTFsOVERnGenes_notSignif","mean_nTFsOVERnGenes_permutCorr",
-  "mean_nTFs_signif","mean_nTFs_notSignif","mean_nTFs_permutCorr"                  
+  "mean_nGenes_signif"  ,"mean_nGenes_notSignif", "mean_nGenes_permutCorr","mean_nGenes_permutG2t",
+  "mean_nRegGenes_signif","mean_nRegGenes_notSignif","mean_nRegGenes_permutCorr","mean_nRegGenes_permutG2t",
+  "mean_nRegGenesOVERnGenes_signif","mean_nRegGenesOVERnGenes_notSignif","mean_nRegGenesOVERnGenes_permutCorr","mean_nRegGenesOVERnGenes_permutG2t",
+  "mean_nTFsOVERnGenes_signif","mean_nTFsOVERnGenes_notSignif","mean_nTFsOVERnGenes_permutCorr","mean_nTFsOVERnGenes_permutG2t",
+  "mean_nTFs_signif","mean_nTFs_notSignif","mean_nTFs_permutCorr","mean_nTFs_permutG2t"
 )
 
+stopifnot(plot_cols %in% colnames(plot_dt))
 
 # load("TFS_BY_TADS_SIGNIFTADS_C3.TFT/permutCorr_nRegFeat_dt.Rdata")
-outFile <- file.path(outFolder, paste0("permutCorr_nRegFeat_boxplot_allDS.", plotType))  
+outFile <- file.path(outFolder, paste0("cmp_obs_permut_nRegFeat_boxplot_allDS.", plotType))  
 do.call(plotType, list(outFile, height=myHeight, width=myWidth))
 par(mar=par()$mar+c(9,0,0,0))
 boxplot(plot_dt[,plot_cols],
         las=2, 
         main=paste0("all ds (n=", length(unique(file.path(plot_dt$hicds, plot_dt$exprds))),") - ", dsIn),  
+        cex.main = plotCex , cex.lab = plotCex,
         cex.axis=0.8)
 mtext(side=3, text = paste0(dsIn))
 cat(paste0("... written: ", outFile, "\n"))
 
 # load("TFS_BY_TADS_SIGNIFTADS_C3.TFT/permutCorr_nRegFeat_dt.Rdata")
 
-keepCols <- c("mean_nTFs_signif", "mean_nTFs_notSignif", "mean_nTFs_permutCorr", 
-              "mean_nGenes_signif", "mean_nGenes_notSignif", "mean_nGenes_permutCorr", 
-              "mean_nTFsOVERnGenes_signif", "mean_nTFsOVERnGenes_notSignif", "mean_nTFsOVERnGenes_permutCorr")
+keepCols <- c("mean_nTFs_signif", "mean_nTFs_notSignif", "mean_nTFs_permutCorr","mean_nTFs_permutG2t",  
+              "mean_nGenes_signif", "mean_nGenes_notSignif", "mean_nGenes_permutCorr","mean_nGenes_permutG2t",  
+              "mean_nTFsOVERnGenes_signif", "mean_nTFsOVERnGenes_notSignif", "mean_nTFsOVERnGenes_permutCorr", "mean_nTFsOVERnGenes_permutG2t")
 
-outFile <- file.path(outFolder, paste0("permutCorr_nRegFeat_boxplot_allDS_keepCols.", plotType))  
+stopifnot(keepCols %in% colnames(plot_dt))
+
+outFile <- file.path(outFolder, paste0("cmp_obs_permut_nRegFeat_boxplot_allDS_keepCols.", plotType))  
 do.call(plotType, list(outFile, height=myHeight, width=myWidth))
 par(mar=par()$mar+c(9,0,0,0))
 boxplot(plot_dt[, keepCols], las=2, 
         main=paste0("all ds (n=", length(unique(file.path(permutCorr_nRegFeat_dt$hicds, permutCorr_nRegFeat_dt$exprds))),") - ", dsIn),  
+        cex.main = plotCex , cex.lab = plotCex,
         cex.axis=0.8)
 mtext(side=3, text = paste0(dsIn))
 cat(paste0("... written: ", outFile, "\n"))
