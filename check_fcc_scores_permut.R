@@ -167,6 +167,7 @@ if(buildTable) {
 
 
 all_sfx <- c("all", "right", "left")
+all_sfx <- c("right", "left")
 
 rbPal <- colorRampPalette(c('red','blue'))
 
@@ -252,6 +253,77 @@ for(sfx in all_sfx) {
   tmp_dt <- all_permut_ratios[,c(paste0("ratioFC_", sfx), paste0("ratioDown_", sfx), paste0("fcc_", sfx))]
   tmp_dt <- na.omit(tmp_dt)
   stopifnot( (2*tmp_dt[,paste0("ratioFC_", sfx)] - 1) * (2* tmp_dt[,paste0("ratioDown_", sfx)]- 1) == tmp_dt[,paste0("fcc_", sfx)]) 
+  
+  
+  
+  
+  
+  
+  
+  sub_permut_ratios <- all_permut_ratios[!is.na(all_permut_ratios[,paste0("fcc_", sfx)]),]
+  
+  
+  fcc_fract <- seq(from=-1, to=1, by=0.25)
+  # fcc_fract_names <- paste0("FCC > ", fcc_fract[1:(length(fcc_fract)-1)], " and FCC <= ",fcc_fract[2:length(fcc_fract)])
+  fcc_fract_names <- paste0("FCC \u2208 ]", fcc_fract[1:(length(fcc_fract)-1)], ", ",fcc_fract[2:length(fcc_fract)], "]")
+  fcc_fract_names <- paste0("]", fcc_fract[1:(length(fcc_fract)-1)], ", ",fcc_fract[2:length(fcc_fract)], "]")
+  fcc_fract_names[fcc_fract_names == "]-1, -0.75]"] <- "[-1, -0.75]"
+  
+  
+  
+  fcc_scoreFract <- sapply(1:nrow(sub_permut_ratios) ,function(x) which(hist(sub_permut_ratios[x,paste0("fcc_", sfx)], breaks=fcc_fract, plot=F)$counts == 1))
+  
+  
+  save(sub_permut_ratios,file= "sub_permut_ratios.Rdata", version=2)
+  save(fcc_scoreFract, file ="fcc_scoreFract.Rdata", version=2)
+  
+  
+  stopifnot(length(fcc_scoreFract) == nrow(sub_permut_ratios))
+  
+  require(ggsci)
+  ggsci_pal <- "lancet"
+  ggsci_subpal <- ""
+  myPals <-  eval(parse(text=paste0("pal_", ggsci_pal, "(", ggsci_subpal, ")")))(length(unique(fcc_fract_names)))
+  myPals <- rev(myPals)
+  
+  outFile <- file.path(outFolder, paste0("ratioDown_ratioFC_colFCCfract_", sfx, ".", plotType))
+  do.call(plotType, list(outFile, height=myHeight, width=myWidthLeg))
+  
+  par(xpd = T, mar = par()$mar + c(0,0,0,6))
+  
+  save(myPals, file= "myPals.Rdata", version=2)
+  
+  
+  
+  plot(
+    x = sub_permut_ratios[,paste0("ratioFC_", sfx)],
+    y = sub_permut_ratios[,paste0("ratioDown_", sfx)],
+    xlab=paste0("ratioNegFC_", sfx),
+    ylab=paste0("ratioDown_", sfx),
+    col = myPals[fcc_scoreFract],
+    pch = 16,
+    cex = 0.7,
+    cex.lab = plotCex,
+    cex.axis = plotCex,
+    main = paste0("all datasets (permut ", sfx, ")")
+  )
+  mtext(side=3, text = paste0("# DS = ", nDS, "; # TADs = ", nrow(sub_permut_ratios)))
+  
+  # legend("bottomright",
+  legend(1.1,1,
+         title="FCC score",
+         legend= rev(fcc_fract_names),
+         col =rev(myPals),
+         pch=20,
+         cex = 0.8,
+         ncol=1,
+         horiz = F,
+         bty="n")
+  
+  foo <- dev.off()
+  cat(paste0("... written: ", outFile, "\n"))
+  
+  
   
   
 }

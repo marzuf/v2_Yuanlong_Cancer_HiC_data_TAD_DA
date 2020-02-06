@@ -166,6 +166,61 @@ foo <- dev.off()
 cat(paste0("... written: ", outFile, "\n"))
 
 
+
+
+
+#######################################################################################################################################
+fcc_fract <- seq(from=-1, to=1, by=0.25)
+# fcc_fract_names <- paste0("FCC > ", fcc_fract[1:(length(fcc_fract)-1)], " and FCC <= ",fcc_fract[2:length(fcc_fract)])
+fcc_fract_names <- paste0("FCC \u2208 ]", fcc_fract[1:(length(fcc_fract)-1)], ", ",fcc_fract[2:length(fcc_fract)], "]")
+fcc_fract_names <- paste0("]", fcc_fract[1:(length(fcc_fract)-1)], ", ",fcc_fract[2:length(fcc_fract)], "]")
+fcc_fract_names[fcc_fract_names == "]-1, -0.75]"] <- "[-1, -0.75]"
+
+all_values_dt$fcc_fract <- sapply(all_values_dt$FCCscore, function(x) which(hist(x, breaks=fcc_fract, plot=F)$counts == 1))
+
+require(ggsci)
+ggsci_pal <- "lancet"
+ggsci_subpal <- ""
+myPals <-  eval(parse(text=paste0("pal_", ggsci_pal, "(", ggsci_subpal, ")")))(length(unique(fcc_fract_names)))
+myPals <- rev(myPals)
+
+outFile <- file.path(outFolder, paste0("ratioDown_ratioFC_colFCCfract.", plotType))
+do.call(plotType, list(outFile, height=myHeight, width=myWidthLeg))
+
+par(xpd = T, mar = par()$mar + c(0,0,0,6))
+
+plot(
+  x = all_values_dt$ratioFC,
+  y = all_values_dt$rD,
+  xlab="ratioNegFC",
+  ylab="ratioDown",
+  col = myPals[all_values_dt$fcc_fract],
+  pch = 16,
+  cex = 0.7,
+  cex.lab = plotCex,
+  cex.axis = plotCex,
+  main = "all datasets"
+)
+mtext(side=3, text = paste0("# DS = ", nDS, "; # TADs = ", nrow(all_values_dt)))
+
+# legend("bottomright",
+legend(1.1,1,
+       title="FCC score",
+       legend= rev(fcc_fract_names),
+       col =rev(myPals),
+       pch=20,
+       cex = 0.8,
+       ncol=1,
+       horiz = F,
+       bty="n")
+
+foo <- dev.off()
+cat(paste0("... written: ", outFile, "\n"))
+
+
+
+
+
 stopifnot( (2*all_values_dt$ratioFC - 1) * (2* all_values_dt$rD- 1) == all_values_dt$FCCscore)
 #######################################################################################################################################
 #######################################################################################################################################
