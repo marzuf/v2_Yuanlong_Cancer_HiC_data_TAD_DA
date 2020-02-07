@@ -84,12 +84,21 @@ almost_down_concordant <- c(-2,-2.5,-3,-3.5, -1.5,-4, 0.2, 0.4, 0.3)
 
 almost_up_concordant <- -1*almost_down_concordant
 
+################################################
+# CASE 7: weird 0 cases
+################################################
+
+weird0_1 <- c(-0.1, -0.2, -0.3, -0.4, 2.5, 3, 3.5, 4)
+
+weird0_2 <- c(-5, 1, 1.5, 1.5, 1)
+
+
 
 
 plot_vect = "very_discordant"
 
 
-for(plot_vect in c( "very_discordant1", "very_discordant2", "very_discordant3", "fifty_fifty", "down_concordant", "up_concordant", "almost_down_concordant", "almost_up_concordant"  )) {
+for(plot_vect in c( "very_discordant1", "very_discordant2", "very_discordant3", "fifty_fifty", "down_concordant", "up_concordant", "almost_down_concordant", "almost_up_concordant", "weird0_1", "weird0_2")) {
   
   fc_vect <- sort(get(plot_vect))
   
