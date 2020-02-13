@@ -52,6 +52,8 @@ if(length(args) == 3) {
 
 } else {
   all_hicds <- list.files("PIPELINE/OUTPUT_FOLDER")
+all_hicds <- all_hicds[!grepl("_RANDOM", all_hicds)]
+all_hicds <- all_hicds[!grepl("_PERMUT", all_hicds)]
   all_exprds <- sapply(all_hicds, function(x) list.files(file.path("PIPELINE/OUTPUT_FOLDER", x)))
 }
 
@@ -60,7 +62,7 @@ stopifnot(dsIn %in% c("crisp", "c3.mir", "c3.all", "c3.tft", "trrust", "tftg", "
 outFolder <- file.path(paste0("TFS_BY_TADS_SIGNIFTADS_V2_PERMUTG2T_", toupper(dsIn)))
 dir.create(outFolder, recursive = TRUE)
 
-buildData <- FALSE
+buildData <- TRUE
 
 nPermut <- 1000
 

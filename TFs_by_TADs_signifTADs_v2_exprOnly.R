@@ -7,16 +7,8 @@ source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 require(doMC)
 registerDoMC(40)
 
-# Rscript TFs_by_TADs_signifTADs_v2_permutCorr.R crisp
-# Rscript TFs_by_TADs_signifTADs_v2_permutCorr.R c3.mir
-# Rscript TFs_by_TADs_signifTADs_v2_permutCorr.R c3.tft
-# Rscript TFs_by_TADs_signifTADs_v2_permutCorr.R c3.all
-# Rscript TFs_by_TADs_signifTADs_v2_permutCorr.R trrust
-# Rscript TFs_by_TADs_signifTADs_v2_permutCorr.R tftg
-# Rscript TFs_by_TADs_signifTADs_v2_permutCorr.R motifmap
-# Rscript TFs_by_TADs_signifTADs_v2_permutCorr.R kegg
-# Rscript TFs_by_TADs_signifTADs_v2_permutCorr.R chea3_all
-# Rscript TFs_by_TADs_signifTADs_v2_permutCorr.R chea3_lung
+
+# Rscript TFs_by_TADs_signifTADs_v2_exprOnly.R chea3_lung
 
 # 
 
@@ -25,7 +17,7 @@ plotCex <- 1.4
 
 plotType <- "svg"
 myHeight <- ifelse(plotType == "png", 400, 7)
-myWidth <- ifelse(plotType == "png", 500, 8)
+myWidth <- ifelse(plotType == "png", 600, 9)
 plotCex <- 1.4
 
 nTop <- 10
@@ -52,19 +44,19 @@ if(length(args) == 3) {
 
 } else {
   all_hicds <- list.files("PIPELINE/OUTPUT_FOLDER")
-all_hicds <- all_hicds[!grepl("_RANDOM", all_hicds)]
-all_hicds <- all_hicds[!grepl("_PERMUT", all_hicds)]
+  all_hicds <- all_hicds[!grepl("_RANDOM", all_hicds)]
+  all_hicds <- all_hicds[!grepl("_PERMUT", all_hicds)]
   all_exprds <- sapply(all_hicds, function(x) list.files(file.path("PIPELINE/OUTPUT_FOLDER", x)))
 }
 
 stopifnot(dsIn %in% c("crisp", "c3.mir", "c3.all", "c3.tft", "trrust", "tftg", "motifmap", "kegg", "chea3_all", "chea3_lung"))
 
-outFolder <- file.path(paste0("TFS_BY_TADS_SIGNIFTADS_V2_PERMUTCORR_", toupper(dsIn)))
+outFolder <- file.path(paste0("TFS_BY_TADS_SIGNIFTADS_V2_EXPRONLY", toupper(dsIn)))
 dir.create(outFolder, recursive = TRUE)
 
 buildData <- TRUE
 
-
+tad_signif_thresh <- 0.01
 
 
 setDir <- "/media/electron"
@@ -82,7 +74,7 @@ final_dt <- get(load("CREATE_FINAL_TABLE/all_result_dt.Rdata"))
 
 
 if(buildData){
-  permutCorr_nRegFeat_dt <- foreach(hicds = all_hicds, .combine='rbind') %dopar%{
+  nRegFeat_dt <- foreach(hicds = all_hicds, .combine='rbind') %dopar%{
   
     cat(paste0("> START - ", hicds,"\n"))
   
@@ -142,51 +134,35 @@ if(buildData){
       cat(paste0("init nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
     }
     
-    hicds_reg_dt <- reg_dt 
-    rm("reg_dt")
+    stopifnot(!is.na(reg_dt$targetEntrezID))
+    reg_dt <- reg_dt[reg_dt$regSymbol %in% names(symb2entrez),]
+    cat(paste0("with Reg Entrez: nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
+    reg_dt$regEntrezID <- symb2entrez[reg_dt$regSymbol]
+    reg_dt$regEntrezID <- as.character(reg_dt$regEntrezID)
+    stopifnot(!is.na(reg_dt$regEntrezID))
     
-    exprds = all_exprds[[paste0(hicds)]][1]
-    exprds_dt <- foreach(exprds = all_exprds[[paste0(hicds)]], .combine='rbind') %do% {
-      
-      
-    sample_data <- get(load(file.path("PIPELINE", "OUTPUT_FOLDER", hicds, exprds, "5sameNbr_runPermutationsCorr", "sample_around_TADs_sameNbr.Rdata") ))
-    cat(paste0("... loaded ...\n"))
-    
-    
-    g2t_dt_left <- do.call(rbind, lapply(1:length(sample_data), function(x) {
-      if(sample_data[[x]][["nGenes_left"]] == 0) return(NULL)
-      data.frame(
-        # region = names(sample_data)[x],
-        region = paste0(names(sample_data)[x], "_left"),  # otherwise a TAD will have 2x the # of genes
-        entrezID = sample_data[[x]][["genes_left"]],
-        stringsAsFactors = FALSE)
-    }
-    ))
-    
-    g2t_dt_right <- do.call(rbind, lapply(1:length(sample_data), function(x) {
-      if(sample_data[[x]][["nGenes_right"]] == 0) return(NULL)
-      data.frame(
-        # region = names(sample_data)[x],
-        region = paste0(names(sample_data)[x], "_right"),  # otherwise a TAD will have 2x the # of genes
-        entrezID = sample_data[[x]][["genes_right"]],
-        stringsAsFactors = FALSE)
-    }
-    ))
-    
-    g2t_dt <- rbind(g2t_dt_left,g2t_dt_right)
+    g2t_file <- file.path(hicds, "genes2tad", "all_genes_positions.txt")
+    g2t_dt <- read.delim(g2t_file, stringsAsFactors = FALSE, header=FALSE, col.names=c("entrezID", "chromo", "start", "end", "region"))
     g2t_dt$entrezID <- as.character(g2t_dt$entrezID)
     
-  
+    g2t_dt <- g2t_dt[grepl("_TAD", g2t_dt$region),]
+    stopifnot(!duplicated(g2t_dt$entrezID))
     g2t_vect <- setNames(g2t_dt$region, g2t_dt$entrezID)
     
-    reg_dt <- hicds_reg_dt[hicds_reg_dt$targetEntrezID %in% g2t_dt$entrezID,]
+    reg_dt <- reg_dt[reg_dt$targetEntrezID %in% g2t_dt$entrezID,]
     cat(paste0("with g2t assignment: nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
     reg_dt$targetRegion <- g2t_vect[paste0(reg_dt$targetEntrezID)]
     stopifnot(!is.na(reg_dt))
       
     nbrReg_TADs_dt <- aggregate(regSymbol~targetRegion, data=reg_dt, function(x) length(unique(x)))
     
-
+    exprds = all_exprds[[paste0(hicds)]][1]
+    
+    hicds_reg_dt <- reg_dt
+    rm("reg_dt")
+    
+    exprds_dt <- foreach(exprds = all_exprds[[paste0(hicds)]], .combine='rbind') %do% {
+      
       
       if(dsIn == "chea3_lung") {
         if(! (grepl("lusc", exprds) | grepl("luad", exprds))) return(NULL)
@@ -199,13 +175,18 @@ if(buildData){
       result_dt$rev_tad_rank <- rank(-result_dt$adjPvalComb, ties="min")
       
       geneList <- get(load(file.path("PIPELINE", "OUTPUT_FOLDER", hicds, exprds, "0_prepGeneData", "pipeline_geneList.Rdata") ))
-      # stopifnot(geneList %in% g2t_dt$entrezID) # not for permut
+      stopifnot(geneList %in% g2t_dt$entrezID)
       gByTAD <- g2t_dt[g2t_dt$entrezID %in% geneList,]
       
       
       nGbyT <- setNames(as.numeric(table(g2t_dt$region)), names(table(g2t_dt$region)))
       
-      reg_dt <- reg_dt[reg_dt$targetEntrezID %in% geneList,]  # update 08.01.20 -> NEED ALSO TO SUBSET THE REGULATED FEATURES !
+      reg_dt <- hicds_reg_dt[hicds_reg_dt$targetEntrezID %in% geneList,]  # update 08.01.20 -> NEED ALSO TO SUBSET THE REGULATED FEATURES !
+      
+      ## => change here, take only the expressed TFs
+      de_dt <- get(load(file.path("PIPELINE", "OUTPUT_FOLDER", hicds, exprds, "1_runGeneDE", "DE_topTable.Rdata") ))
+      reg_dt <- reg_dt[reg_dt$regEntrezID %in% de_dt$genes,]
+      cat(paste0("with expressed Reg Entrez: nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
       
       # 1) # of genes in TAD
       tad_nGenes_dt <- aggregate(entrezID ~ region, data=gByTAD, FUN=function(x) length(x))
@@ -235,72 +216,74 @@ if(buildData){
       plot_dt$hicds <- hicds
       plot_dt$exprds <- exprds
       
-      permutCorr_plot_dt <- plot_dt
+      signif_plot_dt <- merge(plot_dt, result_dt[,c("hicds", "exprds", "region", "adjPvalComb")], by=c("hicds", "exprds", "region"))
       
-      stopifnot(permutCorr_plot_dt$region %in% names(nGbyT))
-      permutCorr_plot_dt$nGenes <- nGbyT[paste0(permutCorr_plot_dt$region)]
-      stopifnot(!is.na(permutCorr_plot_dt$nGenes))
+      stopifnot(signif_plot_dt$region %in% names(nGbyT))
+      signif_plot_dt$nGenes <- nGbyT[paste0(signif_plot_dt$region)]
+      stopifnot(!is.na(signif_plot_dt$nGenes))
       
       
-      
+      signif_plot_dt$signif_lab <- ifelse(signif_plot_dt$adjPvalComb <= tad_signif_thresh, "signif.", "not signif.")
       
      
-      nGenes_permutCorr <- permutCorr_plot_dt$nGenes
+      nGenes_signif <- signif_plot_dt$nGenes[signif_plot_dt$signif_lab == "signif."]
+      nGenes_notSignif <- signif_plot_dt$nGenes[signif_plot_dt$signif_lab == "not signif."]
 
       
-      nTFs_permutCorr <- permutCorr_plot_dt$nTFs
+      nTFs_signif <- signif_plot_dt$nTFs[signif_plot_dt$signif_lab == "signif."]
+      nTFs_notSignif <- signif_plot_dt$nTFs[signif_plot_dt$signif_lab == "not signif."]
       
-      nRegGenes_permutCorr <- permutCorr_plot_dt$nRegGenes
+      nRegGenes_signif <- signif_plot_dt$nRegGenes[signif_plot_dt$signif_lab == "signif."]
+      nRegGenes_notSignif <- signif_plot_dt$nRegGenes[signif_plot_dt$signif_lab == "not signif."]
       
-      nTFsOVERnGenes_permutCorr <- permutCorr_plot_dt$nTFs
+      nTFsOVERnGenes_signif <- signif_plot_dt$nTFs[signif_plot_dt$signif_lab == "signif."]/signif_plot_dt$nGenes[signif_plot_dt$signif_lab == "signif."]
+      nTFsOVERnGenes_notSignif <- signif_plot_dt$nTFs[signif_plot_dt$signif_lab == "not signif."]/signif_plot_dt$nGenes[signif_plot_dt$signif_lab == "not signif."]
       
-      nRegGenesOVERnGenes_permutCorr <- permutCorr_plot_dt$nRegGenes
+      nRegGenesOVERnGenes_signif <- signif_plot_dt$nRegGenes[signif_plot_dt$signif_lab == "signif."]/signif_plot_dt$nGenes[signif_plot_dt$signif_lab == "signif."]
+      nRegGenesOVERnGenes_notSignif <- signif_plot_dt$nRegGenes[signif_plot_dt$signif_lab == "not signif."]/signif_plot_dt$nGenes[signif_plot_dt$signif_lab == "not signif."]
       
       data.frame(
         hicds = hicds,
         exprds = exprds, 
-        mean_nTFs_permutCorr = mean(nTFs_permutCorr),
-        mean_nRegGenes_permutCorr = mean(nRegGenes_permutCorr),
-        mean_nTFsOVERnGenes_permutCorr = mean(nTFsOVERnGenes_permutCorr),
-        mean_nRegGenesOVERnGenes_permutCorr = mean(nRegGenesOVERnGenes_permutCorr),
-        mean_nGenes_permutCorr = mean(nGenes_permutCorr),
+        mean_nTFs_signif = mean(nTFs_signif),
+        mean_nTFs_notSignif = mean(nTFs_notSignif),
+        mean_nRegGenes_signif = mean(nRegGenes_signif),
+        mean_nRegGenes_notSignif = mean(nRegGenes_notSignif),
+        mean_nTFsOVERnGenes_signif = mean(nTFsOVERnGenes_signif),
+        mean_nTFsOVERnGenes_notSignif = mean(nTFsOVERnGenes_notSignif),
+        mean_nRegGenesOVERnGenes_signif = mean(nRegGenesOVERnGenes_signif),
+        mean_nRegGenesOVERnGenes_notSignif = mean(nRegGenesOVERnGenes_notSignif),
+        mean_nGenes_signif = mean(nGenes_signif),
+        mean_nGenes_notSignif = mean(nGenes_notSignif),
         stringsAsFactors = FALSE
       )
     }# end-for iterating over exprds
     exprds_dt
   } # end-for iterating over hicds
-  outFile <- file.path(outFolder, "permutCorr_nRegFeat_dt.Rdata")  
-  save(permutCorr_nRegFeat_dt, file = outFile, version=2)
+  outFile <- file.path(outFolder, "nRegFeat_dt.Rdata")  
+  save(nRegFeat_dt, file = outFile, version=2)
   cat(paste0("... written: ", outFile, "\n"))
 } else {
-  outFile <- file.path(outFolder, "permutCorr_nRegFeat_dt.Rdata")  
-  permutCorr_nRegFeat_dt <- get(load(outFile))
+  outFile <- file.path(outFolder, "nRegFeat_dt.Rdata")  
+  nRegFeat_dt <- get(load(outFile))
 }  
-# load("TFS_BY_TADS_SIGNIFTADS_C3.TFT/permutCorr_nRegFeat_dt.Rdata")
-outFile <- file.path(outFolder, paste0("permutCorr_nRegFeat_boxplot_allDS.", plotType))  
+# load("TFS_BY_TADS_SIGNIFTADS_C3.TFT/nRegFeat_dt.Rdata")
+outFile <- file.path(outFolder, paste0("nRegFeat_boxplot_allDS.", plotType))  
 do.call(plotType, list(outFile, height=myHeight, width=myWidth))
 par(mar=par()$mar+c(9,0,0,0))
-boxplot(permutCorr_nRegFeat_dt[,!colnames(permutCorr_nRegFeat_dt) %in% c("hicds", "exprds")],
-        las=2, 
-        main=paste0("all ds (n=", length(unique(file.path(permutCorr_nRegFeat_dt$hicds, permutCorr_nRegFeat_dt$exprds))),")"),  
-        cex.main = plotCex, cex.lab = plotCex,
-        cex.axis=0.8)
-mtext(side=3, text = paste0("permutCorr - ", dsIn))
+boxplot(nRegFeat_dt[,!colnames(nRegFeat_dt) %in% c("hicds", "exprds")], las=2, main=paste0("all ds (n=", length(unique(file.path(nRegFeat_dt$hicds, nRegFeat_dt$exprds))),")"),  cex.axis=0.8)
+mtext(side=3, text = paste0(dsIn))
 cat(paste0("... written: ", outFile, "\n"))
 
-# load("TFS_BY_TADS_SIGNIFTADS_C3.TFT/permutCorr_nRegFeat_dt.Rdata")
+# load("TFS_BY_TADS_SIGNIFTADS_C3.TFT/nRegFeat_dt.Rdata")
 
-keepCols <- c("mean_nTFs_permutCorr", "mean_nGenes_permutCorr", "mean_nTFsOVERnGenes_permutCorr")
+keepCols <- c("mean_nTFs_signif", "mean_nTFs_notSignif", "mean_nGenes_signif", "mean_nGenes_notSignif", "mean_nTFsOVERnGenes_signif", "mean_nTFsOVERnGenes_notSignif")
 
-outFile <- file.path(outFolder, paste0("permutCorr_nRegFeat_boxplot_allDS_keepCols.", plotType))  
+outFile <- file.path(outFolder, paste0("nRegFeat_boxplot_allDS_keepCols.", plotType))  
 do.call(plotType, list(outFile, height=myHeight, width=myWidth))
 par(mar=par()$mar+c(9,0,0,0))
-boxplot(permutCorr_nRegFeat_dt[, keepCols], las=2, 
-        main=paste0("all ds (n=", length(unique(file.path(permutCorr_nRegFeat_dt$hicds, permutCorr_nRegFeat_dt$exprds))),")"),  
-        cex.main = plotCex, cex.lab = plotCex,
-        cex.axis=0.8)
-mtext(side=3, text = paste0("permutCorr - ", dsIn))
-foo <- dev.off()
+boxplot(nRegFeat_dt[, keepCols], las=2, main=paste0("all ds (n=", length(unique(file.path(nRegFeat_dt$hicds, nRegFeat_dt$exprds))),")"),  cex.axis=0.8)
+mtext(side=3, text = paste0(dsIn))
 cat(paste0("... written: ", outFile, "\n"))
 
 

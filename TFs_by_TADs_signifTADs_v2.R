@@ -52,6 +52,9 @@ if(length(args) == 3) {
 
 } else {
   all_hicds <- list.files("PIPELINE/OUTPUT_FOLDER")
+  all_hicds <- all_hicds[!grepl("_RANDOM", all_hicds)]
+  all_hicds <- all_hicds[!grepl("_PERMUT", all_hicds)]
+
   all_exprds <- sapply(all_hicds, function(x) list.files(file.path("PIPELINE/OUTPUT_FOLDER", x)))
 }
 
@@ -155,6 +158,9 @@ if(buildData){
       
     nbrReg_TADs_dt <- aggregate(regSymbol~targetRegion, data=reg_dt, function(x) length(unique(x)))
     
+    hicds_reg_dt <- reg_dt  
+    rm("reg_dt")
+
     exprds = all_exprds[[paste0(hicds)]][1]
     exprds_dt <- foreach(exprds = all_exprds[[paste0(hicds)]], .combine='rbind') %do% {
       
@@ -176,7 +182,7 @@ if(buildData){
       
       nGbyT <- setNames(as.numeric(table(g2t_dt$region)), names(table(g2t_dt$region)))
       
-      reg_dt <- reg_dt[reg_dt$targetEntrezID %in% geneList,]  # update 08.01.20 -> NEED ALSO TO SUBSET THE REGULATED FEATURES !
+      reg_dt <- hicds_reg_dt[hicds_reg_dt$targetEntrezID %in% geneList,]  # update 08.01.20 -> NEED ALSO TO SUBSET THE REGULATED FEATURES !
       
       # 1) # of genes in TAD
       tad_nGenes_dt <- aggregate(entrezID ~ region, data=gByTAD, FUN=function(x) length(x))

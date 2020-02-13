@@ -7,16 +7,16 @@ source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 require(doMC)
 registerDoMC(40)
 
-# Rscript TFs_by_TADs_signifTADs_v2_permutCorr.R crisp
-# Rscript TFs_by_TADs_signifTADs_v2_permutCorr.R c3.mir
-# Rscript TFs_by_TADs_signifTADs_v2_permutCorr.R c3.tft
-# Rscript TFs_by_TADs_signifTADs_v2_permutCorr.R c3.all
-# Rscript TFs_by_TADs_signifTADs_v2_permutCorr.R trrust
-# Rscript TFs_by_TADs_signifTADs_v2_permutCorr.R tftg
-# Rscript TFs_by_TADs_signifTADs_v2_permutCorr.R motifmap
-# Rscript TFs_by_TADs_signifTADs_v2_permutCorr.R kegg
-# Rscript TFs_by_TADs_signifTADs_v2_permutCorr.R chea3_all
-# Rscript TFs_by_TADs_signifTADs_v2_permutCorr.R chea3_lung
+# Rscript TFs_by_TADs_signifTADs_v2_permutCorr_median.R crisp
+# Rscript TFs_by_TADs_signifTADs_v2_permutCorr_median.R c3.mir
+# Rscript TFs_by_TADs_signifTADs_v2_permutCorr_median.R c3.tft
+# Rscript TFs_by_TADs_signifTADs_v2_permutCorr_median.R c3.all
+# Rscript TFs_by_TADs_signifTADs_v2_permutCorr_median.R trrust
+# Rscript TFs_by_TADs_signifTADs_v2_permutCorr_median.R tftg
+# Rscript TFs_by_TADs_signifTADs_v2_permutCorr_median.R motifmap
+# Rscript TFs_by_TADs_signifTADs_v2_permutCorr_median.R kegg
+# Rscript TFs_by_TADs_signifTADs_v2_permutCorr_median.R chea3_all
+# Rscript TFs_by_TADs_signifTADs_v2_permutCorr_median.R chea3_lung
 
 # 
 
@@ -54,12 +54,13 @@ if(length(args) == 3) {
   all_hicds <- list.files("PIPELINE/OUTPUT_FOLDER")
 all_hicds <- all_hicds[!grepl("_RANDOM", all_hicds)]
 all_hicds <- all_hicds[!grepl("_PERMUT", all_hicds)]
+
   all_exprds <- sapply(all_hicds, function(x) list.files(file.path("PIPELINE/OUTPUT_FOLDER", x)))
 }
 
 stopifnot(dsIn %in% c("crisp", "c3.mir", "c3.all", "c3.tft", "trrust", "tftg", "motifmap", "kegg", "chea3_all", "chea3_lung"))
 
-outFolder <- file.path(paste0("TFS_BY_TADS_SIGNIFTADS_V2_PERMUTCORR_", toupper(dsIn)))
+outFolder <- file.path(paste0("TFS_BY_TADS_SIGNIFTADS_V2_PERMUTCORR_MEDIAN_", toupper(dsIn)))
 dir.create(outFolder, recursive = TRUE)
 
 buildData <- TRUE
@@ -259,11 +260,11 @@ if(buildData){
       data.frame(
         hicds = hicds,
         exprds = exprds, 
-        mean_nTFs_permutCorr = mean(nTFs_permutCorr),
-        mean_nRegGenes_permutCorr = mean(nRegGenes_permutCorr),
-        mean_nTFsOVERnGenes_permutCorr = mean(nTFsOVERnGenes_permutCorr),
-        mean_nRegGenesOVERnGenes_permutCorr = mean(nRegGenesOVERnGenes_permutCorr),
-        mean_nGenes_permutCorr = mean(nGenes_permutCorr),
+        median_nTFs_permutCorr = median(nTFs_permutCorr),
+        median_nRegGenes_permutCorr = median(nRegGenes_permutCorr),
+        median_nTFsOVERnGenes_permutCorr = median(nTFsOVERnGenes_permutCorr),
+        median_nRegGenesOVERnGenes_permutCorr = median(nRegGenesOVERnGenes_permutCorr),
+        median_nGenes_permutCorr = median(nGenes_permutCorr),
         stringsAsFactors = FALSE
       )
     }# end-for iterating over exprds
@@ -290,7 +291,7 @@ cat(paste0("... written: ", outFile, "\n"))
 
 # load("TFS_BY_TADS_SIGNIFTADS_C3.TFT/permutCorr_nRegFeat_dt.Rdata")
 
-keepCols <- c("mean_nTFs_permutCorr", "mean_nGenes_permutCorr", "mean_nTFsOVERnGenes_permutCorr")
+keepCols <- c("median_nTFs_permutCorr", "median_nGenes_permutCorr", "median_nTFsOVERnGenes_permutCorr")
 
 outFile <- file.path(outFolder, paste0("permutCorr_nRegFeat_boxplot_allDS_keepCols.", plotType))  
 do.call(plotType, list(outFile, height=myHeight, width=myWidth))

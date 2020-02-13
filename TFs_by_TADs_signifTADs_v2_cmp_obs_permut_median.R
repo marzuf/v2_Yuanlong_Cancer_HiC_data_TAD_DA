@@ -7,16 +7,16 @@ source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 require(doMC)
 registerDoMC(40)
 
-# Rscript TFs_by_TADs_signifTADs_v2_cmp_obs_permut.R crisp
-# Rscript TFs_by_TADs_signifTADs_v2_cmp_obs_permut.R c3.mir
-# Rscript TFs_by_TADs_signifTADs_v2_cmp_obs_permut.R c3.tft
-# Rscript TFs_by_TADs_signifTADs_v2_cmp_obs_permut.R c3.all
-# Rscript TFs_by_TADs_signifTADs_v2_cmp_obs_permut.R trrust
-# Rscript TFs_by_TADs_signifTADs_v2_cmp_obs_permut.R tftg
-# Rscript TFs_by_TADs_signifTADs_v2_cmp_obs_permut.R motifmap
-# Rscript TFs_by_TADs_signifTADs_v2_cmp_obs_permut.R kegg
-# Rscript TFs_by_TADs_signifTADs_v2_cmp_obs_permut.R chea3_all
-# Rscript TFs_by_TADs_signifTADs_v2_cmp_obs_permut.R chea3_lung
+# Rscript TFs_by_TADs_signifTADs_v2_cmp_obs_permut_median.R crisp
+# Rscript TFs_by_TADs_signifTADs_v2_cmp_obs_permut_median.R c3.mir
+# Rscript TFs_by_TADs_signifTADs_v2_cmp_obs_permut_median.R c3.tft
+# Rscript TFs_by_TADs_signifTADs_v2_cmp_obs_permut_median.R c3.all
+# Rscript TFs_by_TADs_signifTADs_v2_cmp_obs_permut_median.R trrust
+# Rscript TFs_by_TADs_signifTADs_v2_cmp_obs_permut_median.R tftg
+# Rscript TFs_by_TADs_signifTADs_v2_cmp_obs_permut_median.R motifmap
+# Rscript TFs_by_TADs_signifTADs_v2_cmp_obs_permut_median.R kegg
+# Rscript TFs_by_TADs_signifTADs_v2_cmp_obs_permut_median.R chea3_all
+# Rscript TFs_by_TADs_signifTADs_v2_cmp_obs_permut_median.R chea3_lung
 
 # 
 
@@ -52,28 +52,31 @@ if(length(args) == 3) {
   
 } else {
   all_hicds <- list.files("PIPELINE/OUTPUT_FOLDER")
+all_hicds <- all_hicds[!grepl("_RANDOM", all_hicds)]
+all_hicds <- all_hicds[!grepl("_PERMUT", all_hicds)]
+
   all_exprds <- sapply(all_hicds, function(x) list.files(file.path("PIPELINE/OUTPUT_FOLDER", x)))
 }
 
 stopifnot(dsIn %in% c("crisp", "c3.mir", "c3.all", "c3.tft", "trrust", "tftg", "motifmap", "kegg", "chea3_all", "chea3_lung"))
 
-outFolder <- file.path(paste0("TFS_BY_TADS_SIGNIFTADS_V2_CMP_OBS_PERMUT_", toupper(dsIn)))
+outFolder <- file.path(paste0("TFS_BY_TADS_SIGNIFTADS_V2_CMP_OBS_PERMUT_MEDIAN_", toupper(dsIn)))
 dir.create(outFolder, recursive = TRUE)
 
 buildData <- TRUE
 
-obs_data <- get(load(file.path(paste0("TFS_BY_TADS_SIGNIFTADS_V2_", toupper(dsIn)), "nRegFeat_dt.Rdata")))
-permutCorr_data <- get(load(file.path(paste0("TFS_BY_TADS_SIGNIFTADS_V2_PERMUTCORR_", toupper(dsIn)), "permutCorr_nRegFeat_dt.Rdata")))
-permutG2t_data <- get(load(file.path(paste0("TFS_BY_TADS_SIGNIFTADS_V2_PERMUTG2T_", toupper(dsIn)), "permutG2t_nRegFeat_dt.Rdata")))
+obs_data <- get(load(file.path(paste0("TFS_BY_TADS_SIGNIFTADS_V2_MEDIAN_", toupper(dsIn)), "nRegFeat_dt.Rdata")))
+permutCorr_data <- get(load(file.path(paste0("TFS_BY_TADS_SIGNIFTADS_V2_PERMUTCORR_MEDIAN_", toupper(dsIn)), "permutCorr_nRegFeat_dt.Rdata")))
+permutG2t_data <- get(load(file.path(paste0("TFS_BY_TADS_SIGNIFTADS_V2_PERMUTG2T_MEDIAN_", toupper(dsIn)), "permutG2t_nRegFeat_dt.Rdata")))
 
 plot_dt <- merge(obs_data, merge(permutG2t_data, permutCorr_data, by =c("hicds", "exprds")), by =c("hicds", "exprds"))
 
 plot_cols <- c(
-  "mean_nGenes_signif"  ,"mean_nGenes_notSignif", "mean_nGenes_permutCorr","mean_nGenes_permutG2t",
-  "mean_nRegGenes_signif","mean_nRegGenes_notSignif","mean_nRegGenes_permutCorr","mean_nRegGenes_permutG2t",
-  "mean_nRegGenesOVERnGenes_signif","mean_nRegGenesOVERnGenes_notSignif","mean_nRegGenesOVERnGenes_permutCorr","mean_nRegGenesOVERnGenes_permutG2t",
-  "mean_nTFsOVERnGenes_signif","mean_nTFsOVERnGenes_notSignif","mean_nTFsOVERnGenes_permutCorr","mean_nTFsOVERnGenes_permutG2t",
-  "mean_nTFs_signif","mean_nTFs_notSignif","mean_nTFs_permutCorr","mean_nTFs_permutG2t"
+  "median_nGenes_signif"  ,"median_nGenes_notSignif", "median_nGenes_permutCorr","median_nGenes_permutG2t",
+  "median_nRegGenes_signif","median_nRegGenes_notSignif","median_nRegGenes_permutCorr","median_nRegGenes_permutG2t",
+  "median_nRegGenesOVERnGenes_signif","median_nRegGenesOVERnGenes_notSignif","median_nRegGenesOVERnGenes_permutCorr","median_nRegGenesOVERnGenes_permutG2t",
+  "median_nTFsOVERnGenes_signif","median_nTFsOVERnGenes_notSignif","median_nTFsOVERnGenes_permutCorr","median_nTFsOVERnGenes_permutG2t",
+  "median_nTFs_signif","median_nTFs_notSignif","median_nTFs_permutCorr","median_nTFs_permutG2t"
 )
 
 stopifnot(plot_cols %in% colnames(plot_dt))
@@ -92,9 +95,9 @@ cat(paste0("... written: ", outFile, "\n"))
 
 # load("TFS_BY_TADS_SIGNIFTADS_C3.TFT/permutCorr_nRegFeat_dt.Rdata")
 
-keepCols <- c("mean_nTFs_signif", "mean_nTFs_notSignif", "mean_nTFs_permutCorr","mean_nTFs_permutG2t",  
-              "mean_nGenes_signif", "mean_nGenes_notSignif", "mean_nGenes_permutCorr","mean_nGenes_permutG2t",  
-              "mean_nTFsOVERnGenes_signif", "mean_nTFsOVERnGenes_notSignif", "mean_nTFsOVERnGenes_permutCorr", "mean_nTFsOVERnGenes_permutG2t")
+keepCols <- c("median_nTFs_signif", "median_nTFs_notSignif", "median_nTFs_permutCorr","median_nTFs_permutG2t",  
+              "median_nGenes_signif", "median_nGenes_notSignif", "median_nGenes_permutCorr","median_nGenes_permutG2t",  
+              "median_nTFsOVERnGenes_signif", "median_nTFsOVERnGenes_notSignif", "median_nTFsOVERnGenes_permutCorr", "median_nTFsOVERnGenes_permutG2t")
 
 stopifnot(keepCols %in% colnames(plot_dt))
 
