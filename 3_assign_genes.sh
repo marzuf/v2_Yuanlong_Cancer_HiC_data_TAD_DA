@@ -4,6 +4,7 @@
 # ./3_assign_genes.sh ENCSR549MGQ_T47D
 # ./3_assign_genes.sh MCF-7ENCSR549MGQ_T47D
 # (see what has been run in all_cmds_pip.txt)
+# ./3_assign_genes.sh ENCSR489OCU_NCI-H460_RANDOMSHIFT
 
 #all_chromo=( "chr"{1..22} "chrX" )  # -> need to do all chromo to have 1 single file at the end
 #parallel -j4 echo {} ::: ${all_chromo[@]}

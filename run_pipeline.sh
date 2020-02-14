@@ -78,9 +78,17 @@
 # ./run_pipeline.sh K562_40kb TCGAlaml_wt_mutFLT3 
 
 
+# PERMUT DATA
+# ./run_pipeline.sh ENCSR489OCU_NCI-H460_RANDOMSHIFT_40kb TCGAluad_norm_luad
+# ./run_pipeline.sh ENCSR489OCU_NCI-H460_PERMUTG2T_40kb TCGAluad_norm_luad
+
+
+# ./run_pipeline.sh ENCSR489OCU_NCI-H460_RANDOMMIDPOS_40kb TCGAluad_norm_luad   
+
+# ./run_pipeline.sh ENCSR489OCU_NCI-H460_RANDOMNBRGENES_40kb TCGAluad_norm_luad   
 
 start_time=$(date -R)    
-set -e
+#set -e
 
 if [[ $# != 2 ]]; then
     echo "invalid # of arguments"
@@ -100,8 +108,8 @@ step2=1    # run the pipeline
 
 # NB: 1cleanInput is same as 1cleanInputTCGAminCount, except added change rowToKeep based on minCount
 
-#TAD_DE_pipSteps=( "0cleanInputTCGA" "1cleanInput" "2" "2v2" "3" "4" "5" "6" "7" "8c" "9" "10" "11" "13cleanInput" "14f2" "170revision2EZH2" )
-#TAD_DE_pipSteps=( "0cleanInputTCGA" "1cleanInput" "2" "2v2" "3" "4")
+#TAD_DE_pipSteps=( "0cleanInputTCGAminCount" "1cleanInputTCGAminCount" "2" "2v2" "3" "4" "5" "6" "7" "8c" "9" "10" "11" "13cleanInput" "14f2" "170revision2EZH2" )
+#TAD_DE_pipSteps=( "0cleanInputTCGAminCount" "1cleanInputTCGAminCount" "2" "2v2" "3" "4")
 # TAD_DE_pipSteps=( "5" "6" "7" "8c" "9" "10" "11" "13cleanInput" "14f2" "170revision2EZH2" )
 #TAD_DE_pipSteps=( "8c" "9" "10" "11" "13cleanInput" "14f2" "170revision2EZH2" )
 # done later because slow
@@ -132,9 +140,29 @@ step2=1    # run the pipeline
 # use fast save and permut version
 #TAD_DE_pipSteps=( "5fastSavePermut" "6fastSave")
 #TAD_DE_pipSteps=( "11")
-TAD_DE_pipSteps=( "19sameNbrPartial" )
+#TAD_DE_pipSteps=( "19sameNbrPartial" )
+#TAD_DE_pipSteps=( "0cleanInputTCGAminCount" )
+#TAD_DE_pipSteps=( "1cleanInputTCGAminCount" "3" "4" )
+#TAD_DE_pipSteps=( "5fastSavePermut" "6fastSave")
+#TAD_DE_pipSteps=( "5sameNbr" )
+#TAD_DE_pipSteps=( "7sameNbr" )
+#TAD_DE_pipSteps=( "10sameNbr" )
+#TAD_DE_pipSteps=( "8cOnlyFCCfastSave" )
+#TAD_DE_pipSteps=( "6fastSave")
+#TAD_DE_pipSteps=( "8cOnlyRatioDownFastSave" )
+#TAD_DE_pipSteps=( "9" )
+#TAD_DE_pipSteps=( "10sameNbr" )
+#TAD_DE_pipSteps=( "11sameNbr" )
+#TAD_DE_pipSteps=( "19onlyFC" "19sameNbr" )
+
+#TAD_DE_pipSteps=( "9" "10sameNbr" "11sameNbr" "19sameNbr" "19onlyFC" )
+#TAD_DE_pipSteps=( "170revision2EZH2" )
+
 
 # STEP 9; STEP10sameNbr; STEP11sameNbr
+
+TAD_DE_pipSteps=( "5fastSavePermut" "6fastSave" "5sameNbr" "8cOnlyFCCfastSave" "8cOnlyRatioDownFastSave" "9" "7sameNbr" "10sameNbr" "11sameNbr" "19sameNbr" "19onlyFC" "170revision2EZH2" )
+
 
 # ./run_pipeline.sh GSE105381_HepG2_40kb TCGAlihc_norm_lihc   # 
 

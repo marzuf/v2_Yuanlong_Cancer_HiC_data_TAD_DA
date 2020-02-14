@@ -72,12 +72,12 @@ all_TAD_files_ds=(
 )
 
 # Rscript AUC_coexprDist_tf_boxplot.R c3.tft ENCSR489OCU_NCI-H460_40kb TCGAluad_norm_luad
-
+# Rscript AUC_coexprDist_tf_boxplot.R chea3_lung ENCSR489OCU_NCI-H460_40kb TCGAluad_norm_luad
 for ds in "${all_TAD_files_ds[@]}"; do
-#    echo Rscript $scriptCoexpr chea3_lung $ds
-#    Rscript $scriptCoexpr chea3_lung $ds
-    echo Rscript $scriptCoexpr c3.tft $ds
-    Rscript $scriptCoexpr c3.tft $ds
+    echo Rscript $scriptCoexpr chea3_lung $ds
+    Rscript $scriptCoexpr chea3_lung $ds
+#    echo Rscript $scriptCoexpr c3.tft $ds
+#    Rscript $scriptCoexpr c3.tft $ds
 done
 
 
