@@ -42,7 +42,7 @@ scriptPrepDist="../Yuanlong_Cancer_HiC_data_TAD_DA/create_dist_sortNoDup_otherTA
 
 
 # DS launched 06.07.2019:
-all_TAD_files_ds=(			
+#all_TAD_files_ds=(			
 #    "ENCSR079VIJ_G401_40kb" 
 #    "ENCSR312KHQ_SK-MEL-5_40kb"  
 #    "ENCSR862OGI_RPMI-7951_40kb" 
@@ -55,26 +55,31 @@ all_TAD_files_ds=(
 #    "Barutcu_MCF-7_40kb"  
 #    "GSE105194_cerebellum_40kb" 
 #    "GSE105194_spinal_cord_40kb" 
-    "GSE105318_DLD1_40kb"   
-    "GSE105381_HepG2_40kb" 
-    "LI_40kb" 
-    "K562_40kb" 
-    "Panc1_rep12_40kb"  
-    "LG1_40kb" 
-    "LG2_40kb" 
-    "PA2_40kb" 
-    "PA3_40kb" 
-    "GSE118588_Panc_beta_40kb" 
-    "Barutcu_MCF-10A_40kb" 
-    "HMEC_40kb" 
-    "GSE109229_BT474_40kb" 
-    "GSE109229_SKBR3_40kb" 
-    "Rao_HCT-116_2017_40kb" 
-    "ENCSR504OTV_transverse_colon_40kb" 
-    "GSE99051_786_O_40kb" 
-    "GSE118514_22Rv1_40kb" 
+#    "GSE105318_DLD1_40kb"   
+#    "GSE105381_HepG2_40kb" 
+#    "LI_40kb" 
+#    "K562_40kb" 
+#    "Panc1_rep12_40kb"  
+#    "LG1_40kb" 
+#    "LG2_40kb" 
+#    "PA2_40kb" 
+#    "PA3_40kb" 
+#    "GSE118588_Panc_beta_40kb" 
+#    "Barutcu_MCF-10A_40kb" 
+#    "HMEC_40kb" 
+#    "GSE109229_BT474_40kb" 
+#    "GSE109229_SKBR3_40kb" 
+#    "Rao_HCT-116_2017_40kb" 
+#    "ENCSR504OTV_transverse_colon_40kb" 
+#    "GSE99051_786_O_40kb" 
+#    "GSE118514_22Rv1_40kb" 
+#)
+all_TAD_files_ds=(
+#"ENCSR489OCU_NCI-H460_RANDOMMIDPOS_40kb"
+#"ENCSR489OCU_NCI-H460_RANDOMNBRGENES_40kb"
+"ENCSR489OCU_NCI-H460_RANDOMSHIFT_40kb"
+"ENCSR489OCU_NCI-H460_PERMUTG2T_40kb"
 )
-
 for ds in "${all_TAD_files_ds[@]}"; do
     echo Rscript $scriptPrepDist $ds
     Rscript $scriptPrepDist $ds
