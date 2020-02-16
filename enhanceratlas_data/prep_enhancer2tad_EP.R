@@ -18,6 +18,10 @@ stopifnot(!is.na(ep_dt$enhancer_end))
 ep_dt$target_ensembl <- gsub(".+:.+-.+_(ENSG.+)","\\1", ep_dt$enhancer )
 
 enhancer_dt <- ep_dt
+enhancer_dt$enhancer <- NULL
+enhancer_dt$target_symbol <- NULL
+enhancer_dt$target_ensembl <- NULL
+enhancer_dt <- unique(enhancer_dt)
 
 cat(paste0(nrow(ep_dt), " \n"))
 
