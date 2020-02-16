@@ -1,0 +1,256 @@
+require(foreach)
+require(doMC)
+registerDoMC(40)
+require(ggpubr)
+source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
+
+startTime <- Sys.time()
+
+script_name <- "obs_permut_familyTADs.R"
+
+# Rscript obs_permut_familyTADs.R
+
+plotType <- "svg"
+myHeight <- myWidth <- 7
+myHeightGG <- 7
+myWidthGG <- 9
+
+outFolder <- "OBS_PERMUT_FAMILY_TADS"
+dir.create(outFolder, recursive = TRUE)
+
+
+final_DT <- get(load(file.path("CREATE_FINAL_TABLE", "all_result_dt.Rdata")))
+final_DT_permut <- get(load(file.path("CREATE_FINAL_TABLE_RANDOM", "all_result_dt.Rdata")))
+
+exprds <- "TCGAluad_norm_luad"
+famType <- "hgnc_family_short"
+
+tad_signif_thresh <- 0.05
+
+myhicds <- "ENCSR489OCU_NCI-H460"
+
+
+buildData <- TRUE
+
+all_hicds <- c(
+  "ENCSR489OCU_NCI-H460_40kb",
+  "ENCSR489OCU_NCI-H460_RANDOMMIDPOS_40kb",
+  "ENCSR489OCU_NCI-H460_RANDOMNBRGENES_40kb",
+  "ENCSR489OCU_NCI-H460_RANDOMSHIFT_40kb",
+  "ENCSR489OCU_NCI-H460_PERMUTG2T_40kb"
+)
+
+if(buildData) {
+  all_data <- foreach(hicds = all_hicds) %dopar% {
+    
+    cat("... start ", hicds, "\n")
+    
+    fam_dt <- get(load(file.path("PREP_GENE_FAMILIES_TAD_DATA", hicds, "hgnc_entrezID_family_TAD_DT.Rdata")))
+    fam_dt$entrezID <- as.character(fam_dt$entrezID)
+    fam_dt <- fam_dt[order(fam_dt$entrezID),]
+    stopifnot(!duplicated(fam_dt$entrezID))
+    entrez2fam <- setNames(fam_dt[,paste0(famType)], fam_dt$entrezID)
+    entrez2reg_fam <- setNames(fam_dt$region, fam_dt$entrezID)
+    
+    
+    geneList <- get(load(file.path("PIPELINE", "OUTPUT_FOLDER", hicds, exprds, "0_prepGeneData", "pipeline_geneList.Rdata")))
+    sum(geneList %in% fam_dt$entrezID)/length(geneList)
+    
+    g2t_dt_file <- file.path(hicds, "genes2tad", "all_genes_positions.txt")
+    g2t_dt <- read.delim(g2t_dt_file, stringsAsFactors = FALSE, header=FALSE, col.names=c("entrezID", "chromo", "start", "end", "region"))
+    g2t_dt$entrezID <- as.character(g2t_dt$entrezID)
+    
+    stopifnot(geneList %in% g2t_dt$entrezID)
+    g2t_pip_dt <- g2t_dt[g2t_dt$entrezID %in% geneList,]
+    
+    fam_pip_dt <- fam_dt[fam_dt$entrezID %in% geneList,]
+    
+    tmp <- g2t_dt[g2t_dt$entrezID %in% fam_dt$entrezID,]
+    tmp <- tmp[order(tmp$entrezID),]
+    entrez2reg_tmp <- setNames(tmp$region, tmp$entrezID)
+    stopifnot(entrez2reg_tmp == entrez2reg_fam)
+    stopifnot(names(entrez2reg_tmp) == names(entrez2reg_fam))
+    
+    ###################################################################### AGGREG BY TAD
+    # FOR THE TADs: # of families; # of families/# genes; meanCorr and pval
+    ###################################################################### 
+    
+    nFamByTAD_dt <- aggregate(as.formula(paste0(famType, "~region")), data=fam_pip_dt, FUN=function(x) length(unique(x)))
+    colnames(nFamByTAD_dt)[colnames(nFamByTAD_dt) == paste0(famType)] <- "nFams"
+    nGenesByTAD_dt <- aggregate(entrezID ~  region, data=g2t_pip_dt, FUN=length)
+    colnames(nGenesByTAD_dt)[colnames(nGenesByTAD_dt) == "entrezID"] <- "nGenes"
+    # OR TO TAKE ONLY ANNOTATED GENES:
+    # nFamByTAD_dt <- aggregate(as.formula(paste0(famType, "~region")), data=fam_dt, FUN=function(x) length(unique(x)))
+    
+    nGenesFamsByTAD_dt <- merge(nFamByTAD_dt, nGenesByTAD_dt, all.x=TRUE, all.y=FALSE, by="region")
+    stopifnot(!is.na(nGenesFamsByTAD_dt$nGenes))
+    
+    if(hicds %in% final_DT$hicds) {
+      result_dt <- final_DT[final_DT$hicds == hicds & final_DT$exprds == exprds,]
+    } else if(hicds %in% final_DT_permut$hicds) {
+      result_dt <- final_DT_permut[final_DT_permut$hicds == hicds & final_DT_permut$exprds == exprds,]
+    } else {
+      stop("error")
+    }
+    
+    stopifnot(nGenesFamsByTAD_dt$region %in% result_dt$region)
+    
+    nGenesFamsByTAD_final_dt <- merge(nGenesFamsByTAD_dt, result_dt[,c("hicds", "exprds", "region", "meanCorr", "adjPvalComb")],
+                                      all.x=TRUE, all.y=FALSE, by="region")
+    stopifnot(!is.na(nGenesFamsByTAD_final_dt))
+    stopifnot(nGenesFamsByTAD_final_dt$hicds == hicds)
+    stopifnot(nGenesFamsByTAD_final_dt$exprds == exprds)
+    
+    ###################################################################### AGGREG BY FAM
+    # FOR THE FAMs:  #  of TADs
+    ###################################################################### 
+    
+    nTADsByFam_dt <- aggregate(as.formula(paste0("region ~ ", famType)), data=fam_pip_dt, FUN=function(x) length(unique(x)))
+    colnames(nTADsByFam_dt)[colnames(nTADsByFam_dt) == "region"] <- "nTADs"
+    stopifnot(fam_pip_dt$region %in% result_dt$region)
+    
+    fam_pip_result_dt <- merge(fam_pip_dt, result_dt[,c("hicds", "exprds", "region", "adjPvalComb")], all.x=TRUE, all.y=FALSE, by="region")
+    stopifnot(!is.na(fam_pip_result_dt))
+    stopifnot(fam_pip_result_dt$hicds == hicds)
+    stopifnot(fam_pip_result_dt$exprds == exprds)
+    
+    tad_fam_pip_result_dt <- fam_pip_result_dt[,c("region", "adjPvalComb", paste0(famType))]
+    tad_fam_pip_result_dt <- unique(tad_fam_pip_result_dt)
+    
+    nSignifTADsByFam_dt <- aggregate(as.formula(paste0("adjPvalComb ~ ", famType)), data=tad_fam_pip_result_dt, FUN=function(x) sum(x <= tad_signif_thresh))
+    colnames(nSignifTADsByFam_dt)[ colnames(nSignifTADsByFam_dt) == "adjPvalComb"] <- "nSignifTADs"
+    nNotSignifTADsByFam_dt <- aggregate(as.formula(paste0("adjPvalComb ~ ", famType)), data=tad_fam_pip_result_dt, FUN=function(x) sum(x > tad_signif_thresh))
+    colnames(nNotSignifTADsByFam_dt)[ colnames(nNotSignifTADsByFam_dt) == "adjPvalComb"] <- "nNotSignifTADs"
+    
+    all_nTADsByFam_dt <- merge(nTADsByFam_dt, merge(  nSignifTADsByFam_dt, nNotSignifTADsByFam_dt, all=TRUE, by=paste0(famType)), 
+                               all=TRUE, by=paste0(famType))
+    
+    stopifnot(!is.na(all_nTADsByFam_dt))
+    stopifnot(all_nTADsByFam_dt$nTADs == all_nTADsByFam_dt$nSignifTADs + all_nTADsByFam_dt$nNotSignifTADs)
+    
+    all_nTADsByFam_dt$hicds <- hicds
+    all_nTADsByFam_dt$exprds <- exprds
+    
+    list(
+      nGenesFamsByTAD_final_dt = nGenesFamsByTAD_final_dt,
+      all_nTADsByFam_dt=all_nTADsByFam_dt
+    )
+    
+  }
+  
+  outFile <- file.path(outFolder, "all_data.Rdata")
+  save(all_data, file =outFile, version=2)
+  cat(paste0("... written: ", outFile, "\n"))
+  
+  
+} else {
+  outFile <- file.path(outFolder, "all_data.Rdata")
+  all_data <- get(load(outFile))
+}
+
+allDS_nTADsByFam_dt <- do.call(rbind,
+                               lapply(all_data, function(x)x[[paste0("all_nTADsByFam_dt")]]))
+
+allDS_nGenesFamsByTAD_dt <- do.call(rbind,
+                                    lapply(all_data, function(x)x[[paste0("nGenesFamsByTAD_final_dt")]]))
+
+### => BY FAM
+allDS_nTADsByFam_dt$ratioSignifTADs <- allDS_nTADsByFam_dt$nSignifTADs/allDS_nTADsByFam_dt$nTADs
+
+
+
+allDS_nTADsByFam_dt$hicds_lab <- gsub(paste0(myhicds, "_(.+)"),"\\1",  allDS_nTADsByFam_dt$hicds)
+
+for(plot_var in c("ratioSignifTADs", "nTADs")) {
+  
+  outFile <- file.path(outFolder, paste0(myhicds, "_", exprds, "_", plot_var, "_byFam_density.", plotType))
+  do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+  plot_multiDens(split(allDS_nTADsByFam_dt[,paste(plot_var)], allDS_nTADsByFam_dt$hicds_lab),
+                 plotTit=plot_var, legPos = "topleft")
+  mtext(side=3, text = paste0(myhicds, " -", exprds))
+  foo <- dev.off()
+  cat(paste0("... written: ", outFile, "\n"))
+  
+  p_box <- ggboxplot(data=allDS_nTADsByFam_dt, x="hicds_lab", y=paste0(plot_var))
+  
+  outFile <- file.path(outFolder, paste0(myhicds, "_", exprds, "_", plot_var, "_byFam_boxplot.", plotType))
+  ggsave(p_box, filename = outFile, height=myHeightGG, width=myWidthGG)
+  cat(paste0("... written: ", outFile, "\n"))
+  
+  
+}
+
+### => BY TAD
+
+allDS_nGenesFamsByTAD_dt$adjPvalComb_log10 <- -log10(allDS_nGenesFamsByTAD_dt$adjPvalComb )
+allDS_nGenesFamsByTAD_dt$hicds_lab <- gsub("ENCSR489OCU_NCI-H460_(.+)","\\1",  allDS_nGenesFamsByTAD_dt$hicds)
+
+
+for(plot_var in c("adjPvalComb_log10", "meanCorr")) {
+  for(hicds in all_hicds){
+    plot_dt <- allDS_nGenesFamsByTAD_dt[allDS_nGenesFamsByTAD_dt$hicds == hicds,]
+    
+    
+      
+      my_x <- plot_dt[,c("nFams")]
+      my_y <- plot_dt[,c(plot_var)]
+      
+      outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_", plot_var, "_vs_nFams_byTAD_densplot.", plotType))
+      do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+      
+      
+      densplot(
+        x = my_x,
+        y=my_y,
+        xlab = "# fam. in TAD",
+        ylab = paste0("TAD ", plot_var),  
+        cex=0.7,
+        main = paste0(hicds, "  - ",exprds)
+      )  
+    addCorr(x=my_x, y=my_y, bty="n")
+    
+    foo <- dev.off()
+    cat(paste0("... written: ", outFile, "\n"))
+    
+    
+    }
+  
+  outFile <- file.path(outFolder, paste0(myhicds, "_", exprds, "_", plot_var, "_allTADs_density.", plotType))
+  do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+  plot_multiDens(split(allDS_nGenesFamsByTAD_dt[,paste0(plot_var)], allDS_nGenesFamsByTAD_dt$hicds_lab),
+                 plotTit=plot_var, legPos = "topleft")
+  mtext(side=3, text = paste0(myhicds, " -", exprds))
+  foo <- dev.off()
+  cat(paste0("... written: ", outFile, "\n"))
+  
+  outFile <- file.path(outFolder, paste0(myhicds, "_", exprds, "_", plot_var, "_allTADs_boxplot.", plotType))
+  
+  p_box <- ggboxplot(data=allDS_nGenesFamsByTAD_dt, x="hicds_lab", y=paste0(plot_var))
+  ggsave(p_box, filename = outFile, height=myHeightGG, width=myWidthGG)
+  cat(paste0("... written: ", outFile, "\n"))
+  
+}
+
+
+
+
+
+#############################################################################################################################
+#############################################################################################################################
+#############################################################################################################################
+
+txt <- paste0(startTime, "\n", Sys.time(), "\n")
+cat(paste0(txt))
+cat(paste0("*** DONE: ", script_name, "\n"))
+
+
+
+
+
+
+
+
+
+
+
+
