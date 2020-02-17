@@ -63,7 +63,7 @@ stopifnot(dsIn %in% c("crisp", "c3.mir", "c3.all", "c3.tft", "trrust", "tftg", "
 outFolder <- file.path(paste0("TFs_by_TADs_signifTADs_v2_MEDIAN_", toupper(dsIn)))
 dir.create(outFolder, recursive = TRUE)
 
-buildData <- TRUE
+buildData <- FALSE
 
 tad_signif_thresh <- 0.01
 
@@ -267,7 +267,8 @@ rm("reg_dt")
 outFile <- file.path(outFolder, paste0("nRegFeat_boxplot_allDS.", plotType))  
 do.call(plotType, list(outFile, height=myHeight, width=myWidth))
 par(mar=par()$mar+c(9,0,0,0))
-boxplot(nRegFeat_dt[,!colnames(nRegFeat_dt) %in% c("hicds", "exprds")], las=2, main=paste0("all ds (n=", length(unique(file.path(nRegFeat_dt$hicds, nRegFeat_dt$exprds))),")"),  cex.axis=0.8)
+boxplot(nRegFeat_dt[,!colnames(nRegFeat_dt) %in% c("hicds", "exprds")], las=2, 
+        main=paste0("all obs. ds (n=", length(unique(file.path(nRegFeat_dt$hicds, nRegFeat_dt$exprds))),")"),  cex.axis=0.8)
 mtext(side=3, text = paste0(dsIn))
 cat(paste0("... written: ", outFile, "\n"))
 
@@ -278,7 +279,8 @@ keepCols <- c("median_nTFs_signif", "median_nTFs_notSignif", "median_nGenes_sign
 outFile <- file.path(outFolder, paste0("nRegFeat_boxplot_allDS_keepCols.", plotType))  
 do.call(plotType, list(outFile, height=myHeight, width=myWidth))
 par(mar=par()$mar+c(9,0,0,0))
-boxplot(nRegFeat_dt[, keepCols], las=2, main=paste0("all ds (n=", length(unique(file.path(nRegFeat_dt$hicds, nRegFeat_dt$exprds))),")"),  cex.axis=0.8)
+boxplot(nRegFeat_dt[, keepCols], las=2, 
+        main=paste0("all obs. ds (n=", length(unique(file.path(nRegFeat_dt$hicds, nRegFeat_dt$exprds))),")"),  cex.axis=0.8)
 mtext(side=3, text = paste0(dsIn))
 cat(paste0("... written: ", outFile, "\n"))
 

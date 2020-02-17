@@ -15,6 +15,8 @@ myHeight <- myWidth <- 7
 myHeightGG <- 7
 myWidthGG <- 9
 
+plotCex <- 1.4
+
 outFolder <- "OBS_PERMUT_ENHANCERTADS"
 dir.create(outFolder, recursive = TRUE)
 
@@ -137,20 +139,46 @@ all_data_dt$nEPsameTAD_log10 <- log10(all_data_dt$nEPsameTAD )
 all_data_dt$nEPdiffTAD_log10 <- log10(all_data_dt$nEPdiffTAD )
 
 outFile <- file.path(outFolder, paste0("all_", myhicds, "_signifNotSignif_nEPsameTAD_boxplot.", plotType))
-p_box <- ggboxplot(all_data_dt, x = "signif", y = "nEPsameTAD_log10") + 
-  facet_grid(~hicds_lab, switch="x") 
+p_box <- ggboxplot(all_data_dt, x = "signif", y = "nEPsameTAD_log10", xlab="") + 
+  ggtitle(paste0("# EP in same TAD"), subtitle = paste0(myhicds)) + 
+  facet_grid(~hicds_lab, switch="x") +
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 10))+
+  theme( # Increase size of axis lines
+    strip.text = element_text(size = 12),
+    # top, right, bottom and left
+    # plot.margin = unit(c(1, 1, 4.5, 1), "lines"),
+    plot.title = element_text(hjust = 0.5, face = "bold", size=16),
+    plot.subtitle = element_text(hjust = 0.5, face = "italic", size = 14),
+    panel.grid = element_blank(),
+    panel.grid.major.y = element_line(colour = "grey"),
+    panel.grid.minor.y = element_line(colour = "grey"))
+
 ggsave(p_box, filename = outFile, height=myHeightGG, width=myWidthGG*1.2)
 cat(paste0("... written: ", outFile, "\n"))
 
 outFile <- file.path(outFolder, paste0("all_", myhicds, "_signifNotSignif_nEPdiffTAD_boxplot.", plotType))
-p_box <- ggboxplot(all_data_dt, x = "signif", y = "nEPdiffTAD_log10") + 
-  facet_grid(~hicds_lab, switch="x") 
+p_box <- ggboxplot(all_data_dt, x = "signif", y = "nEPdiffTAD_log10", xlab="") + 
+  ggtitle(paste0("# EP in diff. TAD"), subtitle = paste0(myhicds)) + 
+  facet_grid(~hicds_lab, switch="x") +
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 10))+
+  theme( # Increase size of axis lines
+    strip.text = element_text(size = 12),
+    # top, right, bottom and left
+    # plot.margin = unit(c(1, 1, 4.5, 1), "lines"),
+    plot.title = element_text(hjust = 0.5, face = "bold", size=16),
+    plot.subtitle = element_text(hjust = 0.5, face = "italic", size = 14),
+    panel.grid = element_blank(),
+    panel.grid.major.y = element_line(colour = "grey"),
+    panel.grid.minor.y = element_line(colour = "grey"))
+
+
+
 ggsave(p_box, filename = outFile, height=myHeightGG, width=myWidthGG*1.2)
 cat(paste0("... written: ", outFile, "\n"))
 
 
 
-for(plot_var in c("nEPdiffTAD", "nEPdiffTAD")) {
+for(plot_var in c("nEPdiffTAD", "nEPsameTAD")) {
   
   for(hicds in all_hicds){
     plot_dt <- all_data_dt[all_data_dt$hicds == hicds,]
@@ -169,9 +197,13 @@ for(plot_var in c("nEPdiffTAD", "nEPdiffTAD")) {
       y=my_y,
       xlab = paste0(plot_var),
       ylab = paste0("TAD adjPvalComb [-log10]"),  
-      cex=0.7,
-      main = paste0(hicds, "  - ",exprds)
+      cex=0.7, 
+      main = paste0(hicds),
+      cex.lab = plotCex,
+      cex.main  = plotCex,
+      cex.axis = plotCex
     )  
+    mtext(side=3, paste0(exprds))
     addCorr(x=my_x, y=my_y, bty="n")
     
     foo <- dev.off()
@@ -190,7 +222,19 @@ cat(paste0("... written: ", outFile, "\n"))
 
 outFile <- file.path(outFolder, paste0(myhicds, "_", exprds, "_", plot_var, "_allTADs_boxplot.", plotType))
 
-p_box <- ggboxplot(data=all_data_dt, x="hicds_lab", y=paste0(plot_var))
+p_box <- ggboxplot(data=all_data_dt, x="hicds_lab", y=paste0(plot_var)) +
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 10))+
+  ggtitle(paste0(plot_var), subtitle = paste0(myhicds)) + 
+  theme( # Increase size of axis lines
+    strip.text = element_text(size = 12),
+    # top, right, bottom and left
+    # plot.margin = unit(c(1, 1, 4.5, 1), "lines"),
+    plot.title = element_text(hjust = 0.5, face = "bold", size=16),
+    plot.subtitle = element_text(hjust = 0.5, face = "italic", size = 14),
+    panel.grid = element_blank(),
+    panel.grid.major.y = element_line(colour = "grey"),
+    panel.grid.minor.y = element_line(colour = "grey"))
+
 ggsave(p_box, filename = outFile, height=myHeightGG, width=myWidthGG)
 cat(paste0("... written: ", outFile, "\n"))
 

@@ -29,6 +29,7 @@ tad_signif_thresh <- 0.05
 
 myhicds <- "ENCSR489OCU_NCI-H460"
 
+plotCex <- 1.4
 
 buildData <- TRUE
 
@@ -171,7 +172,18 @@ for(plot_var in c("ratioSignifTADs", "nTADs")) {
   foo <- dev.off()
   cat(paste0("... written: ", outFile, "\n"))
   
-  p_box <- ggboxplot(data=allDS_nTADsByFam_dt, x="hicds_lab", y=paste0(plot_var))
+  p_box <- ggboxplot(data=allDS_nTADsByFam_dt, x="hicds_lab", y=paste0(plot_var))+
+    scale_y_continuous(breaks = scales::pretty_breaks(n = 10))+
+    theme( # Increase size of axis lines
+      strip.text = element_text(size = 12),
+      # top, right, bottom and left
+      # plot.margin = unit(c(1, 1, 4.5, 1), "lines"),
+      plot.title = element_text(hjust = 0.5, face = "bold", size=16),
+      plot.subtitle = element_text(hjust = 0.5, face = "italic", size = 14),
+      panel.grid = element_blank(),
+      panel.grid.major.y = element_line(colour = "grey"),
+      panel.grid.minor.y = element_line(colour = "grey"))
+  
   
   outFile <- file.path(outFolder, paste0(myhicds, "_", exprds, "_", plot_var, "_byFam_boxplot.", plotType))
   ggsave(p_box, filename = outFile, height=myHeightGG, width=myWidthGG)
@@ -205,8 +217,12 @@ for(plot_var in c("adjPvalComb_log10", "meanCorr")) {
         xlab = "# fam. in TAD",
         ylab = paste0("TAD ", plot_var),  
         cex=0.7,
-        main = paste0(hicds, "  - ",exprds)
+        main = paste0(hicds),
+        cex.lab=plotCex,
+        cex.axis = plotCex,
+        cex.main = plotCex
       )  
+    mtext(side = 3, text = exprds)
     addCorr(x=my_x, y=my_y, bty="n")
     
     foo <- dev.off()
@@ -223,9 +239,29 @@ for(plot_var in c("adjPvalComb_log10", "meanCorr")) {
   foo <- dev.off()
   cat(paste0("... written: ", outFile, "\n"))
   
+  outFile <- file.path(outFolder, paste0(myhicds, "_", exprds, "_", plot_var, "_allTADs_density.", plotType))
+  do.call(plotType, list(outFile, height=myHeight, width=myWidth*1.4))
+  plot_multiDens(split(allDS_nGenesFamsByTAD_dt[!grepl("_PERMUTG2T",allDS_nGenesFamsByTAD_dt$hicds ),paste0(plot_var)], allDS_nGenesFamsByTAD_dt[!grepl("_PERMUTG2T",allDS_nGenesFamsByTAD_dt$hicds ),]$hicds_lab),
+                 plotTit=plot_var, legPos = "topright")
+  mtext(side=3, text = paste0(myhicds, " -", exprds))
+  foo <- dev.off()
+  cat(paste0("... written: ", outFile, "\n"))
+  
+  
   outFile <- file.path(outFolder, paste0(myhicds, "_", exprds, "_", plot_var, "_allTADs_boxplot.", plotType))
   
-  p_box <- ggboxplot(data=allDS_nGenesFamsByTAD_dt, x="hicds_lab", y=paste0(plot_var))
+  p_box <- ggboxplot(data=allDS_nGenesFamsByTAD_dt, x="hicds_lab", y=paste0(plot_var)) +
+    scale_y_continuous(breaks = scales::pretty_breaks(n = 10))+
+    theme( # Increase size of axis lines
+      strip.text = element_text(size = 12),
+      # top, right, bottom and left
+      # plot.margin = unit(c(1, 1, 4.5, 1), "lines"),
+      plot.title = element_text(hjust = 0.5, face = "bold", size=16),
+      plot.subtitle = element_text(hjust = 0.5, face = "italic", size = 14),
+      panel.grid = element_blank(),
+      panel.grid.major.y = element_line(colour = "grey"),
+      panel.grid.minor.y = element_line(colour = "grey"))
+  
   ggsave(p_box, filename = outFile, height=myHeightGG, width=myWidthGG)
   cat(paste0("... written: ", outFile, "\n"))
   

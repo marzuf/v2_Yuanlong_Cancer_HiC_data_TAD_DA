@@ -69,10 +69,10 @@ scriptCoexpr="AUC_coexprDist_family_boxplot.R"
 #"GSE118514_22Rv1_40kb TCGAprad_norm_prad"
 #)
 all_TAD_files_ds=(
-"ENCSR489OCU_NCI-H460_RANDOMMIDPOS_40kb TCGAluad_norm_luad"
-"ENCSR489OCU_NCI-H460_RANDOMNBRGENES_40kb TCGAluad_norm_luad"
+#"ENCSR489OCU_NCI-H460_RANDOMMIDPOS_40kb TCGAluad_norm_luad"
+#"ENCSR489OCU_NCI-H460_RANDOMNBRGENES_40kb TCGAluad_norm_luad"
 #"ENCSR489OCU_NCI-H460_RANDOMSHIFT_40kb TCGAluad_norm_luad"
-#"ENCSR489OCU_NCI-H460_PERMUTG2T_40kb TCGAluad_norm_luad"
+"ENCSR489OCU_NCI-H460_PERMUTG2T_40kb TCGAluad_norm_luad"
 )
 
 # Rscript AUC_coexprDist_family_boxplot.R ENCSR489OCU_NCI-H460_40kb TCGAluad_norm_luad
