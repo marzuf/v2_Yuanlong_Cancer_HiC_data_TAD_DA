@@ -144,10 +144,7 @@ stopifnot(!is.na(nCount_ratioDown_ratioFC_fract_dt$ratioFC_fract_lab))
 
 
 grid_plot <- ggplot(data = nCount_ratioDown_ratioFC_fract_dt, aes(x=ratioDown_fract_lab, y=ratioFC_fract_lab, fill=ratioDown_ratioFC_nCout)) + 
-  
-  
   ggtitle(paste0("# TADs by ratioDown and ratioFC"),   subtitle = paste0("obs. data - all datasets (n=", length(unique(file.path(all_values_dt$hicds, all_values_dt$exprds))), ")"))+
-  
   scale_x_discrete(name="ratioDown")  + 
   scale_y_discrete(name="ratioFC")  + 
   geom_tile() +
@@ -169,6 +166,13 @@ ggsave(grid_plot, file = outFile, height=myHeight, width=myWidth)
 cat(paste0("... written: ", outFile, "\n"))
 
 
+grid_plot_nbr <- grid_plot + geom_text(aes(label=ratioDown_ratioFC_nCout))
+outFile <- file.path(outFolder, paste0("ratioDown_ratioFC_gridPlot_withNbr.", plotType))
+ggsave(grid_plot_nbr, file = outFile, height=myHeight, width=myWidth)
+cat(paste0("... written: ", outFile, "\n"))
+
+
+
 
 mat_dt <- acast(nCount_ratioDown_ratioFC_fract_dt, ratioDown_fract~ratioFC_fract, value.var="ratioDown_ratioFC_nCout")
 mat_dt <- mat_dt[order(as.numeric(rownames(mat_dt))), order(as.numeric(rownames(mat_dt)))]
@@ -178,149 +182,6 @@ colnames(mat_dt) <- paste0("ratioFC_", colnames(mat_dt))
 outFile <- file.path(outFolder, "mat_dt.Rdata")
 save(mat_dt, file=outFile, version=2)
 cat(paste0("... written: ", outFile, "\n"))
-
-
-
-
-# nCount_ratioFC_dt <- data.frame(
-#   ratioFC_fract = names(table(all_values_dt$ratioFC_fractName)),
-#   ratioFC_nCout = as.numeric(table(all_values_dt$ratioFC_fractName)),
-#   stringsAsFactors = FALSE
-# )
-# 
-# nCount_ratioDown_dt <- data.frame(
-#   ratioDown_fract = names(table(all_values_dt$ratioDown_fractName)),
-#   ratioDown_nCout = as.numeric(table(all_values_dt$ratioDown_fractName)),
-#   stringsAsFactors = FALSE
-# )
-
-# all_values_dt$abs_negFC <- abs(all_values_dt$negFC)
-# 
-# rbPal <- colorRampPalette(c('red','blue'))
-# 
-# all_values_dt$dotCols <- rev(rbPal(10))[as.numeric(cut(all_values_dt$FCCscore,breaks = 10))]
-# 
-# nDS <- length(unique(file.path(all_values_dt$hicds, all_values_dt$exprds)))
-# 
-# outFile <- file.path(outFolder, paste0("ratioDown_ratioFC_colFCC.", plotType))
-# do.call(plotType, list(outFile, height=myHeight, width=myWidthLeg))
-# 
-# par(xpd = T, mar = par()$mar + c(0,0,0,6))
-# 
-# plot(
-#   x = all_values_dt$ratioFC,
-#   y = all_values_dt$rD,
-#   xlab="ratioNegFC",
-#   ylab="ratioDown",
-#   col = all_values_dt$dotCols,
-#   pch = 16,
-#   cex = 0.7,
-#   cex.lab = plotCex,
-#   cex.axis = plotCex,
-#   main = "all datasets"
-# )
-# mtext(side=3, text = paste0("# DS = ", nDS, "; # TADs = ", nrow(all_values_dt)))
-# 
-# # legend("bottomright",
-#        legend(1.1,1,
-#        title="FCC score",
-#        legend=rev(levels(cut(all_values_dt$FCCscore,breaks = 10))),
-#        col =rbPal(10),
-#        pch=20,
-#        cex = 0.8,
-#        ncol=1,
-#        horiz = F,
-#        bty="n")
-# 
-# foo <- dev.off()
-# cat(paste0("... written: ", outFile, "\n"))
-# 
-# 
-# outFile <- file.path(outFolder, paste0("ratioNegFC_FCCscore_densplot.", plotType))
-# do.call(plotType, list(outFile, height=myHeight, width=myWidth))
-# densplot(
-#   x = all_values_dt$ratioFC,
-#   y = all_values_dt$FCCscore,
-#   xlab="ratioNegFC",
-#   ylab="FCC score",
-#   # col = all_values_dt$dotCols,
-#   pch = 16,
-#   cex = 0.7,
-#   cex.lab = plotCex,
-#   cex.axis = plotCex,
-#   main = "all datasets"
-# )
-# foo <- dev.off()
-# cat(paste0("... written: ", outFile, "\n"))
-# 
-# outFile <- file.path(outFolder, paste0("ratioDown_FCCscore_densplot.", plotType))
-# do.call(plotType, list(outFile, height=myHeight, width=myWidth))
-# densplot(
-#   x = all_values_dt$rD,
-#   y = all_values_dt$FCCscore,
-#   xlab="ratioDown",
-#   ylab="FCC score",
-#   # col = all_values_dt$dotCols,
-#   pch = 16,
-#   cex = 0.7,
-#   cex.lab = plotCex,
-#   cex.axis = plotCex,
-#   main = "all datasets"
-# )
-# foo <- dev.off()
-# cat(paste0("... written: ", outFile, "\n"))
-# 
-# 
-# 
-# 
-# 
-# #######################################################################################################################################
-# fcc_fract <- seq(from=-1, to=1, by=0.25)
-# # fcc_fract_names <- paste0("FCC > ", fcc_fract[1:(length(fcc_fract)-1)], " and FCC <= ",fcc_fract[2:length(fcc_fract)])
-# fcc_fract_names <- paste0("FCC \u2208 ]", fcc_fract[1:(length(fcc_fract)-1)], ", ",fcc_fract[2:length(fcc_fract)], "]")
-# fcc_fract_names <- paste0("]", fcc_fract[1:(length(fcc_fract)-1)], ", ",fcc_fract[2:length(fcc_fract)], "]")
-# fcc_fract_names[fcc_fract_names == "]-1, -0.75]"] <- "[-1, -0.75]"
-# 
-# all_values_dt$fcc_fract <- sapply(all_values_dt$FCCscore, function(x) which(hist(x, breaks=fcc_fract, plot=F)$counts == 1))
-# 
-# require(ggsci)
-# ggsci_pal <- "lancet"
-# ggsci_subpal <- ""
-# myPals <-  eval(parse(text=paste0("pal_", ggsci_pal, "(", ggsci_subpal, ")")))(length(unique(fcc_fract_names)))
-# myPals <- rev(myPals)
-# 
-# outFile <- file.path(outFolder, paste0("ratioDown_ratioFC_colFCCfract.", plotType))
-# do.call(plotType, list(outFile, height=myHeight, width=myWidthLeg))
-# 
-# par(xpd = T, mar = par()$mar + c(0,0,0,6))
-# 
-# plot(
-#   x = all_values_dt$ratioFC,
-#   y = all_values_dt$rD,
-#   xlab="ratioNegFC",
-#   ylab="ratioDown",
-#   col = myPals[all_values_dt$fcc_fract],
-#   pch = 16,
-#   cex = 0.7,
-#   cex.lab = plotCex,
-#   cex.axis = plotCex,
-#   main = "all datasets"
-# )
-# mtext(side=3, text = paste0("# DS = ", nDS, "; # TADs = ", nrow(all_values_dt)))
-# 
-# # legend("bottomright",
-# legend(1.1,1,
-#        title="FCC score",
-#        legend= rev(fcc_fract_names),
-#        col =rev(myPals),
-#        pch=20,
-#        cex = 0.8,
-#        ncol=1,
-#        horiz = F,
-#        bty="n")
-# 
-# foo <- dev.off()
-# cat(paste0("... written: ", outFile, "\n"))
 
 
 

@@ -84,3 +84,19 @@ ggsave(p_box, filename = outFile, height=myHeightGG, width=myWidthGG)
 cat(paste0("... written: ", outFile, "\n"))
 
 
+source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
+
+outFile <- file.path(outFolder, paste0(myHicds, "_obs_permut_minDist_geneStart_border_density.", plotType))
+do.call(plotType, list(outFile, height=myHeightGG, width=myWidthGG*1.2))
+par(bty="L")
+plot_multiDens(
+
+  split(all_dt$minDist_geneStart_border_log10, all_dt$hicds_lab),
+  legPos = "topleft",
+  plotTit = paste0(myHicds))
+
+foo <- dev.off()
+cat(paste0("... written: ", outFile, "\n"))
+
+
+

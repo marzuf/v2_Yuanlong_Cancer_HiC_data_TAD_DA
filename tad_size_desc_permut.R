@@ -14,6 +14,7 @@ outFolder <- "TAD_SIZE_DESC_PERMUT"
 dir.create(outFolder, recursive = TRUE)
   
 all_hicds <- list.files("PIPELINE/OUTPUT_FOLDER")
+
 hicds = all_hicds[1]
 all_hicds <- all_hicds[grep("NCI-H460", all_hicds)]
 

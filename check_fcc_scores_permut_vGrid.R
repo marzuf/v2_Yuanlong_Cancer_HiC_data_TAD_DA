@@ -256,6 +256,12 @@ for(side in all_sfx) {
   ggsave(grid_plot, file = outFile, height=myHeight, width=myWidth)
   cat(paste0("... written: ", outFile, "\n"))
   
+  
+  grid_plot_nbr <- grid_plot + geom_text(aes(label=ratioDown_ratioFC_nCout))
+  outFile <- file.path(outFolder, paste0("ratioDown_ratioFC_", side, "permut_gridPlot_withNbr.", plotType))
+  ggsave(grid_plot_nbr, file = outFile, height=myHeight, width=myWidth)
+  cat(paste0("... written: ", outFile, "\n"))
+  
 
   mat_dt <- acast(nCount_ratioDown_ratioFC_fract_dt, as.formula(paste0("ratioDown_",side, "_fract~ratioFC_", side, "_fract")), value.var="ratioDown_ratioFC_nCout")
   mat_dt <- mat_dt[order(as.numeric(rownames(mat_dt))), order(as.numeric(rownames(mat_dt)))]
