@@ -48,7 +48,7 @@ do.call(plotType, list(outFile, height=myHeight, width=myWidth*1.4))
 par(bty="L")
 plot_multiDens(
   split(all_ds_meanCorr_dt$meanCorr, all_ds_meanCorr_dt$hicds_lab),
-  plotTit = paste0("all DS - n=", length(unique(all_ds_meanCorr_dt$hicds)), " - TAD meanCorr"), legPos = "topright")
+  plotTit = paste0("all DS - n=", length(unique(file.path(all_ds_meanCorr_dt$hicds, all_ds_meanCorr_dt$exprds))), " - TAD meanCorr"), legPos = "topright")
 
 foo <- dev.off()
 cat(paste0("... written: ", outFile, "\n"))
@@ -58,7 +58,7 @@ do.call(plotType, list(outFile, height=myHeight, width=myWidth*1.4))
 par(bty="L")
 plot_multiDens(
   split(all_ds_meanCorr_dt$meanCorr[!grepl("PERMUTG2T", all_ds_meanCorr_dt$hicds_lab)], all_ds_meanCorr_dt$hicds_lab[!grepl("PERMUTG2T", all_ds_meanCorr_dt$hicds_lab)]),
-  plotTit = paste0("all DS - n=", length(unique(all_ds_meanCorr_dt$hicds)), " - TAD meanCorr"), legPos = "topright")
+  plotTit = paste0("all DS - n=", length(unique(file.path(all_ds_meanCorr_dt$hicds, all_ds_meanCorr_dt$exprds))), " - TAD meanCorr"), legPos = "topright")
 
 foo <- dev.off()
 cat(paste0("... written: ", outFile, "\n"))
@@ -93,7 +93,7 @@ plot_dt$hicds_lab[! plot_dt$hicds_lab %in% rd_patterns] <- "OBSERVED"
 plot_dt$signif <- ifelse(plot_dt$adjCombPval <= tadSignifThresh, "signif.", "not signif.")
 
 box_meanCorr <- ggboxplot(data= plot_dt, x="signif", y= "meanCorr", xlab="") +
-  ggtitle("IntraTAD corr.", subtitle = paste0("all ds - n=", length(unique(plot_dt$hicds))))+
+  ggtitle("IntraTAD corr.", subtitle = paste0("all ds - n=", length(unique(file.path(plot_dt$hicds, plot_dt$exprds)))))+
   facet_grid(~hicds_lab, switch="x") + 
   scale_y_continuous(name=paste0("TAD meanCorr"),
                      breaks = scales::pretty_breaks(n = 10))+

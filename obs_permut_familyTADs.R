@@ -164,15 +164,38 @@ allDS_nTADsByFam_dt$hicds_lab <- gsub(paste0(myhicds, "_(.+)"),"\\1",  allDS_nTA
 
 for(plot_var in c("ratioSignifTADs", "nTADs")) {
   
+  if(plot_var == "ratioSignifTADs"){
+    mysub <- paste0(myhicds, " -", exprds, "; TAD signif. thresh <= ", tad_signif_thresh)
+  } else {
+    mysub <- paste0(myhicds, " -", exprds)
+  }
+  
+  
+  
+  
   outFile <- file.path(outFolder, paste0(myhicds, "_", exprds, "_", plot_var, "_byFam_density.", plotType))
   do.call(plotType, list(outFile, height=myHeight, width=myWidth))
   plot_multiDens(split(allDS_nTADsByFam_dt[,paste(plot_var)], allDS_nTADsByFam_dt$hicds_lab),
-                 plotTit=plot_var, legPos = "topleft")
-  mtext(side=3, text = paste0(myhicds, " -", exprds))
+                 plotTit=plot_var, legPos = "topright")
+  mtext(side=3, text = paste0(mysub))
   foo <- dev.off()
   cat(paste0("... written: ", outFile, "\n"))
   
+  
+  if(plot_var != "ratioSignifTADs"){
+  
+    outFile <- file.path(outFolder, paste0(myhicds, "_", exprds, "_", plot_var, "_byFam_density_log10.", plotType))
+    do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+    plot_multiDens(split(log10(allDS_nTADsByFam_dt[,paste(plot_var)]), allDS_nTADsByFam_dt$hicds_lab),
+                   plotTit=paste0(plot_var, " [log10]"), legPos = "topright")
+    mtext(side=3, text = paste0(mysub))
+    foo <- dev.off()
+    cat(paste0("... written: ", outFile, "\n"))
+  
+  }
+  
   p_box <- ggboxplot(data=allDS_nTADsByFam_dt, x="hicds_lab", y=paste0(plot_var))+
+    ggtitle(plot_var, subtitle=mysub)+
     scale_y_continuous(breaks = scales::pretty_breaks(n = 10))+
     theme( # Increase size of axis lines
       strip.text = element_text(size = 12),
@@ -188,6 +211,49 @@ for(plot_var in c("ratioSignifTADs", "nTADs")) {
   outFile <- file.path(outFolder, paste0(myhicds, "_", exprds, "_", plot_var, "_byFam_boxplot.", plotType))
   ggsave(p_box, filename = outFile, height=myHeightGG, width=myWidthGG)
   cat(paste0("... written: ", outFile, "\n"))
+  
+  
+  outFile <- file.path(outFolder, paste0(myhicds, "_", exprds, "_", plot_var, "_byFam_density_noG2t.", plotType))
+  do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+  plot_multiDens(split(allDS_nTADsByFam_dt[!grepl("PERMUTG2T", allDS_nTADsByFam_dt$hicds),paste(plot_var)], allDS_nTADsByFam_dt$hicds_lab[!grepl("PERMUTG2T", allDS_nTADsByFam_dt$hicds)]),
+                 plotTit=plot_var, legPos = "topright")
+  mtext(side=3, text = paste0(mysub))
+  foo <- dev.off()
+  cat(paste0("... written: ", outFile, "\n"))
+  
+  
+  if(plot_var != "ratioSignifTADs"){
+  outFile <- file.path(outFolder, paste0(myhicds, "_", exprds, "_", plot_var, "_byFam_density_noG2t_log10.", plotType))
+  do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+  plot_multiDens(split(
+    log10(allDS_nTADsByFam_dt[!grepl("PERMUTG2T", allDS_nTADsByFam_dt$hicds),paste(plot_var)]),
+    allDS_nTADsByFam_dt$hicds_lab[!grepl("PERMUTG2T", allDS_nTADsByFam_dt$hicds)]),
+                 plotTit=paste0(plot_var, " [log10]"), legPos = "topright")
+  mtext(side=3, text = paste0(mysub))
+  foo <- dev.off()
+  cat(paste0("... written: ", outFile, "\n"))
+  }
+  
+  p_box <- ggboxplot(data=allDS_nTADsByFam_dt[!grepl("PERMUTG2T", allDS_nTADsByFam_dt$hicds),], x="hicds_lab", y=paste0(plot_var))+
+    ggtitle(plot_var, subtitle=mysub)+
+    scale_y_continuous(breaks = scales::pretty_breaks(n = 10))+
+    theme( # Increase size of axis lines
+      strip.text = element_text(size = 12),
+      # top, right, bottom and left
+      # plot.margin = unit(c(1, 1, 4.5, 1), "lines"),
+      plot.title = element_text(hjust = 0.5, face = "bold", size=16),
+      plot.subtitle = element_text(hjust = 0.5, face = "italic", size = 14),
+      panel.grid = element_blank(),
+      panel.grid.major.y = element_line(colour = "grey"),
+      panel.grid.minor.y = element_line(colour = "grey"))
+  
+  
+  outFile <- file.path(outFolder, paste0(myhicds, "_", exprds, "_", plot_var, "_byFam_boxplot_noG2t.", plotType))
+  ggsave(p_box, filename = outFile, height=myHeightGG, width=myWidthGG)
+  cat(paste0("... written: ", outFile, "\n"))
+  
+  
+  
   
   
 }
@@ -268,6 +334,54 @@ for(plot_var in c("adjPvalComb_log10", "meanCorr")) {
 }
 
 
+for(plot_var in c("nFams")) {
+  
+  if(plot_var == "ratioSignifTADs"){
+    mysub <- paste0(myhicds, " -", exprds, "; TAD signif. thresh <= ", tad_signif_thresh)
+  } else {
+    mysub <- paste0(myhicds, " -", exprds)
+  }
+  
+  
+  outFile <- file.path(outFolder, paste0(myhicds, "_", exprds, "_", plot_var, "_byTAD_density.", plotType))
+  do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+  plot_multiDens(split(allDS_nGenesFamsByTAD_dt[,paste(plot_var)], allDS_nGenesFamsByTAD_dt$hicds_lab),
+                 plotTit=plot_var, legPos = "topright")
+  mtext(side=3, text = paste0(mysub))
+  foo <- dev.off()
+  cat(paste0("... written: ", outFile, "\n"))
+  
+
+  outFile <- file.path(outFolder, paste0(myhicds, "_", exprds, "_", plot_var, "_byTAD_density_noG2t.", plotType))
+  do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+  plot_multiDens(split(allDS_nGenesFamsByTAD_dt[!grepl("PERMUTG2T", allDS_nGenesFamsByTAD_dt$hicds),paste(plot_var)], allDS_nGenesFamsByTAD_dt$hicds_lab[!grepl("PERMUTG2T", allDS_nGenesFamsByTAD_dt$hicds)]),
+                 plotTit=plot_var, legPos = "topright")
+  mtext(side=3, text = paste0(mysub))
+  foo <- dev.off()
+  cat(paste0("... written: ", outFile, "\n"))
+
+  
+  
+  outFile <- file.path(outFolder, paste0(myhicds, "_", exprds, "_", plot_var, "_byTAD_density_log10.", plotType))
+  do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+  plot_multiDens(split(
+    log10(allDS_nGenesFamsByTAD_dt[,paste(plot_var)]), allDS_nGenesFamsByTAD_dt$hicds_lab),
+                 plotTit=paste0(plot_var, " [log10]"), legPos = "topright")
+  mtext(side=3, text = paste0(mysub))
+  foo <- dev.off()
+  cat(paste0("... written: ", outFile, "\n"))
+  
+  
+  outFile <- file.path(outFolder, paste0(myhicds, "_", exprds, "_", plot_var, "_byTAD_density_noG2t_log10.", plotType))
+  do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+  plot_multiDens(split(log10(allDS_nGenesFamsByTAD_dt[!grepl("PERMUTG2T", allDS_nGenesFamsByTAD_dt$hicds),paste(plot_var)]), allDS_nGenesFamsByTAD_dt$hicds_lab[!grepl("PERMUTG2T", allDS_nGenesFamsByTAD_dt$hicds)]),
+                 plotTit=paste0(plot_var, " [log10]"), legPos = "topright")
+  mtext(side=3, text = paste0(mysub))
+  foo <- dev.off()
+  cat(paste0("... written: ", outFile, "\n"))
+  
+  
+}
 
 
 

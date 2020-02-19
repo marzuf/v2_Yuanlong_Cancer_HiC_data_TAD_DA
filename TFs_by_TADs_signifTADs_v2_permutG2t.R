@@ -62,7 +62,7 @@ stopifnot(dsIn %in% c("crisp", "c3.mir", "c3.all", "c3.tft", "trrust", "tftg", "
 
 nPermut <- 1000
 
-outFolder <- file.path(paste0("TFS_BY_TADS_SIGNIFTADS_V2_PERMUTG2T", nPermut, "_", toupper(dsIn)))
+outFolder <- file.path(paste0("TFS_BY_TADS_SIGNIFTADS_V2_PERMUTG2T1000", nPermut, "_", toupper(dsIn)))
 dir.create(outFolder, recursive = TRUE)
 
 buildData <- TRUE

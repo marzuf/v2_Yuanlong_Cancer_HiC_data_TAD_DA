@@ -63,7 +63,7 @@ stopifnot(dsIn %in% c("crisp", "c3.mir", "c3.all", "c3.tft", "trrust", "tftg", "
 outFolder <- file.path(paste0("TFS_BY_TADS_SIGNIFTADS_V2_", toupper(dsIn)))
 dir.create(outFolder, recursive = TRUE)
 
-buildData <- FALSE
+buildData <- TRUE
 
 tad_signif_thresh <- 0.01
 
@@ -238,6 +238,8 @@ if(buildData){
       nRegGenesOVERnGenes_signif <- signif_plot_dt$nRegGenes[signif_plot_dt$signif_lab == "signif."]/signif_plot_dt$nGenes[signif_plot_dt$signif_lab == "signif."]
       nRegGenesOVERnGenes_notSignif <- signif_plot_dt$nRegGenes[signif_plot_dt$signif_lab == "not signif."]/signif_plot_dt$nGenes[signif_plot_dt$signif_lab == "not signif."]
       
+      if(hicds == "LG2_40kb" & exprds == "TCGAluad_nonsmoker_smoker") save(signif_plot_dt, file ="signif_plot_dt.Rdata", version=2)
+      
       data.frame(
         hicds = hicds,
         exprds = exprds, 
@@ -260,8 +262,8 @@ if(buildData){
   save(nRegFeat_dt, file = outFile, version=2)
   cat(paste0("... written: ", outFile, "\n"))
 } else {
-  outFile <- file.path(outFolder, "nRegFeat_dt.Rdata")  
-  nRegFeat_dt <- get(load(outFile))
+outFile <- file.path(outFolder, "nRegFeat_dt.Rdata")  
+nRegFeat_dt <- get(load(outFile))
 }  
 # load("TFS_BY_TADS_SIGNIFTADS_C3.TFT/nRegFeat_dt.Rdata")
 outFile <- file.path(outFolder, paste0("nRegFeat_boxplot_allDS.", plotType))  
@@ -283,6 +285,57 @@ mtext(side=3, text = paste0(dsIn))
 cat(paste0("... written: ", outFile, "\n"))
 
 
+# hicds                    exprds       region nTFs nGenes nRegGenes nTFs_byGenes nRegGenes_byGenes adjPvalComb
+# 370 LG2_40kb TCGAluad_nonsmoker_smoker chr11_TAD468  409     23        13     29.21429         0.9285714   0.1671207
+# 979 LG2_40kb TCGAluad_nonsmoker_smoker  chr19_TAD93  371     16         9     37.10000         0.9000000   0.1904504
+# 807 LG2_40kb TCGAluad_nonsmoker_smoker  chr17_TAD38  366     19        13     26.14286         0.9285714   0.2993208
+# yy=reg_dt[reg_dt$targetRegion == "chr11_TAD468,]
+#  unique(yy$regSymbol)
+#   [1] "TFAP2E"   "ASH1L"    "DOT1L"    "HMGA1"    "PRR12"    "SETBP1"   "SRCAP"    "ZBED1"    "ASCL2"    "BHLHA15" 
+#  [11] "BHLHA9"   "HAND2"    "HES1"     "HES5"     "MLXIP"    "MNT"      "MYCN"     "NCOA2"    "SREBF1"   "SREBF2"  
+#  [21] "TCF23"    "TCF4"     "TWIST2"   "POGK"     "ATF5"     "CEBPG"    "CREB1"    "CREB3"    "FOSL1"    "JDP2"    
+#  [31] "MAF"      "MAFG"     "MAFK"     "NFE2L1"   "AEBP2"    "ANKZF1"   "CHAMP1"   "DPF1"     "E4F1"     "EEA1"    
+#  [41] "FIZ1"     "GLIS2"    "GTF3A"    "GZF1"     "HIC2"     "IKZF2"    "KAT7"     "KIN"      "KLF16"    "MAZ"     
+#  [51] "MYT1L"    "MZF1"     "OSR2"     "OVOL2"    "PEG3"     "PRDM15"   "PRDM2"    "REPIN1"   "SLC2A4RG" "SP1"     
+#  [61] "SP3"      "SP5"      "VEZF1"    "WIZ"      "ZBTB21"   "ZBTB25"   "ZBTB3"    "ZBTB32"   "ZBTB40"   "ZBTB41"  
+#  [71] "ZBTB43"   "ZBTB44"   "ZBTB45"   "ZBTB49"   "ZBTB6"    "ZBTB7A"   "ZBTB7B"   "ZBTB8A"   "ZBTB8B"   "ZFP14"   
+#  [81] "ZFP28"    "ZFP3"     "ZFP41"    "ZFP82"    "ZFP90"    "ZFP92"    "ZFPM1"    "ZFX"      "ZFY"      "ZIK1"    
+#  [91] "ZKSCAN3"  "ZKSCAN7"  "ZKSCAN8"  "ZMAT1"    "ZNF10"    "ZNF121"   "ZNF142"   "ZNF160"   "ZNF165"   "ZNF169"  
+# [101] "ZNF174"   "ZNF180"   "ZNF189"   "ZNF197"   "ZNF200"   "ZNF208"   "ZNF212"   "ZNF213"   "ZNF22"    "ZNF225"  
+# [111] "ZNF23"    "ZNF230"   "ZNF233"   "ZNF234"   "ZNF24"    "ZNF248"   "ZNF250"   "ZNF26"    "ZNF266"   "ZNF267"  
+# [121] "ZNF273"   "ZNF28"    "ZNF282"   "ZNF283"   "ZNF32"    "ZNF320"   "ZNF322"   "ZNF326"   "ZNF329"   "ZNF33A"  
+# [131] "ZNF33B"   "ZNF34"    "ZNF345"   "ZNF347"   "ZNF354C"  "ZNF37A"   "ZNF382"   "ZNF383"   "ZNF384"   "ZNF385C" 
+# [141] "ZNF396"   "ZNF408"   "ZNF41"    "ZNF415"   "ZNF419"   "ZNF425"   "ZNF426"   "ZNF430"   "ZNF431"   "ZNF433"  
+# [151] "ZNF436"   "ZNF439"   "ZNF445"   "ZNF446"   "ZNF45"    "ZNF451"   "ZNF48"    "ZNF483"   "ZNF486"   "ZNF488"  
+# [161] "ZNF490"   "ZNF497"   "ZNF500"   "ZNF506"   "ZNF510"   "ZNF511"   "ZNF512B"  "ZNF517"   "ZNF521"   "ZNF527"  
+# [171] "ZNF529"   "ZNF530"   "ZNF544"   "ZNF547"   "ZNF548"   "ZNF549"   "ZNF550"   "ZNF555"   "ZNF556"   "ZNF557"  
+# [181] "ZNF561"   "ZNF562"   "ZNF565"   "ZNF566"   "ZNF568"   "ZNF57"    "ZNF576"   "ZNF579"   "ZNF580"   "ZNF583"  
+# [191] "ZNF585A"  "ZNF585B"  "ZNF587"   "ZNF592"   "ZNF595"   "ZNF596"   "ZNF598"   "ZNF600"   "ZNF613"   "ZNF620"  
+# [201] "ZNF628"   "ZNF639"   "ZNF641"   "ZNF644"   "ZNF655"   "ZNF665"   "ZNF667"   "ZNF668"   "ZNF674"   "ZNF675"  
+# [211] "ZNF677"   "ZNF678"   "ZNF682"   "ZNF684"   "ZNF687"   "ZNF69"    "ZNF691"   "ZNF7"     "ZNF704"   "ZNF705A" 
+# [221] "ZNF705E"  "ZNF706"   "ZNF713"   "ZNF714"   "ZNF716"   "ZNF718"   "ZNF726"   "ZNF727"   "ZNF729"   "ZNF735"  
+# [231] "ZNF747"   "ZNF75D"   "ZNF761"   "ZNF765"   "ZNF766"   "ZNF768"   "ZNF771"   "ZNF772"   "ZNF777"   "ZNF783"  
+# [241] "ZNF784"   "ZNF785"   "ZNF787"   "ZNF789"   "ZNF793"   "ZNF8"     "ZNF813"   "ZNF814"   "ZNF816"   "ZNF827"  
+# [251] "ZNF829"   "ZNF83"    "ZNF835"   "ZNF84"    "ZNF843"   "ZNF844"   "ZNF846"   "ZNF85"    "ZNF850"   "ZNF865"  
+# [261] "ZNF878"   "ZNF883"   "ZNF891"   "ZNF93"    "ZNF99"    "ZSCAN12"  "ZSCAN16"  "ZSCAN22"  "ZSCAN26"  "ZSCAN32" 
+# [271] "ZSCAN5A"  "ZSCAN9"   "ZXDC"     "PATZ1"    "ZNF512"   "ZEB2"     "ZFHX4"    "MBNL2"    "CENPBD1"  "JRK"     
+# [281] "TIGD3"    "LIN28A"   "YBX2"     "CUX1"     "ONECUT3"  "DNMT1"    "FBXL19"   "KMT2A"    "KMT2B"    "E2F1"    
+# [291] "E2F4"     "E2F6"     "E2F7"     "TFDP1"    "TFDP2"    "ELF2"     "ELF4"     "ELK1"     "ELK4"     "ERF"     
+# [301] "ETS1"     "ETV2"     "GABPA"    "SPDEF"    "SPIB"     "FLYWCH1"  "FOXK1"    "FOXK2"    "FOXM1"    "FOXN3"   
+# [311] "FOXP4"    "FOXQ1"    "FOXS1"    "GATAD2A"  "TRPS1"    "TFCP2"    "GTF2IRD1" "CIC"      "HMGN3"    "SOX12"   
+# [321] "SOX15"    "SOX6"     "TCF7L2"   "ALX3"     "CDX1"     "CRX"      "DLX4"     "HOXA10"   "HOXA3"    "HOXA6"   
+# [331] "HOXA7"    "HOXA9"    "HOXB9"    "HOXC5"    "IRX1"     "LBX1"     "NANOG"    "PKNOX1"   "PKNOX2"   "SIX5"    
+# [341] "VSX1"     "ZHX1"     "POU5F1B"  "POU5F2"   "POU6F1"   "HSF1"     "HSFY2"    "MSANTD1"  "MBD4"     "PIN1"    
+# [351] "BAZ2A"    "MTERF2"   "MTERF3"   "DMTF1"    "MYB"      "MYBL2"    "MYPOP"    "MYSM1"    "SNAPC4"   "TERF1"   
+# [361] "ESRRA"    "NR0B1"    "NR1D1"    "NR2C1"    "NR2E3"    "NR2F2"    "NR2F6"    "RARG"     "RORB"     "RXRA"    
+# [371] "ARHGAP35" "CC2D1A"   "DRAP1"    "GPBP1L1"  "NME2"     "PA2G4"    "PCGF2"    "PREB"     "PURB"     "RBCK1"   
+# [381] "SAFB2"    "SKIL"     "SKOR1"    "SNAPC5"   "SON"      "SPEN"     "THYN1"    "TMF1"     "TSC22D1"  "XPA"     
+# [391] "TP53"     "PAX8"     "PAX9"     "NFATC3"   "RFX1"     "RFX5"     "DEAF1"    "GMEB2"    "NFIB"     "SMAD1"   
+# [401] "SMAD3"    "SMAD4"    "STAT1"    "STAT2"    "TBX6"     "TBP"      "THAP4"    "THAP6"    "THAP7"   
+# 
+# > unique(yy$targetSymbol)
+#  [1] "VPS11"   "DDX6"    "BCL9L"   "H2AFX"   "SLC37A4" "HYOU1"   "HINFP"   "DPAGT1"  "TRAPPC4" "HMBS"    "CCDC84"  "RPS25"  
+# [13] "CXCR5" 
 
 #####################################################################
 cat("*** DONE\n")

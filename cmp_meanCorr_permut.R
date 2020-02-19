@@ -46,7 +46,7 @@ plot_multiDens(
 foo <- dev.off()
 cat(paste0("... written: ", outFile, "\n"))
 
-tadSignifThresh <- 0.01
+tadSignifThresh <- 0.05
 
 plot_dt  <- foreach(hicds = all_hicds, .combine='rbind') %dopar% {
   mean_corr <- get(load(file.path("PIPELINE", "OUTPUT_FOLDER", hicds, "TCGAluad_norm_luad", "4_runMeanTADCorr", "all_meanCorr_TAD.Rdata")))
@@ -65,7 +65,7 @@ plot_dt$signif <- ifelse(plot_dt$adjCombPval <= tadSignifThresh, "signif.", "not
 plot_dt$hicds_lab <- gsub(myHicds, "", plot_dt$hicds)
 
 box_meanCorr <- ggboxplot(data= plot_dt, x="signif", y= "meanCorr", xlab="") +
-  ggtitle("IntraTAD corr.", subtitle = myHicds)+
+  ggtitle("IntraTAD corr.", subtitle = paste0(myHicds, "; TAD signif. thresh <= ", tadSignifThresh))+
   facet_grid(~hicds_lab, switch="x") + 
   scale_y_continuous(name=paste0("TAD meanCorr"),
                      breaks = scales::pretty_breaks(n = 10))+

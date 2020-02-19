@@ -10,7 +10,7 @@ startTime <- Sys.time()
 
 cat("> START ", script_name, "\n")
 
-buildTable <- FALSE
+buildTable <- TRUE
 
 require(flux)
 require(foreach)
@@ -93,6 +93,8 @@ if(buildTable) {
         all_tad_right_fc <- de_dt$logFC[de_dt$genes %in% tad_entrez_right_de]
         fcc_right <- get_fcc(all_tad_right_fc)
         
+        all_tad_right_fc_txt <- paste0(all_tad_right_fc, collapse=",")
+        
         # left FCC
         tad_entrez_left <- permut_data[[paste0(rd_tad)]][["genes_left"]]
         stopifnot(tad_entrez_left %in% geneList)
@@ -101,6 +103,8 @@ if(buildTable) {
         tad_entrez_left_de <- unique(tad_entrez_left_de)
         stopifnot(tad_entrez_left_de %in% de_dt$genes)
         all_tad_left_fc <- de_dt$logFC[de_dt$genes %in% tad_entrez_left_de]
+        
+        all_tad_left_fc_txt <- paste0(all_tad_left_fc, collapse=",")
         
         fcc_left <- get_fcc(all_tad_left_fc)
         
@@ -146,6 +150,9 @@ if(buildTable) {
           ratioDown_all=ratioDown_all,
           ratioFC_all=ratioFC_all,
           
+          all_tad_left_fc = all_tad_left_fc_txt,
+          all_tad_right_fc = all_tad_right_fc_txt,
+          
           stringsAsFactors = FALSE
         )
       } # end-foreach TAD
@@ -180,12 +187,15 @@ if(buildTable) {
   save(all_permut_ratios, file=outFile, version=2)
   cat(paste0("... written: ", outFile, "\n"))
   
-  stopifnot(!is.na(all_permut_ratios[,paste0("ratioFC_", side, "_fractName")]))
-  stopifnot(!is.na(all_permut_ratios[,paste0("ratioDown_", side, "_fractName")]))
+  # stopifnot(!is.na(all_permut_ratios[,paste0("ratioFC_", side, "_fractName")]))
+  # stopifnot(!is.na(all_permut_ratios[,paste0("ratioDown_", side, "_fractName")]))
   
   outFile <- file.path(outFolder, "all_permut_ratios.Rdata")
   save(all_permut_ratios, file=outFile, version=2)
   cat(paste0("... written: ", outFile, "\n"))
+  
+  
+  # stop("ok")
   
 
 } else {
@@ -275,169 +285,17 @@ for(side in all_sfx) {
 }
 
 
+# check some bins of the grid
+# left permut: RatioDown [0-0.1]; ratioFC[0.5-0.6]
 
+dt <- get(load(file.path("CHECK_FCC_SCORES_PERMUT_VGRID", "all_permut_ratios.Rdata")))
+dt <- na.omit(dt)
+dt[dt$ratioDown_left_fractName == "[0, 0.1]" & dt$ratioFC_left_fractName == "]0.5, 0.6]", c("hicds", "exprds", "region", "all_tad_left_fc")]
+fc <- dt[dt$ratioDown_left_fractName == "[0, 0.1]" & dt$ratioFC_left_fractName == "]0.5, 0.6]", c("all_tad_left_fc")]
 
-# 
-# all_sfx <- c("right", "left")
-# 
-# rbPal <- colorRampPalette(c('red','blue'))
-# 
-# for(sfx in all_sfx) {
-#   
-#   
-#   all_permut_ratios[,paste0("dotCols_", sfx)] <- rev(rbPal(10))[as.numeric(cut(all_permut_ratios[,paste0("fcc_", sfx)],breaks = 10))]
-#   
-#   nDS <- length(unique(file.path(all_permut_ratios$hicds, all_permut_ratios$exprds)))
-#   
-#   outFile <- file.path(outFolder, paste0("ratioDown_ratioFC_colFCC_", sfx, ".", plotType))
-#   do.call(plotType, list(outFile, height=myHeight, width=myWidthLeg))
-#   
-#   par(xpd = T, mar = par()$mar + c(0,0,0,6))
-#   
-#   plot(
-#     x = all_permut_ratios[,paste0("ratioFC_", sfx)],
-#     y = all_permut_ratios[,paste0("ratioDown_", sfx)],
-#     xlab=paste0("ratioNegFC_", sfx),
-#     ylab=paste0("ratioDown_", sfx),
-#     col = all_permut_ratios[,paste0("dotCols_", sfx)],
-#     pch = 16,
-#     cex = 0.7,
-#     cex.lab = plotCex,
-#     cex.axis = plotCex,
-#     main = paste0("all datasets (permut ", sfx, ")")
-#   )
-#   mtext(side=3, text = paste0("# DS = ", nDS, "; # TADs = ", nrow(all_permut_ratios)))
-#   
-#   
-#   # legend("bottomright",
-#   legend(1.1,1,
-#          title="FCC score",
-#          legend=rev(levels(cut(all_permut_ratios[,paste0("fcc_", sfx)],breaks = 10))),
-#          col =rbPal(10),
-#          pch=20,
-#          cex = 0.8,
-#          ncol=1,
-#          horiz = F,
-#          bty="n")
-#   
-#   
-#   
-#   foo <- dev.off()
-#   cat(paste0("... written: ", outFile, "\n"))
-#   
-#   
-#   outFile <- file.path(outFolder, paste0("ratioNegFC_FCCscore_", sfx, "_densplot.", plotType))
-#   do.call(plotType, list(outFile, height=myHeight, width=myWidth))
-#   densplot(
-#     x = all_permut_ratios[,paste0("ratioFC_", sfx)],
-#     y = all_permut_ratios[,paste0("fcc_", sfx)],
-#     xlab=paste0("ratioNegFC_", sfx),
-#     ylab=paste0("FCC score_", sfx),
-#     # col = all_permut_ratios$dotCols,
-#     pch = 16,
-#     cex = 0.7,
-#     cex.lab = plotCex,
-#     cex.axis = plotCex,
-#     main = paste0("all datasets (permut ", sfx, ")")
-#   )
-#   foo <- dev.off()
-#   cat(paste0("... written: ", outFile, "\n"))
-#   
-#   outFile <- file.path(outFolder, paste0("ratioDown_FCCscore_", sfx, "_densplot.", plotType))
-#   do.call(plotType, list(outFile, height=myHeight, width=myWidth))
-#   densplot(
-#     x = all_permut_ratios[,paste0("ratioDown_", sfx)],
-#     y = all_permut_ratios[,paste0("fcc_", sfx)],
-#     xlab="ratioDown",
-#     ylab="FCC score",
-#     # col = all_permut_ratios$dotCols,
-#     pch = 16,
-#     cex = 0.7,
-#     cex.lab = plotCex,
-#     cex.axis = plotCex,
-#     main = paste0("all datasets (permut ", sfx, ")")
-#   )
-#   foo <- dev.off()
-#   cat(paste0("... written: ", outFile, "\n"))
-#   
-#   
-#   tmp_dt <- all_permut_ratios[,c(paste0("ratioFC_", sfx), paste0("ratioDown_", sfx), paste0("fcc_", sfx))]
-#   tmp_dt <- na.omit(tmp_dt)
-#   stopifnot( (2*tmp_dt[,paste0("ratioFC_", sfx)] - 1) * (2* tmp_dt[,paste0("ratioDown_", sfx)]- 1) == tmp_dt[,paste0("fcc_", sfx)]) 
-#   
-#   
-#   
-#   
-#   
-#   
-#   
-#   sub_permut_ratios <- all_permut_ratios[!is.na(all_permut_ratios[,paste0("fcc_", sfx)]),]
-#   
-#   
-#   fcc_fract <- seq(from=-1, to=1, by=0.25)
-#   # fcc_fract_names <- paste0("FCC > ", fcc_fract[1:(length(fcc_fract)-1)], " and FCC <= ",fcc_fract[2:length(fcc_fract)])
-#   fcc_fract_names <- paste0("FCC \u2208 ]", fcc_fract[1:(length(fcc_fract)-1)], ", ",fcc_fract[2:length(fcc_fract)], "]")
-#   fcc_fract_names <- paste0("]", fcc_fract[1:(length(fcc_fract)-1)], ", ",fcc_fract[2:length(fcc_fract)], "]")
-#   fcc_fract_names[fcc_fract_names == "]-1, -0.75]"] <- "[-1, -0.75]"
-#   
-#   
-#   
-#   fcc_scoreFract <- sapply(1:nrow(sub_permut_ratios) ,function(x) which(hist(sub_permut_ratios[x,paste0("fcc_", sfx)], breaks=fcc_fract, plot=F)$counts == 1))
-#   
-#   
-#   save(sub_permut_ratios,file= "sub_permut_ratios.Rdata", version=2)
-#   save(fcc_scoreFract, file ="fcc_scoreFract.Rdata", version=2)
-#   
-#   
-#   stopifnot(length(fcc_scoreFract) == nrow(sub_permut_ratios))
-#   
-#   require(ggsci)
-#   ggsci_pal <- "lancet"
-#   ggsci_subpal <- ""
-#   myPals <-  eval(parse(text=paste0("pal_", ggsci_pal, "(", ggsci_subpal, ")")))(length(unique(fcc_fract_names)))
-#   myPals <- rev(myPals)
-#   
-#   outFile <- file.path(outFolder, paste0("ratioDown_ratioFC_colFCCfract_", sfx, ".", plotType))
-#   do.call(plotType, list(outFile, height=myHeight, width=myWidthLeg))
-#   
-#   par(xpd = T, mar = par()$mar + c(0,0,0,6))
-#   
-#   save(myPals, file= "myPals.Rdata", version=2)
-#   
-#   
-#   
-#   plot(
-#     x = sub_permut_ratios[,paste0("ratioFC_", sfx)],
-#     y = sub_permut_ratios[,paste0("ratioDown_", sfx)],
-#     xlab=paste0("ratioNegFC_", sfx),
-#     ylab=paste0("ratioDown_", sfx),
-#     col = myPals[fcc_scoreFract],
-#     pch = 16,
-#     cex = 0.7,
-#     cex.lab = plotCex,
-#     cex.axis = plotCex,
-#     main = paste0("all datasets (permut ", sfx, ")")
-#   )
-#   mtext(side=3, text = paste0("# DS = ", nDS, "; # TADs = ", nrow(sub_permut_ratios)))
-#   
-#   # legend("bottomright",
-#   legend(1.1,1,
-#          title="FCC score",
-#          legend= rev(fcc_fract_names),
-#          col =rev(myPals),
-#          pch=20,
-#          cex = 0.8,
-#          ncol=1,
-#          horiz = F,
-#          bty="n")
-#   
-#   foo <- dev.off()
-#   cat(paste0("... written: ", outFile, "\n"))
-#   
-#   
-#   
-#   
-# }
+dt[dt$ratioDown_left_fractName == "]0.8, 0.9]" & dt$ratioFC_left_fractName == "]0.1, 0.2]", c("hicds", "exprds", "region", "all_tad_left_fc")]
+fc <- dt[dt$ratioDown_left_fractName == "]0.8, 0.9]" & dt$ratioFC_left_fractName == "]0.1, 0.2]", c("all_tad_left_fc")][1]
+round(as.numeric(unlist(strsplit(fc, ","))),3)
 
 
 #######################################################################################################################################

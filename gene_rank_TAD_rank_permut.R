@@ -5,12 +5,12 @@ SSHFS=F
 setDir <- "/media/electron"
 setDir <- ""
 
-# Rscript gene_rank_TAD_rank.R
+# Rscript gene_rank_TAD_rank_permut.R
 
 hicds="K562_40kb"
 exprds="TCGAlaml_wt_mutFLT3"
 
-script_name <- "gene_rank_TAD_rank.R"
+script_name <- "gene_rank_TAD_rank_permut.R"
 
 startTime <- Sys.time()
 
@@ -60,7 +60,11 @@ stopifnot(dir.exists(mainFolder))
 pipFolder <- file.path(mainFolder, "PIPELINE", "OUTPUT_FOLDER")
 stopifnot(dir.exists(pipFolder))
 all_hicds <- list.files(pipFolder)
-all_hicds <- all_hicds[! (grepl("PERMUT", all_hicds) | grepl("RANDOM", all_hicds))]
+
+all_hicds <- all_hicds[grepl("RANDOM", all_hicds) | grepl("PERMUT", all_hicds)]
+all_hicds <- all_hicds[grepl("NCI-H460", all_hicds)]
+
+
 file.path(mainFolder, all_hicds)[!dir.exists(file.path(mainFolder, all_hicds))]
 stopifnot(dir.exists(file.path(mainFolder, all_hicds)))
 
@@ -71,7 +75,7 @@ all_datasets <- unlist(lapply(1:length(all_exprds), function(x) file.path(names(
 
 cat(paste0("n allDS = ", length(all_datasets), "\n"))
 
-outFolder <- file.path("GENE_RANK_TAD_RANK")
+outFolder <- file.path("GENE_RANK_TAD_RANK_PERMUT")
 dir.create(outFolder, recursive = TRUE)
 logFile <- file.path(outFolder, "gene_rank_TAD_rank_logFile.txt")
 if(buildTable) file.remove(logFile)
@@ -110,6 +114,8 @@ if(buildTable) {
     exprds_dt <- foreach(exprds = all_exprds[[paste0(hicds)]], .combine='rbind') %do% {
       
       
+      if(exprds != "TCGAluad_norm_luad") return(NULL)
+      
       regionList_file <- file.path(pipFolder, hicds, exprds, script0_name, "pipeline_regionList.Rdata")
       stopifnot(file.exists(regionList_file))
       all_regs <- get(load(regionList_file))
@@ -125,6 +131,9 @@ if(buildTable) {
       
       
       comb_empPval_file <- file.path(pipFolder, hicds, exprds, script11same_name, "emp_pval_combined.Rdata" )
+      
+      if(!file.exists(comb_empPval_file)) cat(comb_empPval_file, "\n")
+      
       stopifnot(file.exists(comb_empPval_file))
       comb_empPval <- eval(parse(text = load(paste0(comb_empPval_file))))
       stopifnot(setequal(all_regs, names(comb_empPval)))

@@ -81,6 +81,9 @@ all_dt <- foreach(hicds = all_hicds, .combine='rbind') %dopar% {
 }
 
 all_dt$signif <- ifelse(all_dt$adjPvalComb <= tad_signif, "signif.", "not signif.")
+all_dt$signif <- factor(all_dt$signif, levels = c("signif.", "not signif."))
+stopifnot(!is.na(all_dt$signif))
+
 all_dt$hicds_lab <- gsub(myHicds, "", all_dt$hicds)
 
 p_box <- ggboxplot(data=all_dt, x="signif", y="ratioLimmaSignif", xlab="TAD signif.", ylab="ratio limma signif. genes by TAD")+

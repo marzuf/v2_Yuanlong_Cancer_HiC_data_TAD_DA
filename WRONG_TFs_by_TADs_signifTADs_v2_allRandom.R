@@ -8,8 +8,8 @@ require(doMC)
 registerDoMC(40)
 
 
-# Rscript TFs_by_TADs_signifTADs_v2_allRandom.R c3.tft
-# Rscript TFs_by_TADs_signifTADs_v2_allRandom.R chea3_lung
+# Rscript TFs_by_TADs_signifTADs_v2_allRandom_v2.R c3.tft
+# Rscript TFs_by_TADs_signifTADs_v2_allRandom_v2.R chea3_lung
 
 # 
  
@@ -56,9 +56,15 @@ buildData <- TRUE
 tad_signif_thresh <- 0.01
 
 
-all_random_patterns <- c("RANDOMMIDPOS", "RANDOMNBRGENES", "RANDOMSHIFT", "PERMUTG2T" )
+# all_random_patterns <- c("RANDOMMIDPOS", "RANDOMNBRGENES", "RANDOMSHIFT", "PERMUTG2T" )
 # all_random_patterns <- c( "RANDOMNBRGENES", "RANDOMSHIFT", "PERMUTG2T" )
-# all_random_patterns <- c("RANDOMMIDPOS")
+all_random_patterns <- c("RANDOMMIDPOS")
+
+
+result_dt_1 <- get(load("CREATE_FINAL_TABLE/all_result_dt.Rdata"))
+result_dt_2 <- get(load("CREATE_FINAL_TABLE_RANDOM//all_result_dt.Rdata"))
+stopifnot(!result_dt_2$hicds %in% result_dt_1$hicds)
+final_dt <- rbind(result_dt_1,result_dt_2)
 
 
 
@@ -70,7 +76,7 @@ for(random_type in all_random_patterns) {
   
   
   
-  outFolder <- file.path(paste0("TFS_BY_TADS_SIGNIFTADS_V2_", random_type, "_V2_", toupper(dsIn)))
+  outFolder <- file.path(paste0("TFS_BY_TADS_SIGNIFTADS_V2_", random_type, "_V2", toupper(dsIn)))
   dir.create(outFolder, recursive = TRUE)
   
 
@@ -178,8 +184,10 @@ for(random_type in all_random_patterns) {
         
         plotTit <- paste0(hicds, "\n", exprds)
         
-
-                
+        result_dt <- final_dt[final_dt$hicds == hicds & final_dt$exprds == exprds, ]
+        result_dt$tad_rank <- rank(result_dt$adjPvalComb, ties="min")
+        result_dt$rev_tad_rank <- rank(-result_dt$adjPvalComb, ties="min")
+        
         geneList <- get(load(file.path("PIPELINE", "OUTPUT_FOLDER", hicds, exprds, "0_prepGeneData", "pipeline_geneList.Rdata") ))
         stopifnot(geneList %in% g2t_dt$entrezID)
         gByTAD <- g2t_dt[g2t_dt$entrezID %in% geneList,]
@@ -217,32 +225,45 @@ for(random_type in all_random_patterns) {
         plot_dt$hicds <- hicds
         plot_dt$exprds <- exprds
         
-        signif_plot_dt <- plot_dt
+        signif_plot_dt <- merge(plot_dt, result_dt[,c("hicds", "exprds", "region", "adjPvalComb")], by=c("hicds", "exprds", "region"))
         
         stopifnot(signif_plot_dt$region %in% names(nGbyT))
         signif_plot_dt$nGenes <- nGbyT[paste0(signif_plot_dt$region)]
         stopifnot(!is.na(signif_plot_dt$nGenes))
         
         
+        signif_plot_dt$signif_lab <- ifelse(signif_plot_dt$adjPvalComb <= tad_signif_thresh, "signif.", "not signif.")
         
-        nGenes <- signif_plot_dt$nGenes
         
-        nTFs <- signif_plot_dt$nTFs
+        nGenes_signif <- signif_plot_dt$nGenes[signif_plot_dt$signif_lab == "signif."]
+        nGenes_notSignif <- signif_plot_dt$nGenes[signif_plot_dt$signif_lab == "not signif."]
         
-        nRegGenes <- signif_plot_dt$nRegGenes
         
-        nTFsOVERnGenes <- signif_plot_dt$nTFs/signif_plot_dt$nGenes
+        nTFs_signif <- signif_plot_dt$nTFs[signif_plot_dt$signif_lab == "signif."]
+        nTFs_notSignif <- signif_plot_dt$nTFs[signif_plot_dt$signif_lab == "not signif."]
         
-        nRegGenesOVERnGenes <- signif_plot_dt$nRegGenes/signif_plot_dt$nGenes
+        nRegGenes_signif <- signif_plot_dt$nRegGenes[signif_plot_dt$signif_lab == "signif."]
+        nRegGenes_notSignif <- signif_plot_dt$nRegGenes[signif_plot_dt$signif_lab == "not signif."]
+        
+        nTFsOVERnGenes_signif <- signif_plot_dt$nTFs[signif_plot_dt$signif_lab == "signif."]/signif_plot_dt$nGenes[signif_plot_dt$signif_lab == "signif."]
+        nTFsOVERnGenes_notSignif <- signif_plot_dt$nTFs[signif_plot_dt$signif_lab == "not signif."]/signif_plot_dt$nGenes[signif_plot_dt$signif_lab == "not signif."]
+        
+        nRegGenesOVERnGenes_signif <- signif_plot_dt$nRegGenes[signif_plot_dt$signif_lab == "signif."]/signif_plot_dt$nGenes[signif_plot_dt$signif_lab == "signif."]
+        nRegGenesOVERnGenes_notSignif <- signif_plot_dt$nRegGenes[signif_plot_dt$signif_lab == "not signif."]/signif_plot_dt$nGenes[signif_plot_dt$signif_lab == "not signif."]
         
         data.frame(
           hicds = hicds,
           exprds = exprds, 
-          mean_nTFs = mean(nTFs),
-          mean_nRegGenes = mean(nRegGenes),
-          mean_nTFsOVERnGenes = mean(nTFsOVERnGenes),
-          mean_nRegGenesOVERnGenes = mean(nRegGenesOVERnGenes),
-          mean_nGenes = mean(nGenes),
+          mean_nTFs_signif = mean(nTFs_signif),
+          mean_nTFs_notSignif = mean(nTFs_notSignif),
+          mean_nRegGenes_signif = mean(nRegGenes_signif),
+          mean_nRegGenes_notSignif = mean(nRegGenes_notSignif),
+          mean_nTFsOVERnGenes_signif = mean(nTFsOVERnGenes_signif),
+          mean_nTFsOVERnGenes_notSignif = mean(nTFsOVERnGenes_notSignif),
+          mean_nRegGenesOVERnGenes_signif = mean(nRegGenesOVERnGenes_signif),
+          mean_nRegGenesOVERnGenes_notSignif = mean(nRegGenesOVERnGenes_notSignif),
+          mean_nGenes_signif = mean(nGenes_signif),
+          mean_nGenes_notSignif = mean(nGenes_notSignif),
           stringsAsFactors = FALSE
         )
       }# end-for iterating over exprds
@@ -266,16 +287,15 @@ for(random_type in all_random_patterns) {
   
   # load("TFS_BY_TADS_SIGNIFTADS_C3.TFT/nRegFeat_dt.Rdata")
   
+  keepCols <- c("mean_nTFs_signif", "mean_nTFs_notSignif", "mean_nGenes_signif", "mean_nGenes_notSignif", "mean_nTFsOVERnGenes_signif", "mean_nTFsOVERnGenes_notSignif")
   
-  # keepCols <- c("mean_nTFs", "mean_nTFs", "mean_nGenes", "mean_nGenes", "mean_nTFsOVERnGenes", "mean_nTFsOVERnGenes")
-  # 
-  # outFile <- file.path(outFolder, paste0("nRegFeat_boxplot_allDS_keepCols.", plotType))  
-  # do.call(plotType, list(outFile, height=myHeight, width=myWidth))
-  # par(mar=par()$mar+c(9,0,0,0))
-  # boxplot(nRegFeat_dt[, keepCols], las=2, main=paste0("all ", random_type, " ds (n=", length(unique(file.path(nRegFeat_dt$hicds, nRegFeat_dt$exprds))),")"),  cex.axis=0.8)
-  # mtext(side=3, text = paste0(dsIn))
-  # cat(paste0("... written: ", outFile, "\n"))
-  # 
+  outFile <- file.path(outFolder, paste0("nRegFeat_boxplot_allDS_keepCols.", plotType))  
+  do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+  par(mar=par()$mar+c(9,0,0,0))
+  boxplot(nRegFeat_dt[, keepCols], las=2, main=paste0("all ", random_type, " ds (n=", length(unique(file.path(nRegFeat_dt$hicds, nRegFeat_dt$exprds))),")"),  cex.axis=0.8)
+  mtext(side=3, text = paste0(dsIn))
+  cat(paste0("... written: ", outFile, "\n"))
+  
   
   
   

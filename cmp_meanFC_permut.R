@@ -61,12 +61,15 @@ plot_dt  <- foreach(hicds = all_hicds, .combine='rbind') %dopar% {
 }
 stopifnot(!is.na(plot_dt))
 plot_dt$signif <- ifelse(plot_dt$adjCombPval <= tadSignifThresh, "signif.", "not signif.")
+
+plot_dt$signif <- factor(plot_dt$signif, level = c("signif.", "not signif."))
+
 plot_dt$hicds_lab <- gsub(myHicds, "", plot_dt$hicds)
 
 save(plot_dt, file="plot_dt.Rdata", version=2)
 
 box_meanFC <- ggboxplot(data= plot_dt, x="signif", y= "abs_meanFC", xlab="") +
-  ggtitle("mean TAD logFC", subtitle = myHicds)+
+  ggtitle("mean TAD logFC", subtitle = paste0(myHicds, "; TAD signif. thresh <= ", tadSignifThresh))+
   facet_grid(~hicds_lab, switch="x") + 
   scale_y_continuous(name=paste0("TAD abs_meanFC"),
                      breaks = scales::pretty_breaks(n = 10))+

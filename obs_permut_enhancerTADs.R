@@ -25,9 +25,9 @@ final_DT <- get(load(file.path("CREATE_FINAL_TABLE", "all_result_dt.Rdata")))
 final_DT_permut <- get(load(file.path("CREATE_FINAL_TABLE_RANDOM", "all_result_dt.Rdata")))
 
 exprds <- "TCGAluad_norm_luad"
-famType <- "hgnc_family_short"
 
-tad_signif_thresh <- 0.05
+
+tad_signif_thresh <- 0.01
 
 myhicds <- "ENCSR489OCU_NCI-H460"
 
@@ -133,14 +133,15 @@ all_data_dt$adjPvalComb_log10 <- -log10(all_data_dt$adjPvalComb )
 all_data_dt$hicds_lab <- gsub("ENCSR489OCU_NCI-H460_(.+)","\\1",  all_data_dt$hicds)
 
 all_data_dt$signif <- ifelse(all_data_dt$adjPvalComb <= tad_signif_thresh, "signif.", "not signif.")
-
+all_data_dt$signif <- factor(all_data_dt$signif, levels=c("signif.", "not signif."))
+stopifnot(!is.na(all_data_dt$signif))
 
 all_data_dt$nEPsameTAD_log10 <- log10(all_data_dt$nEPsameTAD )
 all_data_dt$nEPdiffTAD_log10 <- log10(all_data_dt$nEPdiffTAD )
 
 outFile <- file.path(outFolder, paste0("all_", myhicds, "_signifNotSignif_nEPsameTAD_boxplot.", plotType))
 p_box <- ggboxplot(all_data_dt, x = "signif", y = "nEPsameTAD_log10", xlab="") + 
-  ggtitle(paste0("# EP in same TAD"), subtitle = paste0(myhicds)) + 
+  ggtitle(paste0("# EP in same TAD"), subtitle = paste0(myhicds, "; TAD p-val thresh. <= ",tad_signif_thresh)) + 
   facet_grid(~hicds_lab, switch="x") +
   scale_y_continuous(breaks = scales::pretty_breaks(n = 10))+
   theme( # Increase size of axis lines
@@ -158,7 +159,7 @@ cat(paste0("... written: ", outFile, "\n"))
 
 outFile <- file.path(outFolder, paste0("all_", myhicds, "_signifNotSignif_nEPdiffTAD_boxplot.", plotType))
 p_box <- ggboxplot(all_data_dt, x = "signif", y = "nEPdiffTAD_log10", xlab="") + 
-  ggtitle(paste0("# EP in diff. TAD"), subtitle = paste0(myhicds)) + 
+  ggtitle(paste0("# EP in diff. TAD"), subtitle = paste0(myhicds, "; TAD p-val thresh. <= ",tad_signif_thresh)) + 
   facet_grid(~hicds_lab, switch="x") +
   scale_y_continuous(breaks = scales::pretty_breaks(n = 10))+
   theme( # Increase size of axis lines
@@ -215,7 +216,7 @@ for(plot_var in c("nEPdiffTAD", "nEPsameTAD")) {
 outFile <- file.path(outFolder, paste0(myhicds, "_", exprds, "_", plot_var, "_allTADs_density.", plotType))
 do.call(plotType, list(outFile, height=myHeight, width=myWidth))
 plot_multiDens(split(all_data_dt[,paste0(plot_var)], all_data_dt$hicds_lab),
-               plotTit=plot_var, legPos = "topleft")
+               plotTit=plot_var, legPos = "topright")
 mtext(side=3, text = paste0(myhicds, " -", exprds))
 foo <- dev.off()
 cat(paste0("... written: ", outFile, "\n"))
@@ -238,7 +239,55 @@ p_box <- ggboxplot(data=all_data_dt, x="hicds_lab", y=paste0(plot_var)) +
 ggsave(p_box, filename = outFile, height=myHeightGG, width=myWidthGG)
 cat(paste0("... written: ", outFile, "\n"))
 
+
+outFile <- file.path(outFolder, paste0(myhicds, "_", exprds, "_", plot_var, "_allTADs_density_noG2t.", plotType))
+do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+plot_multiDens(split(all_data_dt[!grepl("PERMUTG2T", all_data_dt$hicds),paste0(plot_var)], all_data_dt$hicds_lab[!grepl("PERMUTG2T", all_data_dt$hicds)]),
+               plotTit=plot_var, legPos = "topright")
+mtext(side=3, text = paste0(myhicds, " -", exprds))
+foo <- dev.off()
+cat(paste0("... written: ", outFile, "\n"))
+
+outFile <- file.path(outFolder, paste0(myhicds, "_", exprds, "_", plot_var, "_allTADs_boxplot_noG2t.", plotType))
+
+p_box <- ggboxplot(data=all_data_dt[!grepl("PERMUTG2T", all_data_dt$hicds),], x="hicds_lab", y=paste0(plot_var)) +
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 10))+
+  ggtitle(paste0(plot_var), subtitle = paste0(myhicds)) + 
+  theme( # Increase size of axis lines
+    strip.text = element_text(size = 12),
+    # top, right, bottom and left
+    # plot.margin = unit(c(1, 1, 4.5, 1), "lines"),
+    plot.title = element_text(hjust = 0.5, face = "bold", size=16),
+    plot.subtitle = element_text(hjust = 0.5, face = "italic", size = 14),
+    panel.grid = element_blank(),
+    panel.grid.major.y = element_line(colour = "grey"),
+    panel.grid.minor.y = element_line(colour = "grey"))
+
+ggsave(p_box, filename = outFile, height=myHeightGG, width=myWidthGG)
+cat(paste0("... written: ", outFile, "\n"))
+
+
 }
 
+# for hicds ENCSR489OCU_NCI-H460_40kb
+# exprds <- "TCGAluad_norm_luad"
+xx=tad_nEP_dt[order(tad_nEP_dt$nEP, decreasing = T),]
+# > head(xx)
+# target_region nEP
+# 854     chr19_TAD3 809
+# 1919   chr8_TAD570 670
+# 136   chr11_TAD252 555
+xx2 <- xx[xx$target_region %in% final_dt$region[final_DT$hicds == hicds & final_DT$exprds == exprds], ]
+# > head(xx2)
+# target_region nEP
+# 1918   chr8_TAD569 308
+# 1301   chr22_TAD85 238
+# 259    chr12_TAD26 234
+
+
+final_DT[final_DT$hicds == hicds & final_DT$exprds == exprds & final_DT$region == "chr8_TAD569", "region_genes"]
+# ] "EEF1D,GSDMD,MROH6,NAPRT1,PYCRL,RHPN1,RHPN1-AS1,TIGD5,TOP1MT,TSTA3,ZC3H3,ZNF623,ZNF696"
+final_DT[final_DT$hicds == hicds & final_DT$exprds == exprds & final_DT$region == "chr11_TAD252", "region_genes"]
+# ] "CARD10,CDC42EP1,GGA1,LGALS1,LGALS2,MFNG,NOL12,PDXP,SH3BP1,TRIOBP"
 
 

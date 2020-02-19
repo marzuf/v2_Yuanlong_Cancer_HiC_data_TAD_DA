@@ -12,7 +12,7 @@ registerDoMC(40)
 # Rscript TFs_by_TADs_signifTADs_v2_median_allRandom.R chea3_lung
 
 # 
-
+ 
 
 plotCex <- 1.4
 
@@ -40,54 +40,60 @@ args <- commandArgs(trailingOnly = TRUE)
 stopifnot(length(args) == 1 | length(args) == 3)
 dsIn <- args[1]
 if(length(args) == 3) {
-  all_hicds <- args[2]
+  all_hicds_init <- args[2]
   all_exprds <- args[3]
 
 } else {
-  all_hicds <- list.files("PIPELINE/OUTPUT_FOLDER")
-}
+  all_hicds_init <- list.files("PIPELINE/OUTPUT_FOLDER")
 
+}
 
 stopifnot(dsIn %in% c("crisp", "c3.mir", "c3.all", "c3.tft", "trrust", "tftg", "motifmap", "kegg", "chea3_all", "chea3_lung"))
 
-outFolder <- file.path(paste0("TFs_by_TADs_signifTADs_v2_MEDIAN_", toupper(dsIn)))
-dir.create(outFolder, recursive = TRUE)
 
-buildData <- FALSE
+buildData <- TRUE
 
 tad_signif_thresh <- 0.01
 
 
-setDir <- "/media/electron"
-setDir <- ""
-entrezDT_file <- paste0(setDir, "/mnt/ed4/marie/entrez2synonym/entrez/ENTREZ_POS/gff_entrez_position_GRCh37p13_nodup.txt")
-gff_dt <- read.delim(entrezDT_file, header = TRUE, stringsAsFactors = FALSE)
-gff_dt$entrezID <- as.character(gff_dt$entrezID)
-
-stopifnot(!duplicated(gff_dt$entrezID))
-stopifnot(!duplicated(gff_dt$symbol))
-entrez2symb <- setNames(gff_dt$symbol, gff_dt$entrezID)
-symb2entrez <- setNames(gff_dt$entrezID, gff_dt$symbol)
-
-final_dt <- get(load("CREATE_FINAL_TABLE/all_result_dt.Rdata"))
-
-all_hicds <- all_hicds[grepl(random_type, all_hicds)]
-all_exprds <- sapply(all_hicds, function(x) list.files(file.path("PIPELINE/OUTPUT_FOLDER", x)))
-
-
 all_random_patterns <- c("RANDOMMIDPOS", "RANDOMNBRGENES", "RANDOMSHIFT", "PERMUTG2T" )
+# all_random_patterns <- c( "RANDOMNBRGENES", "RANDOMSHIFT", "PERMUTG2T" )
+# all_random_patterns <- c("RANDOMMIDPOS")
+
 
 
 for(random_type in all_random_patterns) {
   
-    
+  
+  all_hicds <- all_hicds_init[grepl(random_type, all_hicds_init)]
+  all_exprds <- sapply(all_hicds, function(x) list.files(file.path("PIPELINE/OUTPUT_FOLDER", x)))
+  
+  
+  
+  outFolder <- file.path(paste0("TFS_BY_TADS_SIGNIFTADS_V2_MEDIAN_", random_type, "_V2_", toupper(dsIn)))
+  dir.create(outFolder, recursive = TRUE)
+  
+
+  
+  
+  setDir <- "/media/electron"
+  setDir <- ""
+  entrezDT_file <- paste0(setDir, "/mnt/ed4/marie/entrez2synonym/entrez/ENTREZ_POS/gff_entrez_position_GRCh37p13_nodup.txt")
+  gff_dt <- read.delim(entrezDT_file, header = TRUE, stringsAsFactors = FALSE)
+  gff_dt$entrezID <- as.character(gff_dt$entrezID)
+  
+  stopifnot(!duplicated(gff_dt$entrezID))
+  stopifnot(!duplicated(gff_dt$symbol))
+  entrez2symb <- setNames(gff_dt$symbol, gff_dt$entrezID)
+  symb2entrez <- setNames(gff_dt$entrezID, gff_dt$symbol)
+  
   
   
   if(buildData){
     nRegFeat_dt <- foreach(hicds = all_hicds, .combine='rbind') %dopar%{
-    
+      
       cat(paste0("> START - ", hicds,"\n"))
-    
+      
       if(dsIn == "crisp") {
         reg_file <- file.path("gene_set_library_crisp_processed.txt")
         reg_dt <- read.delim(reg_file, sep="\t", header=TRUE, stringsAsFactors = FALSE)
@@ -156,12 +162,12 @@ for(random_type in all_random_patterns) {
       cat(paste0("with g2t assignment: nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
       reg_dt$targetRegion <- g2t_vect[paste0(reg_dt$targetEntrezID)]
       stopifnot(!is.na(reg_dt))
-        
+      
       nbrReg_TADs_dt <- aggregate(regSymbol~targetRegion, data=reg_dt, function(x) length(unique(x)))
       
-  hicds_reg_dt <- reg_dt
-  rm("reg_dt")
-  
+      hicds_reg_dt <- reg_dt  
+      rm("reg_dt")
+      
       exprds = all_exprds[[paste0(hicds)]][1]
       exprds_dt <- foreach(exprds = all_exprds[[paste0(hicds)]], .combine='rbind') %do% {
         
@@ -172,10 +178,8 @@ for(random_type in all_random_patterns) {
         
         plotTit <- paste0(hicds, "\n", exprds)
         
-        result_dt <- final_dt[final_dt$hicds == hicds & final_dt$exprds == exprds, ]
-        result_dt$tad_rank <- rank(result_dt$adjPvalComb, ties="min")
-        result_dt$rev_tad_rank <- rank(-result_dt$adjPvalComb, ties="min")
-        
+
+                
         geneList <- get(load(file.path("PIPELINE", "OUTPUT_FOLDER", hicds, exprds, "0_prepGeneData", "pipeline_geneList.Rdata") ))
         stopifnot(geneList %in% g2t_dt$entrezID)
         gByTAD <- g2t_dt[g2t_dt$entrezID %in% geneList,]
@@ -213,45 +217,32 @@ for(random_type in all_random_patterns) {
         plot_dt$hicds <- hicds
         plot_dt$exprds <- exprds
         
-        signif_plot_dt <- merge(plot_dt, result_dt[,c("hicds", "exprds", "region", "adjPvalComb")], by=c("hicds", "exprds", "region"))
+        signif_plot_dt <- plot_dt
         
         stopifnot(signif_plot_dt$region %in% names(nGbyT))
         signif_plot_dt$nGenes <- nGbyT[paste0(signif_plot_dt$region)]
         stopifnot(!is.na(signif_plot_dt$nGenes))
         
         
-        signif_plot_dt$signif_lab <- ifelse(signif_plot_dt$adjPvalComb <= tad_signif_thresh, "signif.", "not signif.")
         
-       
-        nGenes_signif <- signif_plot_dt$nGenes[signif_plot_dt$signif_lab == "signif."]
-        nGenes_notSignif <- signif_plot_dt$nGenes[signif_plot_dt$signif_lab == "not signif."]
-  
+        nGenes <- signif_plot_dt$nGenes
         
-        nTFs_signif <- signif_plot_dt$nTFs[signif_plot_dt$signif_lab == "signif."]
-        nTFs_notSignif <- signif_plot_dt$nTFs[signif_plot_dt$signif_lab == "not signif."]
+        nTFs <- signif_plot_dt$nTFs
         
-        nRegGenes_signif <- signif_plot_dt$nRegGenes[signif_plot_dt$signif_lab == "signif."]
-        nRegGenes_notSignif <- signif_plot_dt$nRegGenes[signif_plot_dt$signif_lab == "not signif."]
+        nRegGenes <- signif_plot_dt$nRegGenes
         
-        nTFsOVERnGenes_signif <- signif_plot_dt$nTFs[signif_plot_dt$signif_lab == "signif."]/signif_plot_dt$nGenes[signif_plot_dt$signif_lab == "signif."]
-        nTFsOVERnGenes_notSignif <- signif_plot_dt$nTFs[signif_plot_dt$signif_lab == "not signif."]/signif_plot_dt$nGenes[signif_plot_dt$signif_lab == "not signif."]
+        nTFsOVERnGenes <- signif_plot_dt$nTFs/signif_plot_dt$nGenes
         
-        nRegGenesOVERnGenes_signif <- signif_plot_dt$nRegGenes[signif_plot_dt$signif_lab == "signif."]/signif_plot_dt$nGenes[signif_plot_dt$signif_lab == "signif."]
-        nRegGenesOVERnGenes_notSignif <- signif_plot_dt$nRegGenes[signif_plot_dt$signif_lab == "not signif."]/signif_plot_dt$nGenes[signif_plot_dt$signif_lab == "not signif."]
+        nRegGenesOVERnGenes <- signif_plot_dt$nRegGenes/signif_plot_dt$nGenes
         
         data.frame(
           hicds = hicds,
           exprds = exprds, 
-          median_nTFs_signif = median(nTFs_signif),
-          median_nTFs_notSignif = median(nTFs_notSignif),
-          median_nRegGenes_signif = median(nRegGenes_signif),
-          median_nRegGenes_notSignif = median(nRegGenes_notSignif),
-          median_nTFsOVERnGenes_signif = median(nTFsOVERnGenes_signif),
-          median_nTFsOVERnGenes_notSignif = median(nTFsOVERnGenes_notSignif),
-          median_nRegGenesOVERnGenes_signif = median(nRegGenesOVERnGenes_signif),
-          median_nRegGenesOVERnGenes_notSignif = median(nRegGenesOVERnGenes_notSignif),
-          median_nGenes_signif = median(nGenes_signif),
-          median_nGenes_notSignif = median(nGenes_notSignif),
+          median_nTFs = median(nTFs),
+          median_nRegGenes = median(nRegGenes),
+          median_nTFsOVERnGenes = median(nTFsOVERnGenes),
+          median_nRegGenesOVERnGenes = median(nRegGenesOVERnGenes),
+          median_nGenes = median(nGenes),
           stringsAsFactors = FALSE
         )
       }# end-for iterating over exprds
@@ -275,17 +266,26 @@ for(random_type in all_random_patterns) {
   
   # load("TFS_BY_TADS_SIGNIFTADS_C3.TFT/nRegFeat_dt.Rdata")
   
-  keepCols <- c("median_nTFs_signif", "median_nTFs_notSignif", "median_nGenes_signif", "median_nGenes_notSignif", "median_nTFsOVERnGenes_signif", "median_nTFsOVERnGenes_notSignif")
   
-  outFile <- file.path(outFolder, paste0("nRegFeat_boxplot_allDS_keepCols.", plotType))  
-  do.call(plotType, list(outFile, height=myHeight, width=myWidth))
-  par(mar=par()$mar+c(9,0,0,0))
-  boxplot(nRegFeat_dt[, keepCols], las=2, 
-          main=paste0("all ", random_type, " ds (n=", length(unique(file.path(nRegFeat_dt$hicds, nRegFeat_dt$exprds))),")"),  cex.axis=0.8)
-  mtext(side=3, text = paste0(dsIn))
-  cat(paste0("... written: ", outFile, "\n"))
-
+  # keepCols <- c("median_nTFs", "median_nTFs", "median_nGenes", "median_nGenes", "median_nTFsOVERnGenes", "median_nTFsOVERnGenes")
+  # 
+  # outFile <- file.path(outFolder, paste0("nRegFeat_boxplot_allDS_keepCols.", plotType))  
+  # do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+  # par(mar=par()$mar+c(9,0,0,0))
+  # boxplot(nRegFeat_dt[, keepCols], las=2, main=paste0("all ", random_type, " ds (n=", length(unique(file.path(nRegFeat_dt$hicds, nRegFeat_dt$exprds))),")"),  cex.axis=0.8)
+  # mtext(side=3, text = paste0(dsIn))
+  # cat(paste0("... written: ", outFile, "\n"))
+  # 
+  
+  
+  
 }
+
+
+
+
+
+
 
 #####################################################################
 cat("*** DONE\n")

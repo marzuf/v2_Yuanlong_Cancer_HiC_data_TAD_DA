@@ -59,7 +59,7 @@ all_hicds <- all_hicds[!grepl("_PERMUT", all_hicds)]
 
 stopifnot(dsIn %in% c("crisp", "c3.mir", "c3.all", "c3.tft", "trrust", "tftg", "motifmap", "kegg", "chea3_all", "chea3_lung"))
 
-outFolder <- file.path(paste0("TFS_BY_TADS_SIGNIFTADS_v2_PERMUTG2T_MEDIAN_", toupper(dsIn)))
+outFolder <- file.path(paste0("TFS_BY_TADS_SIGNIFTADS_v2_PERMUTG2T1000_MEDIAN_", toupper(dsIn)))
 dir.create(outFolder, recursive = TRUE)
 
 buildData <- TRUE
