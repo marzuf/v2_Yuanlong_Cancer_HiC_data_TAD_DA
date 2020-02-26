@@ -50,7 +50,7 @@ do.call(plotType, list(outFile, height=myHeight, width=myWidth*1.4))
 par(bty="L")
 plot_multiDens(
   split(all_ds_meanFC_dt$meanFC, all_ds_meanFC_dt$hicds_lab),
-  plotTit = paste0("all DS - n=", length(unique(all_ds_meanFC_dt$hicds)), " - TAD meanFC"), legPos = "topright")
+  plotTit = paste0("all DS - n=", length(unique(file.path(all_ds_meanFC_dt$hicds, all_ds_meanFC_dt$exprds))), " - TAD meanFC"), legPos = "topright")
 
 foo <- dev.off()
 cat(paste0("... written: ", outFile, "\n"))
@@ -60,7 +60,7 @@ do.call(plotType, list(outFile, height=myHeight, width=myWidth*1.4))
 par(bty="L")
 plot_multiDens(
   split(all_ds_meanFC_dt$meanFC[!grepl("PERMUTG2T", all_ds_meanFC_dt$hicds_lab)], all_ds_meanFC_dt$hicds_lab[!grepl("PERMUTG2T", all_ds_meanFC_dt$hicds_lab)]),
-  plotTit = paste0("all DS - n=", length(unique(all_ds_meanFC_dt$hicds)), " - TAD meanFC"), legPos = "topright")
+  plotTit = paste0("all DS - n=", length(unique(file.path(all_ds_meanFC_dt$hicds, all_ds_meanFC_dt$exprds))), " - TAD meanFC"), legPos = "topright")
 
 foo <- dev.off()
 cat(paste0("... written: ", outFile, "\n"))

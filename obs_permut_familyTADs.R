@@ -22,6 +22,8 @@ dir.create(outFolder, recursive = TRUE)
 final_DT <- get(load(file.path("CREATE_FINAL_TABLE", "all_result_dt.Rdata")))
 final_DT_permut <- get(load(file.path("CREATE_FINAL_TABLE_RANDOM", "all_result_dt.Rdata")))
 
+result_dt_all <- rbind(final_DT, final_DT_permut)
+
 exprds <- "TCGAluad_norm_luad"
 famType <- "hgnc_family_short"
 
@@ -86,17 +88,15 @@ if(buildData) {
     nGenesFamsByTAD_dt <- merge(nFamByTAD_dt, nGenesByTAD_dt, all.x=TRUE, all.y=FALSE, by="region")
     stopifnot(!is.na(nGenesFamsByTAD_dt$nGenes))
     
-    if(hicds %in% final_DT$hicds) {
-      result_dt <- final_DT[final_DT$hicds == hicds & final_DT$exprds == exprds,]
-    } else if(hicds %in% final_DT_permut$hicds) {
-      result_dt <- final_DT_permut[final_DT_permut$hicds == hicds & final_DT_permut$exprds == exprds,]
-    } else {
-      stop("error")
-    }
+    
+    result_dt <- result_dt_all[result_dt_all$hicds == hicds & result_dt_all$exprds == exprds,]
+    stopifnot(!duplicated(result_dt$region))
+    result_dt$region_rank <- rank(result_dt$adjPvalComb, ties="min")
+    
     
     stopifnot(nGenesFamsByTAD_dt$region %in% result_dt$region)
     
-    nGenesFamsByTAD_final_dt <- merge(nGenesFamsByTAD_dt, result_dt[,c("hicds", "exprds", "region", "meanCorr", "adjPvalComb")],
+    nGenesFamsByTAD_final_dt <- merge(nGenesFamsByTAD_dt, result_dt[,c("hicds", "exprds", "region", "meanCorr", "adjPvalComb", "region_rank")],
                                       all.x=TRUE, all.y=FALSE, by="region")
     stopifnot(!is.na(nGenesFamsByTAD_final_dt))
     stopifnot(nGenesFamsByTAD_final_dt$hicds == hicds)
@@ -110,12 +110,12 @@ if(buildData) {
     colnames(nTADsByFam_dt)[colnames(nTADsByFam_dt) == "region"] <- "nTADs"
     stopifnot(fam_pip_dt$region %in% result_dt$region)
     
-    fam_pip_result_dt <- merge(fam_pip_dt, result_dt[,c("hicds", "exprds", "region", "adjPvalComb")], all.x=TRUE, all.y=FALSE, by="region")
+    fam_pip_result_dt <- merge(fam_pip_dt, result_dt[,c("hicds", "exprds", "region", "adjPvalComb", "region_rank")], all.x=TRUE, all.y=FALSE, by="region")
     stopifnot(!is.na(fam_pip_result_dt))
     stopifnot(fam_pip_result_dt$hicds == hicds)
     stopifnot(fam_pip_result_dt$exprds == exprds)
     
-    tad_fam_pip_result_dt <- fam_pip_result_dt[,c("region", "adjPvalComb", paste0(famType))]
+    tad_fam_pip_result_dt <- fam_pip_result_dt[,c("region", "adjPvalComb", "region_rank", paste0(famType))]
     tad_fam_pip_result_dt <- unique(tad_fam_pip_result_dt)
     
     nSignifTADsByFam_dt <- aggregate(as.formula(paste0("adjPvalComb ~ ", famType)), data=tad_fam_pip_result_dt, FUN=function(x) sum(x <= tad_signif_thresh))
@@ -382,6 +382,46 @@ for(plot_var in c("nFams")) {
   
   
 }
+
+#############################################################################################################################
+
+# nFAMs of topTADs
+
+nTopRank <- 50
+
+plot_dt <- allDS_nGenesFamsByTAD_dt
+plot_dt <- plot_dt[plot_dt$region_rank <= nTopRank,]
+
+sub <- paste0(nTopRank, " top-ranking TADs only")
+
+outFile <- file.path(outFolder, paste0(myhicds, "_", exprds, "_nFams_", nTopRank, "nTopTADs_boxplot.", plotType))
+
+p_box <- ggboxplot(data=plot_dt, x="hicds_lab", y=paste0("nFams")) +
+  ggtitle("# Fams by TAD", subtitle = paste0(mysub, "; ", sub))+
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 10))+
+  theme( # Increase size of axis lines
+    strip.text = element_text(size = 12),
+    # top, right, bottom and left
+    # plot.margin = unit(c(1, 1, 4.5, 1), "lines"),
+    plot.title = element_text(hjust = 0.5, face = "bold", size=16),
+    plot.subtitle = element_text(hjust = 0.5, face = "italic", size = 14),
+    panel.grid = element_blank(),
+    panel.grid.major.y = element_line(colour = "grey"),
+    panel.grid.minor.y = element_line(colour = "grey"))
+
+ggsave(p_box, filename = outFile, height=myHeightGG, width=myWidthGG)
+cat(paste0("... written: ", outFile, "\n"))
+
+
+outFile <- file.path(outFolder, paste0(myhicds, "_", exprds, "_nFams_", nTopRank, "nTopTADs_density.", plotType))
+
+do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+plot_multiDens(split(plot_dt$nFams, plot_dt$hicds_lab),
+               plotTit=paste0("# Fams by TAD"), legPos = "topright")
+mtext(side=3, text = paste0(mysub, "; ", sub))
+foo <- dev.off()
+cat(paste0("... written: ", outFile, "\n"))
+
 
 
 

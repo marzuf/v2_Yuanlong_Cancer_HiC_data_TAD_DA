@@ -3,29 +3,27 @@ require(foreach)
 require(doMC)
 registerDoMC(40)
 
-# Rscript  dist_signif_to_borders.R
+# Rscript  dist_signif_to_borders_allDS.R
 
-outFolder <- "DIST_SIGNIF_TO_BORDERS"
+outFolder <- "DIST_SIGNIF_TO_BORDERS_ALLDS"
 dir.create(outFolder, recursive = TRUE)
 
 plotType <- "svg"
 myHeightGG <- 7
 myWidthGG <- 9
 
-all_hicds <- list.files("PIPELINE/OUTPUT_FOLDER")
-# all_hicds=all_hicds[1]
-
-myHicds <- "ENCSR489OCU_NCI-H460"
-
-all_hicds <- all_hicds[grepl(myHicds, all_hicds)]
-
-
 hicds <- "ENCSR489OCU_NCI-H460_40kb"
 exprds <- "TCGAluad_norm_luad"
+
+all_hicds <- list.files("PIPELINE/OUTPUT_FOLDER")
+# all_hicds=all_hicds[1]
+all_exprds <- sapply(all_hicds, function(x) list.files(file.path("PIPELINE/OUTPUT_FOLDER", x)))
 
 signifThresh <- 0.01
 
 all_dt <- foreach(hicds = all_hicds, .combine='rbind') %dopar% {
+  
+  exprds_dt <- foreach(exprds = all_exprds[[paste0(hicds)]], .combine='rbind') %do% {
   
   tad_dt_file <- file.path(hicds,  "genes2tad", "all_assigned_regions.txt")
   tad_dt <- read.delim(tad_dt_file, stringsAsFactors = FALSE, header=FALSE, col.names=c("chromo", "region", "region_start", "region_end"))
@@ -60,12 +58,26 @@ all_dt <- foreach(hicds = all_hicds, .combine='rbind') %dopar% {
   g2t_signif_dt$hicds <- hicds
   g2t_signif_dt$exprds <- exprds
   g2t_signif_dt
+  }
+  exprds_dt
 }
 
-all_dt$hicds_lab <- gsub(myHicds, "", all_dt$hicds)
+rd_patterns <- c("RANDOMMIDPOS", "RANDOMNBRGENES", "RANDOMSHIFT", "PERMUTG2T" )
+all_dt$hicds_lab <- gsub(".+RANDOMSHIFT_40kb", "RANDOMSHIFT", 
+                                      gsub(".+RANDOMNBRGENES_40kb", "RANDOMNBRGENES",
+                                           gsub(".+PERMUTG2T_40kb", "PERMUTG2T", 
+                                                gsub(".+RANDOMMIDPOS_40kb", "RANDOMMIDPOS", all_dt$hicds))))
+all_dt$hicds_lab[! all_dt$hicds_lab %in% rd_patterns] <- "OBSERVED"
+
+
+# all_dt$hicds_lab <- gsub(myHicds, "", all_dt$hicds)
+
+nDS <- length(unique(file.path(all_dt$hicds, all_dt$exprds)))
+
+plotTit <- paste0("all DS - n=", nDS)
 
 p_box <- ggboxplot(data=all_dt, x="signif", y="minDist_geneStart_border_log10", xlab="", ylab="min dist. gene start <-> TAD border [bp log10]")+
-  ggtitle(myHicds, subtitle = paste0("gene adj. p-val <= ", signifThresh))+
+  ggtitle(plotTit, subtitle = paste0("gene adj. p-val <= ", signifThresh))+
   facet_grid(~hicds_lab, switch="x") +
   scale_y_continuous(breaks = scales::pretty_breaks(n = 10))+
   theme( # Increase size of axis lines
@@ -79,42 +91,41 @@ p_box <- ggboxplot(data=all_dt, x="signif", y="minDist_geneStart_border_log10", 
     panel.grid.minor.y = element_line(colour = "grey"))
 
 
-outFile <- file.path(outFolder, paste0(myHicds, "_obs_permut_minDist_geneStart_border.", plotType))
+outFile <- file.path(outFolder, paste0("allDS_obs_permut_minDist_geneStart_border.png"))
 ggsave(p_box, filename = outFile, height=myHeightGG, width=myWidthGG)
 cat(paste0("... written: ", outFile, "\n"))
 
 
 source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 
-outFile <- file.path(outFolder, paste0(myHicds, "_obs_permut_minDist_geneStart_border_density_all.", plotType))
-do.call(plotType, list(outFile, height=myHeightGG, width=myWidthGG*1.2))
-par(bty="L")
-plot_multiDens(
-
-  split(all_dt$minDist_geneStart_border_log10, all_dt$hicds_lab),
-  legPos = "topleft",
-  my_xlab = "min dist. gene start - TAD border [log10 bp]",
-  plotTit = paste0(myHicds))
-
-foo <- dev.off()
-cat(paste0("... written: ", outFile, "\n"))
-
-outFile <- file.path(outFolder, paste0(myHicds, "_obs_permut_minDist_geneStart_border_density_signif.", plotType))
+outFile <- file.path(outFolder, paste0( "allDS_obs_permut_minDist_geneStart_border_density_all.", plotType))
 do.call(plotType, list(outFile, height=myHeightGG, width=myWidthGG*1.2))
 par(bty="L")
 plot_multiDens(
   
-  split(all_dt$minDist_geneStart_border_log10[all_dt$signif == "signif."], all_dt$hicds_lab[all_dt$signif == "signif."]),
+  split(all_dt$minDist_geneStart_border_log10, all_dt$hicds_lab),
   legPos = "topleft",
   my_xlab = "min dist. gene start - TAD border [log10 bp]",
-  plotTit = paste0(myHicds))
-mtext(side=3, text = paste0("signif. genes only - gene adj. p-val <= ", signifThresh))
+  plotTit = paste0(plotTit))
+mtext(side=3, text = paste0("all genes"))
 foo <- dev.off()
 cat(paste0("... written: ", outFile, "\n"))
 
 
+outFile <- file.path(outFolder, paste0( "allDS_obs_permut_minDist_geneStart_border_density_signif.", plotType))
+do.call(plotType, list(outFile, height=myHeightGG, width=myWidthGG*1.2))
+par(bty="L")
+plot_multiDens(
 
-outFile <- file.path(outFolder, paste0(myHicds, "_obs_permut_minDist_geneStart_border_density_notSignif.", plotType))
+  split(all_dt$minDist_geneStart_border_log10[all_dt$signif == "signif."], all_dt$hicds_lab[all_dt$signif == "signif."]),
+  legPos = "topleft",
+  my_xlab = "min dist. gene start - TAD border [log10 bp]",
+  plotTit = paste0(plotTit))
+mtext(side=3, text = paste0("signif. genes only - gene adj. p-val <= ", signifThresh))
+foo <- dev.off()
+cat(paste0("... written: ", outFile, "\n"))
+
+outFile <- file.path(outFolder, paste0( "allDS_obs_permut_minDist_geneStart_border_density_notSignif.", plotType))
 do.call(plotType, list(outFile, height=myHeightGG, width=myWidthGG*1.2))
 par(bty="L")
 plot_multiDens(
@@ -122,7 +133,8 @@ plot_multiDens(
   split(all_dt$minDist_geneStart_border_log10[all_dt$signif == "not signif."], all_dt$hicds_lab[all_dt$signif == "not signif."]),
   legPos = "topleft",
   my_xlab = "min dist. gene start - TAD border [log10 bp]",
-  plotTit = paste0(myHicds))
+  plotTit = paste0(plotTit))
 mtext(side=3, text = paste0("not signif. genes only - gene adj. p-val > ", signifThresh))
 foo <- dev.off()
 cat(paste0("... written: ", outFile, "\n"))
+

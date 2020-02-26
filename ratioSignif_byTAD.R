@@ -69,8 +69,12 @@ all_dt <- foreach(hicds = all_hicds, .combine='rbind') %dopar% {
   
   tad_result_dt <- result_dt[result_dt$hicds == hicds & result_dt$exprds == exprds,]
   
+  stopifnot(!duplicated(tad_result_dt$region))
   
-  tad_limmaSignif_dt <- merge(tad_limmaSignif_dt_12, tad_result_dt[,c("region", "adjPvalComb")], all.x=TRUE, all.y=FALSE, by="region")
+  tad_result_dt$region_rank <- rank(tad_result_dt$adjPvalComb, ties="min")
+  
+  
+  tad_limmaSignif_dt <- merge(tad_limmaSignif_dt_12, tad_result_dt[,c("region", "adjPvalComb", "region_rank")], all.x=TRUE, all.y=FALSE, by="region")
   stopifnot(!is.na(tad_limmaSignif_dt))
   stopifnot(nrow(tad_limmaSignif_dt) == nrow(tad_limmaSignif_dt_12))
   
@@ -124,6 +128,69 @@ p_box <- ggboxplot(data=all_dt, x="signif", y="meanLimmaPvalLog10", xlab="TAD si
 outFile <- file.path(outFolder, paste0(myHicds, "_obs_permut_meanLimmaPvalByTAD.", plotType))
 ggsave(p_box, filename = outFile, height=myHeightGG, width=myWidthGG)
 cat(paste0("... written: ", outFile, "\n"))
+
+
+
+#############################################################################################################################
+
+save(all_dt, file="all_dt.Rdata", version=2)
+
+# nFAMs of topTADs
+
+nTopRank <- 50
+
+plot_dt <- all_dt
+plot_dt <- plot_dt[plot_dt$region_rank <= nTopRank,]
+
+sub <- paste0(nTopRank, " top-ranking TADs only")
+
+outFile <- file.path(outFolder, paste0(myHicds, "_", exprds, "_meanLimmaPvalLog10_", nTopRank, "nTopTADs_boxplot.", plotType))
+
+p_box <- ggboxplot(data=plot_dt, x="hicds_lab", y=paste0("meanLimmaPvalLog10")) +
+  ggtitle(paste0(myHicds, " - ", exprds), subtitle = paste0(sub))+
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 10))+
+  theme( # Increase size of axis lines
+    strip.text = element_text(size = 12),
+    # top, right, bottom and left
+    # plot.margin = unit(c(1, 1, 4.5, 1), "lines"),
+    plot.title = element_text(hjust = 0.5, face = "bold", size=16),
+    plot.subtitle = element_text(hjust = 0.5, face = "italic", size = 14),
+    panel.grid = element_blank(),
+    panel.grid.major.y = element_line(colour = "grey"),
+    panel.grid.minor.y = element_line(colour = "grey"))
+
+ggsave(p_box, filename = outFile, height=myHeightGG, width=myWidthGG)
+cat(paste0("... written: ", outFile, "\n"))
+
+
+source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
+
+outFile <- file.path(outFolder, paste0(myHicds, "_", exprds, "_meanLimmaPvalLog10_", nTopRank, "nTopTADs_density.", plotType))
+
+do.call(plotType, list(outFile, height=myHeightGG, width=myWidthGG))
+plot_multiDens(split(plot_dt$meanLimmaPvalLog10, plot_dt$hicds_lab),
+               plotTit=paste0("TAD mean limma p-val [log10]"), legPos = "topright")
+mtext(side=3, text = paste0(hicds, " - ", exprds, "; ", sub))
+foo <- dev.off()
+cat(paste0("... written: ", outFile, "\n"))
+
+
+
+
+#############################################################################################################################
+#############################################################################################################################
+#############################################################################################################################
+
+txt <- paste0(startTime, "\n", Sys.time(), "\n")
+cat(paste0(txt))
+cat(paste0("*** DONE: ", script_name, "\n"))
+
+
+
+
+
+
+
 
 
 
