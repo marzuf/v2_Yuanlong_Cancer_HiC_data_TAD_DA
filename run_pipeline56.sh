@@ -5,87 +5,8 @@
 # TCGA data have been prepared according to scripts in folder /mnt/etemp/marie/scripts/TAD_DE_pipeline_v2_TCGAdata
 
 # LIVER
-# ./run_pipeline.sh GSE105381_HepG2_40kb TCGAlihc_norm_lihc  
-# ./run_pipeline.sh GSE105381_HepG2_40kb TCGAlihc_wt_mutCTNNB1  
+# ./run_pipeline56.sh LG1_RANDOMMIDPOS_40kb TCGAluad_wt_mutKRAS
 
-# ./run_pipeline.sh LI_40kb TCGAlihc_norm_lihc 
-# ./run_pipeline.sh LI_40kb TCGAlihc_wt_mutCTNNB1
-
-
-# BREAST
-
-# ./run_pipeline.sh ENCSR549MGQ_T47D_40kb TCGAbrca_lum_bas 
-# ./run_pipeline.sh Barutcu_MCF-7_40kb TCGAbrca_lum_bas
-
-
-# KIDNEY
-# ./run_pipeline.sh ENCSR079VIJ_G401_40kb TCGAkich_norm_kich 
-# ./run_pipeline.sh ENCSR401TBQ_Caki2_40kb TCGAkich_norm_kich
-
-
-# SKIN
-# ./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_40kb TCGAskcm_lowInf_highInf
-# ./run_pipeline.sh ENCSR862OGI_RPMI-7951_40kb TCGAskcm_lowInf_highInf 
-
-# ./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_40kb TCGAskcm_wt_mutBRAF
-# ./run_pipeline.sh ENCSR862OGI_RPMI-7951_40kb TCGAskcm_wt_mutBRAF
-
-# ./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_40kb TCGAskcm_wt_mutCTNNB1	
-# ./run_pipeline.sh ENCSR862OGI_RPMI-7951_40kb TCGAskcm_wt_mutCTNNB1	
-
-
-# LUNG
-# ./run_pipeline.sh ENCSR444WCZ_A549_40kb TCGAluad_norm_luad   
-# ./run_pipeline.sh ENCSR489OCU_NCI-H460_40kb TCGAluad_norm_luad   
-
-# ./run_pipeline.sh ENCSR444WCZ_A549_40kb TCGAluad_mutKRAS_mutEGFR 
-# ./run_pipeline.sh ENCSR489OCU_NCI-H460_40kb TCGAluad_mutKRAS_mutEGFR  
-
-# ./run_pipeline.sh ENCSR444WCZ_A549_40kb TCGAluad_nonsmoker_smoker 
-# ./run_pipeline.sh ENCSR489OCU_NCI-H460_40kb TCGAluad_nonsmoker_smoker  
-
-# ./run_pipeline.sh ENCSR444WCZ_A549_40kb TCGAluad_wt_mutKRAS 
-# ./run_pipeline.sh ENCSR489OCU_NCI-H460_40kb TCGAluad_wt_mutKRAS 
-
-# ./run_pipeline.sh ENCSR444WCZ_A549_40kb TCGAlusc_norm_lusc  
-# ./run_pipeline.sh ENCSR489OCU_NCI-H460_40kb TCGAlusc_norm_lusc 
-
-	
-# PANCREAS
-# ./run_pipeline.sh Panc1_rep12_40kb TCGApaad_wt_mutKRAS 
-	
-
-# PROSTATE	
-# ./run_pipeline.sh ENCSR346DCU_LNCaP_40kb TCGAprad_norm_prad    
-# ./run_pipeline.sh GSE118514_RWPE1_40kb TCGAprad_norm_prad       
-
-# GBM
-# ./run_pipeline.sh GSE105194_cerebellum_40kb TCGAgbm_classical_mesenchymal 
-# ./run_pipeline.sh GSE105194_cerebellum_40kb TCGAgbm_classical_neural 
-# ./run_pipeline.sh GSE105194_cerebellum_40kb TCGAgbm_classical_proneural 
-# ./run_pipeline.sh GSE105194_cerebellum_40kb TCGAlgg_IDHwt_IDHmutnc 
-
-# ./run_pipeline.sh GSE105194_spinal_cord_40kb TCGAgbm_classical_mesenchymal 
-# ./run_pipeline.sh GSE105194_spinal_cord_40kb TCGAgbm_classical_neural  
-# ./run_pipeline.sh GSE105194_spinal_cord_40kb TCGAgbm_classical_proneural 
-# ./run_pipeline.sh GSE105194_spinal_cord_40kb TCGAlgg_IDHwt_IDHmutnc 
-
-
-# COLORECTAL
-# ./run_pipeline.sh GSE105318_DLD1_40kb TCGAcoad_msi_mss 
-
-# LYMPHOBLAST
-# ./run_pipeline.sh K562_40kb TCGAlaml_wt_mutFLT3 
-
-
-# PERMUT DATA
-# ./run_pipeline.sh ENCSR489OCU_NCI-H460_RANDOMSHIFT_40kb TCGAluad_norm_luad
-# ./run_pipeline.sh ENCSR489OCU_NCI-H460_PERMUTG2T_40kb TCGAluad_norm_luad
-
-
-# ./run_pipeline.sh ENCSR489OCU_NCI-H460_RANDOMMIDPOS_40kb TCGAluad_norm_luad   
-
-# ./run_pipeline.sh ENCSR489OCU_NCI-H460_RANDOMNBRGENES_40kb TCGAluad_norm_luad   
 
 start_time=$(date -R)    
 #set -e
@@ -158,7 +79,7 @@ step2=1    # run the pipeline
 #TAD_DE_pipSteps=( "9" "10sameNbr" "11sameNbr" "19sameNbr" "19onlyFC" )
 #TAD_DE_pipSteps=( "170revision2EZH2" )
 # STEP 9; STEP10sameNbr; STEP11sameNbr
-TAD_DE_pipSteps=( "5fastSavePermut" "6fastSave" "5sameNbr" "8cOnlyFCCfastSave" "8cOnlyRatioDownFastSave" "9" "7sameNbr" "10sameNbr" "11sameNbr" "19sameNbr" "19onlyFC" "170revision2EZH2" )
+#TAD_DE_pipSteps=( "5fastSavePermut" "6fastSave" "5sameNbr" "8cOnlyFCCfastSave" "8cOnlyRatioDownFastSave" "9" "7sameNbr" "10sameNbr" "11sameNbr" "19sameNbr" "19onlyFC" "170revision2EZH2" )
 #TAD_DE_pipSteps=( "10sameNbr" "11sameNbr")
 #TAD_DE_pipSteps=( "10sameNbr" "11sameNbr" "19sameNbr" "19onlyFC" )
 
@@ -166,7 +87,8 @@ TAD_DE_pipSteps=( "5fastSavePermut" "6fastSave" "5sameNbr" "8cOnlyFCCfastSave" "
 
 #TAD_DE_pipSteps=( "1cleanInputTCGAminCount" "3" "4" )
 
-#TAD_DE_pipSteps=( "5fastSavePermut" "6fastSave" "5sameNbr" "8cOnlyFCCfastSave" "8cOnlyRatioDownFastSave" "9" "7sameNbr" "10sameNbr" "11sameNbr" "170revision2EZH2"  "19sameNbr" "19onlyFC" )
+TAD_DE_pipSteps=( "5fastSavePermut" "6fastSave" "5sameNbr" "8cOnlyFCCfastSave" "8cOnlyRatioDownFastSave" "9" "7sameNbr" "10sameNbr" "11sameNbr" "170revision2EZH2"  "19sameNbr" "19onlyFC" )
+
 #TAD_DE_pipSteps=( "6fastSave" "8cOnlyFCCfastSave" "8cOnlyRatioDownFastSave" "9" "7sameNbr" "10sameNbr" "11sameNbr" "170revision2EZH2"  "19sameNbr" "19onlyFC" )
 #TAD_DE_pipSteps=( "19onlyFC" "19sameNbr" )
 #TAD_DE_pipSteps=( "9" )
