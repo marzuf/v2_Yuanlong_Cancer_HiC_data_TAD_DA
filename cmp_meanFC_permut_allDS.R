@@ -18,7 +18,7 @@ all_exprds <- sapply(all_hicds, function(x) list.files(file.path("PIPELINE/OUTPU
 
 
 # 
-rd_patterns <- c("RANDOMMIDPOS", "RANDOMNBRGENES", "RANDOMSHIFT", "PERMUTG2T" )
+rd_patterns <- c("RANDOMMIDPOS", "RANDOMNBRGENES", "RANDOMSHIFT", "PERMUTG2T", "RANDOMMIDPOSDISC")
 
 
 
@@ -38,9 +38,10 @@ all_ds_meanFC_dt <- foreach(hicds = all_hicds, .combine='rbind') %dopar% {
 }
 
 all_ds_meanFC_dt$hicds_lab <- gsub(".+RANDOMSHIFT_40kb", "RANDOMSHIFT", 
+                                   gsub(".+RANDOMMIDPOSDISC_40kb", "RANDOMMIDPOSDISC",
                                gsub(".+RANDOMNBRGENES_40kb", "RANDOMNBRGENES",
                                     gsub(".+PERMUTG2T_40kb", "PERMUTG2T", 
-                               gsub(".+RANDOMMIDPOS_40kb", "RANDOMMIDPOS", all_ds_meanFC_dt$hicds))))
+                               gsub(".+RANDOMMIDPOS_40kb", "RANDOMMIDPOS", all_ds_meanFC_dt$hicds)))))
 all_ds_meanFC_dt$hicds_lab[! all_ds_meanFC_dt$hicds_lab %in% rd_patterns] <- "OBSERVED"
 
 
@@ -50,7 +51,7 @@ do.call(plotType, list(outFile, height=myHeight, width=myWidth*1.4))
 par(bty="L")
 plot_multiDens(
   split(all_ds_meanFC_dt$meanFC, all_ds_meanFC_dt$hicds_lab),
-  plotTit = paste0("all DS - n=", length(unique(file.path(all_ds_meanFC_dt$hicds, all_ds_meanFC_dt$exprds))), " - TAD meanFC"), legPos = "topright")
+  plotTit = paste0("all DS - n=", length(unique(file.path(all_ds_meanFC_dt$hicds, all_ds_meanFC_dt$exprds))), " - TAD meanLogFC"), legPos = "topright")
 
 foo <- dev.off()
 cat(paste0("... written: ", outFile, "\n"))
@@ -60,7 +61,7 @@ do.call(plotType, list(outFile, height=myHeight, width=myWidth*1.4))
 par(bty="L")
 plot_multiDens(
   split(all_ds_meanFC_dt$meanFC[!grepl("PERMUTG2T", all_ds_meanFC_dt$hicds_lab)], all_ds_meanFC_dt$hicds_lab[!grepl("PERMUTG2T", all_ds_meanFC_dt$hicds_lab)]),
-  plotTit = paste0("all DS - n=", length(unique(file.path(all_ds_meanFC_dt$hicds, all_ds_meanFC_dt$exprds))), " - TAD meanFC"), legPos = "topright")
+  plotTit = paste0("all DS - n=", length(unique(file.path(all_ds_meanFC_dt$hicds, all_ds_meanFC_dt$exprds))), " - TAD meanLogFC"), legPos = "topright")
 
 foo <- dev.off()
 cat(paste0("... written: ", outFile, "\n"))
@@ -86,16 +87,17 @@ plot_dt  <- foreach(hicds = all_hicds, .combine='rbind') %dopar% {
 }
 
 plot_dt$hicds_lab <- gsub(".+RANDOMSHIFT_40kb", "RANDOMSHIFT", 
+                          gsub(".+RANDOMMIDPOSDISC_40kb", "RANDOMMIDPOSDISC",
                                      gsub(".+RANDOMNBRGENES_40kb", "RANDOMNBRGENES",
                                           gsub(".+PERMUTG2T_40kb", "PERMUTG2T", 
-                                               gsub(".+RANDOMMIDPOS_40kb", "RANDOMMIDPOS", plot_dt$hicds))))
+                                               gsub(".+RANDOMMIDPOS_40kb", "RANDOMMIDPOS", plot_dt$hicds)))))
 plot_dt$hicds_lab[! plot_dt$hicds_lab %in% rd_patterns] <- "OBSERVED"
 
 
 plot_dt$signif <- ifelse(plot_dt$adjCombPval <= tadSignifThresh, "signif.", "not signif.")
 
 box_meanFC <- ggboxplot(data= plot_dt, x="signif", y= "meanFC", xlab="") +
-  ggtitle("mean TAD logFC", subtitle = paste0("all ds - n=", length(unique(plot_dt$hicds))))+
+  ggtitle("TAD meanLogFC", subtitle = paste0("all ds - n=", length(unique(plot_dt$hicds))))+
   facet_grid(~hicds_lab, switch="x") + 
   scale_y_continuous(name=paste0("TAD meanFC"),
                      breaks = scales::pretty_breaks(n = 10))+

@@ -3,7 +3,7 @@ require(foreach)
 require(doMC)
 registerDoMC(40)
 require(ggpubr)
-# Rscript cmp_meanCorr_permut_allDS.R
+  # Rscript cmp_meanCorr_permut_allDS.R
 
 plotType <- "svg"
 myHeight <- myWidth <- 7
@@ -18,7 +18,7 @@ all_exprds <- sapply(all_hicds, function(x) list.files(file.path("PIPELINE/OUTPU
 
 
 # 
-rd_patterns <- c("RANDOMMIDPOS", "RANDOMNBRGENES", "RANDOMSHIFT", "PERMUTG2T" )
+rd_patterns <- c("RANDOMMIDPOS", "RANDOMNBRGENES", "RANDOMSHIFT", "PERMUTG2T", "RANDOMMIDPOSDISC" )
 
 
 
@@ -38,7 +38,8 @@ all_ds_meanCorr_dt <- foreach(hicds = all_hicds, .combine='rbind') %dopar% {
 all_ds_meanCorr_dt$hicds_lab <- gsub(".+RANDOMSHIFT_40kb", "RANDOMSHIFT", 
                                gsub(".+RANDOMNBRGENES_40kb", "RANDOMNBRGENES",
                                     gsub(".+PERMUTG2T_40kb", "PERMUTG2T", 
-                               gsub(".+RANDOMMIDPOS_40kb", "RANDOMMIDPOS", all_ds_meanCorr_dt$hicds))))
+                                         gsub(".+RANDOMMIDPOSDISC_40kb", "RANDOMMIDPOSDISC",
+                               gsub(".+RANDOMMIDPOS_40kb", "RANDOMMIDPOS", all_ds_meanCorr_dt$hicds)))))
 all_ds_meanCorr_dt$hicds_lab[! all_ds_meanCorr_dt$hicds_lab %in% rd_patterns] <- "OBSERVED"
 
 
@@ -48,7 +49,7 @@ do.call(plotType, list(outFile, height=myHeight, width=myWidth*1.4))
 par(bty="L")
 plot_multiDens(
   split(all_ds_meanCorr_dt$meanCorr, all_ds_meanCorr_dt$hicds_lab),
-  plotTit = paste0("all DS - n=", length(unique(file.path(all_ds_meanCorr_dt$hicds, all_ds_meanCorr_dt$exprds))), " - TAD meanCorr"), legPos = "topright")
+  plotTit = paste0("all DS - n=", length(unique(file.path(all_ds_meanCorr_dt$hicds, all_ds_meanCorr_dt$exprds))), " - TAD meanIntraCorr"), legPos = "topright")
 
 foo <- dev.off()
 cat(paste0("... written: ", outFile, "\n"))
@@ -58,7 +59,7 @@ do.call(plotType, list(outFile, height=myHeight, width=myWidth*1.4))
 par(bty="L")
 plot_multiDens(
   split(all_ds_meanCorr_dt$meanCorr[!grepl("PERMUTG2T", all_ds_meanCorr_dt$hicds_lab)], all_ds_meanCorr_dt$hicds_lab[!grepl("PERMUTG2T", all_ds_meanCorr_dt$hicds_lab)]),
-  plotTit = paste0("all DS - n=", length(unique(file.path(all_ds_meanCorr_dt$hicds, all_ds_meanCorr_dt$exprds))), " - TAD meanCorr"), legPos = "topright")
+  plotTit = paste0("all DS - n=", length(unique(file.path(all_ds_meanCorr_dt$hicds, all_ds_meanCorr_dt$exprds))), " - TAD meanIntraCorr"), legPos = "topright")
 
 foo <- dev.off()
 cat(paste0("... written: ", outFile, "\n"))
@@ -85,17 +86,18 @@ plot_dt  <- foreach(hicds = all_hicds, .combine='rbind') %dopar% {
 
 plot_dt$hicds_lab <- gsub(".+RANDOMSHIFT_40kb", "RANDOMSHIFT", 
                                      gsub(".+RANDOMNBRGENES_40kb", "RANDOMNBRGENES",
+                                          gsub(".+RANDOMMIDPOSDISC_40kb", "RANDOMMIDPOSDISC",
                                           gsub(".+PERMUTG2T_40kb", "PERMUTG2T", 
-                                               gsub(".+RANDOMMIDPOS_40kb", "RANDOMMIDPOS", plot_dt$hicds))))
+                                               gsub(".+RANDOMMIDPOS_40kb", "RANDOMMIDPOS", plot_dt$hicds)))))
 plot_dt$hicds_lab[! plot_dt$hicds_lab %in% rd_patterns] <- "OBSERVED"
 
 
 plot_dt$signif <- ifelse(plot_dt$adjCombPval <= tadSignifThresh, "signif.", "not signif.")
 
 box_meanCorr <- ggboxplot(data= plot_dt, x="signif", y= "meanCorr", xlab="") +
-  ggtitle("IntraTAD corr.", subtitle = paste0("all ds - n=", length(unique(file.path(plot_dt$hicds, plot_dt$exprds)))))+
+  ggtitle("TAD meanIntraCorr", subtitle = paste0("all ds - n=", length(unique(file.path(plot_dt$hicds, plot_dt$exprds)))))+
   facet_grid(~hicds_lab, switch="x") + 
-  scale_y_continuous(name=paste0("TAD meanCorr"),
+  scale_y_continuous(name=paste0("TAD meanIntraCorr"),
                      breaks = scales::pretty_breaks(n = 10))+
   theme( # Increase size of axis lines
     strip.text = element_text(size = 12),
@@ -128,9 +130,10 @@ all_ds_empPval_dt <- foreach(hicds = all_hicds, .combine='rbind') %dopar% {
   exprds_dt
 }
 all_ds_empPval_dt$hicds_lab <- gsub(".+RANDOMSHIFT_40kb", "RANDOMSHIFT", 
+                                    gsub(".+RANDOMMIDPOSDISC_40kb", "RANDOMMIDPOSDISC",
                           gsub(".+RANDOMNBRGENES_40kb", "RANDOMNBRGENES",
                                gsub(".+PERMUTG2T_40kb", "PERMUTG2T", 
-                                    gsub(".+RANDOMMIDPOS_40kb", "RANDOMMIDPOS", all_ds_empPval_dt$hicds))))
+                                    gsub(".+RANDOMMIDPOS_40kb", "RANDOMMIDPOS", all_ds_empPval_dt$hicds)))))
 all_ds_empPval_dt$hicds_lab[! all_ds_empPval_dt$hicds_lab %in% rd_patterns] <- "OBSERVED"
 
 

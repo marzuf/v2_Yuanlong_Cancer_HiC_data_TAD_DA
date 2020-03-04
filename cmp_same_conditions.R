@@ -52,6 +52,11 @@ exprds <- args[2]
 
 if(length(args) == 0) {
   all_hicds <- list.files(pipOutFolder)
+  
+  all_hicds <- all_hicds[!( grepl("RANDOM", all_hicds) | grepl("PERMUT", all_hicds))]
+  
+  
+  
   all_exprds <- sapply(all_hicds, function(x) list.files(file.path(pipOutFolder, x)))
 } else{
   all_hicds <- hicds
@@ -175,12 +180,14 @@ foo <- foreach(exprds = dup_exprds, .combine='rbind') %dopar% {
         y = var2,
         cex.axis = axisCex,
         cex.lab = labCex,
-        xlab = paste0(hicds1, "\n", plot_var), 
-        ylab = paste0(hicds2, "\n", plot_var), 
-        main = paste0(exprds),
-        sub = paste0(hicds2, " vs. ", hicds1)
+        # xlab = paste0(hicds1, "\n", plot_var), 
+        # ylab = paste0(hicds2, "\n", plot_var), 
+        xlab = paste0(gsub("_40kb", "", hicds1)),
+        ylab = paste0(gsub("_40kb", "", hicds2)),
+        # sub = paste0(hicds2, " vs. ", hicds1),
+        main = paste0(exprds)
       )
-      mtext(side=3, text = paste0("(n=", nrow(dt1),")"), font=3)
+      mtext(side=3, text = paste0(plot_var, " - # commong genes = ", nrow(dt1),")"), font=3)
       curve(1*x, add=TRUE, lty=2, col="black", lwd=1.5)
       addCorr(
         x = var1, y = var2,

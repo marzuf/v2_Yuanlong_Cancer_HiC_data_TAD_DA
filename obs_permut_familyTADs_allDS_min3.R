@@ -6,16 +6,16 @@ source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 
 startTime <- Sys.time()
 
-script_name <- "obs_permut_familyTADs_allDS.R"
+script_name <- "obs_permut_familyTADs_allDS_min3.R"
 
-# Rscript obs_permut_familyTADs_allDS.R
+# Rscript obs_permut_familyTADs_allDS_min3.R
 
 plotType <- "png"
 myHeight <- myWidth <- 400
 myHeightGG <- 7
 myWidthGG <- 9
 
-outFolder <- "OBS_PERMUT_FAMILY_TADS_ALLDS"
+outFolder <- "OBS_PERMUT_FAMILY_TADS_ALLDS_MIN3"
 dir.create(outFolder, recursive = TRUE)
 
 rd_patterns <- c("RANDOMMIDPOS", "RANDOMNBRGENES", "RANDOMSHIFT", "PERMUTG2T" , "RANDOMMIDPOSDISC")
@@ -31,6 +31,8 @@ plotCex <- 1.4
 buildData <- TRUE
 
 
+minFamGenes <- 3
+
 if(buildData) {
   all_data <- foreach(hicds = all_hicds) %dopar% {
     
@@ -39,6 +41,16 @@ if(buildData) {
     fam_dt <- get(load(file.path("PREP_GENE_FAMILIES_TAD_DATA", hicds, "hgnc_entrezID_family_TAD_DT.Rdata")))
     fam_dt$entrezID <- as.character(fam_dt$entrezID)
     fam_dt <- fam_dt[order(fam_dt$entrezID),]
+    
+    stopifnot(!duplicated(fam_dt$entrezID))
+    nByFams <- setNames(as.numeric(table(fam_dt[, paste0(famType)])), names(table(fam_dt[, paste0(famType)])))
+    
+    keepFams <- names(nByFams)[nByFams >= minFamGenes ]
+    stopifnot(keepFams %in% fam_dt[,paste0(famType)])
+    
+    fam_dt <-  fam_dt[fam_dt[,paste0(famType)] %in% keepFams,]
+    stopifnot(setequal(keepFams, fam_dt[,paste0(famType)]))
+    
     stopifnot(!duplicated(fam_dt$entrezID))
     entrez2fam <- setNames(fam_dt[,paste0(famType)], fam_dt$entrezID)
     entrez2reg_fam <- setNames(fam_dt$region, fam_dt$entrezID)
