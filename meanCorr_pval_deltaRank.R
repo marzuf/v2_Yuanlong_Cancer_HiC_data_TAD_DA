@@ -14,7 +14,8 @@ outFolder <- "MEANCORR_PVAL_DELTARANK"
 dir.create(outFolder, recursive = TRUE)
 
 all_hicds_init <- list.files("PIPELINE/OUTPUT_FOLDER")
-all_hicds <- all_hicds_init[grepl("RANDOMMIDPOS", all_hicds_init)]
+all_hicds <- all_hicds_init[grepl("RANDOMMIDPOS_", all_hicds_init)]
+# => will need to add RANDOMMIDPOSDISC ONCE I HAVE PVALS
 all_exprds <- sapply(all_hicds, function(x) list.files(file.path("PIPELINE/OUTPUT_FOLDER", x)))
 
 source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
@@ -26,8 +27,12 @@ all_ds_dt <- foreach(hicds = all_hicds, .combine='rbind') %dopar% {
     
     meanCorr <- get(load(file.path("PIPELINE", "OUTPUT_FOLDER", hicds, exprds, "4_runMeanTADCorr", "all_meanCorr_TAD.Rdata")))
     
+    empPval <- get(load(file.path("PIPELINE", "OUTPUT_FOLDER", hicds, exprds, "11sameNbr_runEmpPvalCombined", "emp_pval_combined.Rdata")))
+    adj_empPval <- p.adjust(empPval, method="BH")
+    
     tad_withRank_dt <- get(load(file.path(gsub("RANDOMMIDPOSDISC", "RANDOMMIDPOS", hicds), "ASSIGNED_REGIONS_DELTARANK", "all_assigned_regions_withDeltaRank.Rdata")))
     stopifnot(names(meanCorr) %in% tad_withRank_dt$region)
+    stopifnot(setequal(names(meanCorr), names(adj_empPval)))
     
     tadRank <- setNames(tad_withRank_dt$abs_delta_rank, tad_withRank_dt$region)
     
@@ -36,6 +41,7 @@ all_ds_dt <- foreach(hicds = all_hicds, .combine='rbind') %dopar% {
       exprds = exprds,
       region = names(meanCorr),
       meanCorr = as.numeric(meanCorr[names(meanCorr)]),
+      adjPval = as.numeric(adj_empPval[names(meanCorr)]),
       absDeltaRank = as.numeric(tadRank[names(meanCorr)]),
       stringsAsFactors = FALSE
       )
@@ -70,7 +76,7 @@ for(h_t in unique(all_ds_dt$hicds_type)) {
   my_x_sub <- plot_dt_sub$absDeltaRank
   
   yvar = c("meanCorr")[1]
-  for(yvar in c("meanCorr")){
+  for(yvar in c("meanCorr", "adjPval")){
     my_y <-  plot_dt[,paste0(yvar)]
     my_y_sub <-  plot_dt_sub[,paste0(yvar)]
     

@@ -1,8 +1,8 @@
 startTime <- Sys.time()
-cat(paste0("> Rscript coexprDist_sameFam_sameTAD_boxplot_cmp_permut.R\n"))
+cat(paste0("> Rscript coexprDist_sameTAD_boxplot_cmp_permut.R\n"))
 
-# Rscript coexprDist_sameFam_sameTAD_boxplot_cmp_permut.R
-# Rscript coexprDist_sameFam_sameTAD_boxplot_cmp_permut.R ENCSR489OCU_NCI-H460_40kb TCGAluad_norm_luad
+# Rscript coexprDist_sameTAD_boxplot_cmp_permut.R
+# Rscript coexprDist_sameTAD_boxplot_cmp_permut.R ENCSR489OCU_NCI-H460_40kb TCGAluad_norm_luad
 
 options(scipen=100)
 
@@ -66,7 +66,7 @@ FOO <- foreach(hicds = all_hicds, .combine='rbind') %dopar% {
     
     cat(paste0("... start : ", hicds, " - ", exprds, "\n"))
     
-    outFolder <- file.path("COEXPRDIST_SAMEFAM_SAMETAD_BOXPLOT_CMP_PERMUT", hicds, exprds)
+    outFolder <- file.path("COEXPRDIST_SAMETAD_BOXPLOT_CMP_PERMUT", hicds, exprds)
     dir.create(outFolder, recursive = TRUE)
     
     outFile_model <- file.path(outFolder, "allData_lm_summary.txt")
@@ -81,24 +81,19 @@ FOO <- foreach(hicds = all_hicds, .combine='rbind') %dopar% {
                                  ifelse(allData_dt$sameTAD == 0, "diffTAD", NA))
     stopifnot(!is.na(allData_dt$sameTAD))
     
-    allData_dt$sameFamily <- ifelse(allData_dt$sameFamily == 1, "sameFam",
-                                    ifelse(allData_dt$sameFamily == 0, "diffFam", NA))
-    stopifnot(!is.na(allData_dt$sameFamily))
+    allData_dt$sameFamily <- NULL
+
     
     m1 <- lm(coexpr ~ sameTAD, data = allData_dt)
-    m2 <- lm(coexpr ~ sameFamily, data = allData_dt)
-    m3 <- lm(coexpr ~ sameTAD+sameFamily, data = allData_dt)
+
     
     sink(outFile_model, append=TRUE)
     print("************************** OBSERVED\n")
     print(summary(m1))
     print("\n----------------------------------------------------\n")
-    print(summary(m2))
-    print("\n----------------------------------------------------\n")
-    print(summary(m3))
     sink()
     
-    to_merge_dt <- allData_dt[allData_dt$sameFamily == "sameFam" & allData_dt$sameTAD == "sameTAD",]
+    to_merge_dt <- allData_dt[ allData_dt$sameTAD == "sameTAD",]
     stopifnot(nrow(to_merge_dt) > 0)
     to_merge_dt$dist_cat <- foreach(i = 1:nrow(to_merge_dt), .combine='c' ) %dopar% { which(hist(to_merge_dt$dist[i], breaks=dist_histBreaks_vect, plot=FALSE)$counts == 1) }
     
@@ -122,25 +117,19 @@ FOO <- foreach(hicds = all_hicds, .combine='rbind') %dopar% {
                                    ifelse(allData_dt$sameTAD == 0, "diffTAD", NA))
       stopifnot(!is.na(allData_dt$sameTAD))
       
-      allData_dt$sameFamily <- ifelse(allData_dt$sameFamily == 1, "sameFam",
-                                      ifelse(allData_dt$sameFamily == 0, "diffFam", NA))
-      stopifnot(!is.na(allData_dt$sameFamily))
+      allData_dt$sameFamily <- NULL
       
       
       m1 <- lm(coexpr ~ sameTAD, data = allData_dt)
-      m2 <- lm(coexpr ~ sameFamily, data = allData_dt)
-      m3 <- lm(coexpr ~ sameTAD+sameFamily, data = allData_dt)
-      
+
+
       sink(outFile_model, append=TRUE)
       print(paste0("************************** ", rd_patt, "\n"))
       print(summary(m1))
       print("\n----------------------------------------------------\n")
-      print(summary(m2))
-      print("\n----------------------------------------------------\n")
-      print(summary(m3))
       sink()
       
-      to_merge_dt <- allData_dt[allData_dt$sameFamily == "sameFam" & allData_dt$sameTAD == "sameTAD",]
+      to_merge_dt <- allData_dt[allData_dt$sameTAD == "sameTAD",]
       stopifnot(nrow(to_merge_dt) > 0)
       to_merge_dt$dist_cat <- foreach(i = 1:nrow(to_merge_dt), .combine='c' ) %dopar% { which(hist(to_merge_dt$dist[i], breaks=dist_histBreaks_vect, plot=FALSE)$counts == 1) }
       
@@ -156,7 +145,7 @@ FOO <- foreach(hicds = all_hicds, .combine='rbind') %dopar% {
     save(merged_dt, file=outFile, version=2)  
     cat(paste0("... written: ", outFile, "\n"))
     
-    stopifnot(merged_dt$sameFamily == "sameFam")
+
     stopifnot(merged_dt$sameTAD == "sameTAD")
     
     merged_dt$dataType <- factor(merged_dt$dataType, levels = c( "OBSERVED", rd_patterns))
@@ -164,7 +153,7 @@ FOO <- foreach(hicds = all_hicds, .combine='rbind') %dopar% {
     
     merged_dt$dist_cat <- factor(merged_dt$dist_cat, levels=as.character(sort(unique(merged_dt$dist_cat))))
     
-    subTit <- paste0("sameFam+sameTAD gene pairs; max dist. = ", maxDist/1000, " kb")
+    subTit <- paste0("sameTAD gene pairs; max dist. = ", maxDist/1000, " kb")
     my_ylab <- "Gene1-gene2 expr. corr."
     my_xlab <- " Gene1-gene2 dist. range [kb]"
     
@@ -202,7 +191,7 @@ FOO <- foreach(hicds = all_hicds, .combine='rbind') %dopar% {
         legend.title = element_text(face="bold", size=12)
       )
     
-    outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_coexpr_cmp_obs_permut_sameFam_sameTAD_boxplot.", plotType))
+    outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_coexpr_cmp_obs_permut_sameTAD_boxplot.", plotType))
     ggsave(plot = p_coexpr_boxplot, filename = outFile, height=myHeightGG, width = myWidthGG*1.5)
     cat(paste0("... written: ", outFile, "\n"))
     
@@ -210,12 +199,12 @@ FOO <- foreach(hicds = all_hicds, .combine='rbind') %dopar% {
     p_coexpr_boxplot_jitter <- p_coexpr_boxplot +
       geom_point( position=position_jitterdodge(), stroke=0.8, shape=21, alpha=0.8) 
     
-    outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_coexpr_cmp_obs_permut_sameFam_sameTAD_boxplot_jitter.", plotType))
+    outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_coexpr_cmp_obs_permut_sameTAD_boxplot_jitter.", plotType))
     ggsave(plot = p_coexpr_boxplot_jitter, filename = outFile, height=myHeightGG, width = myWidthGG*1.5)
     cat(paste0("... written: ", outFile, "\n"))
     
     
-    outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_coexpr_cmp_obs_permut_sameFam_sameTAD_countPairs_dt.txt"))
+    outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_coexpr_cmp_obs_permut_sameTAD_countPairs_dt.txt"))
     write.table(table(merged_dt$dataType, merged_dt$dist_cat), file =outFile, col.names=T, row.names = T, quote=F, sep="\t")
     cat(paste0("... written: ", outFile, "\n"))
     
@@ -257,7 +246,7 @@ FOO <- foreach(hicds = all_hicds, .combine='rbind') %dopar% {
         legend.title = element_text(face="bold", size=12)
       )
     
-    outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_coexpr_cmp_obs_permut_sameFam_sameTAD_countPairs_barplot.", plotType))
+    outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_coexpr_cmp_obs_permut_sameTAD_countPairs_barplot.", plotType))
     ggsave(plot = p_count_barplot, filename = outFile, height=myHeightGG, width = myWidthGG*1.5)
     cat(paste0("... written: ", outFile, "\n"))
     
