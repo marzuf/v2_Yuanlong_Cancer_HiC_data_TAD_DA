@@ -35,9 +35,9 @@ all_hicds <- all_hicds[!(grepl("RANDOM", all_hicds) | grepl("PERMUT", all_hicds)
 all_exprds <- sapply(all_hicds, function(x) list.files(file.path("PIPELINE/OUTPUT_FOLDER", x)))
 
 
-rd_patterns <- c("RANDOMMIDPOS", "RANDOMNBRGENES", "RANDOMSHIFT", "PERMUTG2T" )
+rd_patterns <- c("RANDOMMIDPOS", "RANDOMMIDPOSDISC", "RANDOMNBRGENES", "RANDOMSHIFT", "PERMUTG2T" )
 
-buildData <- FALSE
+buildData <- TRUE
 
 hicds=all_hicds[1]
 
