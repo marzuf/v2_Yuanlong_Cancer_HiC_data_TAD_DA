@@ -36,10 +36,10 @@ all_hicds <- all_hicds[!(grepl("RANDOM", all_hicds) | grepl("PERMUT", all_hicds)
 all_exprds <- sapply(all_hicds, function(x) list.files(file.path("PIPELINE/OUTPUT_FOLDER", x)))
 
 
-rd_patterns <- c("RANDOMMIDPOS", "RANDOMNBRGENES", "RANDOMSHIFT", "PERMUTG2T" )
+rd_patterns <- c("RANDOMMIDPOS", "RANDOMNBRGENES", "RANDOMSHIFT", "PERMUTG2T", "RANDOMMIDPOSDISC" )
 
 
-buildData <- FALSE
+buildData <- TRUE
 
 if(buildData){
   
@@ -70,7 +70,11 @@ if(buildData){
       
       rd_g2t <- by(rd_g2t_dt, rd_g2t_dt$region, function(x) sort(x$entrezID))
       
+      # EXACT MATCH
       rd_obs_match <- rd_g2t  %in% obs_g2t
+      
+      # # NESTED MATCH:
+      # rd_obs_nestedMatch <- lapply(rd_g2t, function(x) any(unlist(lapply(obs_g2t, function(obs_tad) all(x %in% obs_tad)))))
       
       stopifnot(sum(rd_obs_match) == sum(!is.na(match(rd_g2t, obs_g2t))))
       
