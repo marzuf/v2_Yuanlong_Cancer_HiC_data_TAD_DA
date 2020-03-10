@@ -41,6 +41,8 @@ buildData <- TRUE
 
 all_hicds <- all_hicds[grep(myhicds, all_hicds)]
 
+all_hicds <- c("ENCSR489OCU_NCI-H460_40kb" , "ENCSR489OCU_NCI-H460_RANDOMMIDPOS_40kb")#, "ENCSR489OCU_NCI-H460_RANDOMMIDPOSDISC_40kb" )
+
 enh2entrez_dt <- get(load("enhanceratlas_data/PREP_TARGETGENES/enhancerEntrezTarget_dt.Rdata"))
 
 if(buildData) {
@@ -204,12 +206,34 @@ for(plot_var in c("nEPdiffTAD", "nEPsameTAD")) {
       cex.main  = plotCex,
       cex.axis = plotCex
     )  
-    mtext(side=3, paste0(exprds))
+    mtext(side=3, paste0(exprds, " (EnhancerAtlas)"))
     addCorr(x=my_x, y=my_y, bty="n")
     
     foo <- dev.off()
     cat(paste0("... written: ", outFile, "\n"))
     
+    my_y <- plot_dt[,c("meanCorr")]
+    
+    outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_", plot_var, "_vs_meanCorr_densplot.", plotType))
+    do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+    
+    
+    densplot(
+      x = my_x,
+      y=my_y,
+      xlab = paste0(plot_var),
+      ylab = paste0("TAD meanIntraCorr"),  
+      cex=0.7, 
+      main = paste0(hicds),
+      cex.lab = plotCex,
+      cex.main  = plotCex,
+      cex.axis = plotCex
+    )  
+    mtext(side=3, paste0(exprds, " (EnhancerAtlas)"))
+    addCorr(x=my_x, y=my_y, bty="n")
+    
+    foo <- dev.off()
+    cat(paste0("... written: ", outFile, "\n"))
     
   }
 

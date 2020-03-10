@@ -35,6 +35,7 @@ myWidth <- myHeight <- 400
 myWidthGG <- 9
 myHeightGG <- 7
 plotTypeGG <- "svg"
+plotCex <- 1.4
 
 outFolder <- "CMP_PERMUT_GENERANK_TADRANK"
 dir.create(outFolder, recursive = TRUE)
@@ -95,13 +96,18 @@ all_dt <- foreach(plot_ds = ds_withPerm, .combine='rbind') %dopar% {
       x=my_x,
       xlab = "TAD rank: obs.",
       ylab = paste0("TAD rank: ", rd_type),
-      main = paste0(plot_ds),
+      # main = paste0(plot_ds),
+      main = dirname(plot_ds),
       y=my_y,
       pch=16,
-      cex=0.7
+      cex=0.7,
+      cex.lab=plotCex,
+      cex.main=plotCex,
+      cex.axis=plotCex
     )
-    mtext(side=3, text=paste0("with perm. ", rd_type))
-    addCorr(x=my_x, y=my_y, legPos = "topleft", bty="n")
+    # mtext(side=3, text=paste0("with perm. ", rd_type))
+    mtext(side=3, text=paste0(basename(plot_ds), " (n=", length(my_x), ")"))
+    addCorr(x=my_x, y=my_y, legPos = "bottomright", bty="n")
     foo <- dev.off()
     cat(paste0("... written: ", outFile, "\n"))  
     
@@ -146,9 +152,10 @@ load(outFile)
 plot_dt <- melt(all_dt, id=c("obs_ds", "permut_dt"))
 
 plot_dt$permut_type <- gsub(".+RANDOMSHIFT_40kb", "RANDOMSHIFT", 
+                            gsub(".+RANDOMMIDPOSDISC_40kb", "RANDOMMIDPOSDISC", 
                          gsub(".+RANDOMNBRGENES_40kb", "RANDOMNBRGENES",
                               gsub(".+PERMUTG2T_40kb", "PERMUTG2T", 
-                                   gsub(".+RANDOMMIDPOS_40kb", "RANDOMMIDPOS", dirname(plot_dt$permut_dt)))))
+                                   gsub(".+RANDOMMIDPOS_40kb", "RANDOMMIDPOS", dirname(plot_dt$permut_dt))))))
 
 bar_plot <- ggbarplot(data = plot_dt, y = "value", x = "permut_type" , fill = "variable", 
           title ="# genes in signif. TADs obs/permut",

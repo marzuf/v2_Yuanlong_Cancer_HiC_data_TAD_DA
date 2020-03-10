@@ -39,7 +39,8 @@ result_dt <- rbind(result_dt1, result_dt2)
 
 all_hicds <- list.files("PIPELINE/OUTPUT_FOLDER")
 all_hicds1 <- all_hicds[!(grepl("RANDOM", all_hicds) | grepl("PERMUT", all_hicds))]
-all_hicds2 <- all_hicds[grepl("RANDOMMIDPOS_", all_hicds)]
+# all_hicds2 <- all_hicds[grepl("RANDOMMIDPOS_", all_hicds)]
+all_hicds2 <- all_hicds[grepl("RANDOMMIDPOS", all_hicds)]
 all_hicds <- c(all_hicds1, all_hicds2)
 hicds = all_hicds[1]
 all_exprds <- sapply(all_hicds, function(x) list.files(file.path("PIPELINE/OUTPUT_FOLDER", x)))
@@ -114,6 +115,26 @@ plot(
   y = plot_dt$nSignifTADs.RANDOMMIDPOS,
   xlab  = "# signif. TADs (OBSERVED)",
   ylab = "# signif. TADs (RANDOMMIDPOS)",
+  main = paste0("# signif. TADs"),
+  pch = 16,
+  cex = 0.7,
+  cex.main = plotCex,
+  cex.axis = plotCex,
+  cex.lab =plotCex
+)
+mtext(side = 3, text = paste0("all DS - n = ", nrow(plot_dt), "; TAD signif. p-val <= ", tadSignifThresh))
+foo <- dev.off()
+cat(paste0("... written: ", outFile, "\n"))
+
+
+outFile <- file.path(outFolder, paste0("nSignifTADs_observed_vs_randommidposdisc_signif", tadSignifThresh, "_dotplot.", plotType))  
+do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+par(bty ="L")
+plot(
+  x = plot_dt$nSignifTADs.OBSERVED,
+  y = plot_dt$nSignifTADs.RANDOMMIDPOSDISC,
+  xlab  = "# signif. TADs (OBSERVED)",
+  ylab = "# signif. TADs (RANDOMMIDPOSDISC)",
   main = paste0("# signif. TADs"),
   pch = 16,
   cex = 0.7,

@@ -61,8 +61,9 @@ pipFolder <- file.path(mainFolder, "PIPELINE", "OUTPUT_FOLDER")
 stopifnot(dir.exists(pipFolder))
 all_hicds <- list.files(pipFolder)
 
-all_hicds <- all_hicds[grepl("RANDOM", all_hicds) | grepl("PERMUT", all_hicds)]
-all_hicds <- all_hicds[grepl("NCI-H460", all_hicds)]
+# all_hicds <- all_hicds[grepl("RANDOM", all_hicds) | grepl("PERMUT", all_hicds)]
+# all_hicds <- all_hicds[grepl("NCI-H460", all_hicds)]
+all_hicds <- all_hicds[grepl("RANDOMMIDPOS", all_hicds)]
 
 
 file.path(mainFolder, all_hicds)[!dir.exists(file.path(mainFolder, all_hicds))]
@@ -114,7 +115,7 @@ if(buildTable) {
     exprds_dt <- foreach(exprds = all_exprds[[paste0(hicds)]], .combine='rbind') %do% {
       
       
-      if(exprds != "TCGAluad_norm_luad") return(NULL)
+      if(!(exprds == "TCGAluad_norm_luad" | exprds == "TCGAluad_mutKRAS_mutEGFR")) return(NULL)
       
       regionList_file <- file.path(pipFolder, hicds, exprds, script0_name, "pipeline_regionList.Rdata")
       stopifnot(file.exists(regionList_file))

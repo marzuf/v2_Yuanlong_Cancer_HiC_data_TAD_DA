@@ -14,7 +14,7 @@ outFolder <- "MEANCORR_PVAL_DELTARANK"
 dir.create(outFolder, recursive = TRUE)
 
 all_hicds_init <- list.files("PIPELINE/OUTPUT_FOLDER")
-all_hicds <- all_hicds_init[grepl("RANDOMMIDPOS_", all_hicds_init)]
+all_hicds <- all_hicds_init[grepl("RANDOMMIDPOS", all_hicds_init)]
 # => will need to add RANDOMMIDPOSDISC ONCE I HAVE PVALS
 all_exprds <- sapply(all_hicds, function(x) list.files(file.path("PIPELINE/OUTPUT_FOLDER", x)))
 
@@ -80,7 +80,7 @@ for(h_t in unique(all_ds_dt$hicds_type)) {
     my_y <-  plot_dt[,paste0(yvar)]
     my_y_sub <-  plot_dt_sub[,paste0(yvar)]
     
-    outFile <- file.path(outFolder, paste0(yvar, "_vs_absDeltaRank_allDS.", plotType))
+    outFile <- file.path(outFolder, paste0(yvar, "_vs_absDeltaRank_", h_t, "_allDS.", plotType))
     do.call(plotType, list(outFile, height=myHeight, width=myWidth))
     par(bty="L")
     densplot(
@@ -100,7 +100,7 @@ for(h_t in unique(all_ds_dt$hicds_type)) {
     cat(paste0("... written: ", outFile, "\n"))
     
     
-    outFile <- file.path(outFolder, paste0(yvar, "_vs_absDeltaRank_", ex_hicds, "_", ex_exprds, ".", plotType))
+    outFile <- file.path(outFolder, paste0(yvar, "_vs_absDeltaRank_", h_t, "_", ex_hicds, "_", ex_exprds, ".", plotType))
     do.call(plotType, list(outFile, height=myHeight, width=myWidth))
     par(bty="L")
     densplot(

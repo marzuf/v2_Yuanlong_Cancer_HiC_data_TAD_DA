@@ -1,0 +1,40 @@
+#!/usr/bin/bash
+
+# ./run_pipeline_permut_17_1.sh
+
+
+./run_pipeline17.sh ENCSR346DCU_LNCaP_RANDOMMIDPOS_40kb TCGAprad_norm_prad
+./run_pipeline17.sh ENCSR444WCZ_A549_RANDOMMIDPOS_40kb TCGAluad_wt_mutKRAS
+./run_pipeline17.sh ENCSR444WCZ_A549_RANDOMMIDPOS_40kb TCGAlusc_norm_lusc
+./run_pipeline17.sh ENCSR489OCU_NCI-H460_RANDOMMIDPOS_40kb TCGAluad_wt_mutKRAS
+./run_pipeline17.sh ENCSR489OCU_NCI-H460_RANDOMMIDPOS_40kb TCGAlusc_norm_lusc
+./run_pipeline17.sh ENCSR504OTV_transverse_colon_RANDOMMIDPOS_40kb TCGAcoad_msi_mss
+./run_pipeline17.sh GSE105194_cerebellum_RANDOMMIDPOS_40kb TCGAgbm_classical_mesenchymal
+./run_pipeline17.sh GSE105194_cerebellum_RANDOMMIDPOS_40kb TCGAgbm_classical_neural
+./run_pipeline17.sh GSE105194_cerebellum_RANDOMMIDPOS_40kb TCGAgbm_classical_proneural
+./run_pipeline17.sh GSE105194_cerebellum_RANDOMMIDPOS_40kb TCGAlgg_IDHwt_IDHmutnc
+./run_pipeline17.sh GSE105194_spinal_cord_RANDOMMIDPOS_40kb TCGAgbm_classical_mesenchymal
+./run_pipeline17.sh GSE105194_spinal_cord_RANDOMMIDPOS_40kb TCGAgbm_classical_neural
+./run_pipeline17.sh GSE105194_spinal_cord_RANDOMMIDPOS_40kb TCGAgbm_classical_proneural
+./run_pipeline17.sh GSE105194_spinal_cord_RANDOMMIDPOS_40kb TCGAlgg_IDHwt_IDHmutnc
+#./run_pipeline17.sh GSE105318_DLD1_RANDOMMIDPOS_40kb TCGAcoad_msi_mss
+#./run_pipeline17.sh GSE118514_22Rv1_RANDOMMIDPOS_40kb TCGAprad_norm_prad
+#./run_pipeline17.sh GSE118514_RWPE1_RANDOMMIDPOS_40kb TCGAprad_norm_prad
+#./run_pipeline17.sh GSE118588_Panc_beta_RANDOMMIDPOS_40kb TCGApaad_wt_mutKRAS
+#./run_pipeline17.sh K562_RANDOMMIDPOS_40kb TCGAlaml_wt_mutFLT3
+#./run_pipeline17.sh LG1_RANDOMMIDPOS_40kb TCGAluad_mutKRAS_mutEGFR
+#./run_pipeline17.sh LG1_RANDOMMIDPOS_40kb TCGAluad_nonsmoker_smoker
+#./run_pipeline17.sh LG1_RANDOMMIDPOS_40kb TCGAluad_norm_luad
+#./run_pipeline17.sh LG1_RANDOMMIDPOS_40kb TCGAluad_wt_mutKRAS
+#./run_pipeline17.sh LG1_RANDOMMIDPOS_40kb TCGAlusc_norm_lusc
+#./run_pipeline17.sh LG2_RANDOMMIDPOS_40kb TCGAluad_mutKRAS_mutEGFR
+#./run_pipeline17.sh LG2_RANDOMMIDPOS_40kb TCGAluad_nonsmoker_smoker
+#./run_pipeline17.sh LG2_RANDOMMIDPOS_40kb TCGAluad_norm_luad
+#./run_pipeline17.sh LG2_RANDOMMIDPOS_40kb TCGAluad_wt_mutKRAS
+#./run_pipeline17.sh LG2_RANDOMMIDPOS_40kb TCGAlusc_norm_lusc
+#./run_pipeline17.sh PA2_RANDOMMIDPOS_40kb TCGApaad_wt_mutKRAS
+#./run_pipeline17.sh PA3_RANDOMMIDPOS_40kb TCGApaad_wt_mutKRAS
+#./run_pipeline17.sh Panc1_rep12_RANDOMMIDPOS_40kb TCGApaad_wt_mutKRAS
+#./run_pipeline17.sh Rao_HCT-116_2017_RANDOMMIDPOS_40kb TCGAcoad_msi_mss
+
+

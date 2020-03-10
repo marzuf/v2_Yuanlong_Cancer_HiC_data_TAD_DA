@@ -5,8 +5,8 @@
 # TCGA data have been prepared according to scripts in folder /mnt/etemp/marie/scripts/TAD_DE_pipeline_v2_TCGAdata
 
 # LIVER
-# ./run_pipeline6.sh LG1_RANDOMMIDPOS_40kb TCGAluad_wt_mutKRAS
-# ./run_pipeline6.sh Rao_HCT-116_2017_RANDOMMIDPOS_40kb TCGAcoad_msi_mss
+# ./run_pipeline56.sh LG1_RANDOMMIDPOS_40kb TCGAluad_wt_mutKRAS
+
 
 start_time=$(date -R)    
 #set -e
@@ -87,9 +87,8 @@ step2=1    # run the pipeline
 
 #TAD_DE_pipSteps=( "1cleanInputTCGAminCount" "3" "4" )
 
-#TAD_DE_pipSteps=( "5fastSavePermut" "6fastSave" "5sameNbr" "8cOnlyFCCfastSave" "8cOnlyRatioDownFastSave" "9" "7sameNbr" "10sameNbr" "11sameNbr" "170revision2EZH2"  "19sameNbr" "19onlyFC" )
+TAD_DE_pipSteps=( "5fastSavePermut" "6fastSave" "5sameNbr" "8cOnlyFCCfastSave" "8cOnlyRatioDownFastSave" "9" "7sameNbr" "10sameNbr" "11sameNbr" "170revision2EZH2"  "19sameNbr" "19onlyFC" )
 
-TAD_DE_pipSteps=( "5" "6fastSave" "9" "10sameNbr" "11sameNbr" )
 #TAD_DE_pipSteps=( "6fastSave" "8cOnlyFCCfastSave" "8cOnlyRatioDownFastSave" "9" "7sameNbr" "10sameNbr" "11sameNbr" "170revision2EZH2"  "19sameNbr" "19onlyFC" )
 #TAD_DE_pipSteps=( "19onlyFC" "19sameNbr" )
 #TAD_DE_pipSteps=( "9" )

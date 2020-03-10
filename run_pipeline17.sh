@@ -2,11 +2,6 @@
 
 ######## #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### for 6v2 and 9v2
 
-# TCGA data have been prepared according to scripts in folder /mnt/etemp/marie/scripts/TAD_DE_pipeline_v2_TCGAdata
-
-# LIVER
-# ./run_pipeline6.sh LG1_RANDOMMIDPOS_40kb TCGAluad_wt_mutKRAS
-# ./run_pipeline6.sh Rao_HCT-116_2017_RANDOMMIDPOS_40kb TCGAcoad_msi_mss
 
 start_time=$(date -R)    
 #set -e
@@ -29,72 +24,12 @@ step2=1    # run the pipeline
 
 # NB: 1cleanInput is same as 1cleanInputTCGAminCount, except added change rowToKeep based on minCount
 
-#TAD_DE_pipSteps=( "0cleanInputTCGAminCount" "1cleanInputTCGAminCount" "2" "2v2" "3" "4" "5" "6" "7" "8c" "9" "10" "11" "13cleanInput" "14f2" "170revision2EZH2" )
-#TAD_DE_pipSteps=( "0cleanInputTCGAminCount" "1cleanInputTCGAminCount" "2" "2v2" "3" "4")
-# TAD_DE_pipSteps=( "5" "6" "7" "8c" "9" "10" "11" "13cleanInput" "14f2" "170revision2EZH2" )
-#TAD_DE_pipSteps=( "8c" "9" "10" "11" "13cleanInput" "14f2" "170revision2EZH2" )
-# done later because slow
-#TAD_DE_pipSteps=( "4cond1" "4cond2" )
-#TAD_DE_pipSteps=( "9rank" )
-#TAD_DE_pipSteps=( "10rank" "11rank" )
-# TAD_DE_pipSteps=( "19" )
-#TAD_DE_pipSteps=( "5" "6" "9" )
-#TAD_DE_pipSteps=( "5" )
-#TAD_DE_pipSteps=( "6" "9" "19onlyFC" "8cOnlyRatioDown")
-#TAD_DE_pipSteps=( "8cOnlyRatioDown")
-#TAD_DE_pipSteps=( "19onlyFC")
-#TAD_DE_pipSteps=( "9" "19")
-#TAD_DE_pipSteps=( "19")
-#TAD_DE_pipSteps=( "10sameNbr" "11sameNbr" )
-#TAD_DE_pipSteps=( "8cOnlyRatioDown")
-#TAD_DE_pipSteps=( "7" "10")
-#TAD_DE_pipSteps=( "19onlyFCandCorr" )
-#TAD_DE_pipSteps=( "8cOnlyRatioDown" "19onlyFCandCorr" )
-#TAD_DE_pipSteps=( "11sameNbr" )
-#TAD_DE_pipSteps=( "11" "11sameNbr" )
-#TAD_DE_pipSteps=( "0cleanInputTCGAminCount" )
-#TAD_DE_pipSteps=( "1cleanInputTCGAminCount" "3" "4")
-#TAD_DE_pipSteps=( "5" "6" "7")
-#TAD_DE_pipSteps=( "7")
+TAD_DE_pipSteps=( "8cOnlyFCCfastSave" "8cOnlyRatioDownFastSave" "170revision2EZH2Folders" )
 
-#TAD_DE_pipSteps=( "8cOnlyRatioDownFastSave" ) ### !!! USE FAST SAVE FOR STEP 8 !!! 
-# use fast save and permut version
-#TAD_DE_pipSteps=( "5fastSavePermut" "6fastSave")
-#TAD_DE_pipSteps=( "11")
-#TAD_DE_pipSteps=( "19sameNbrPartial" )
-#TAD_DE_pipSteps=( "0cleanInputTCGAminCount" )
-#TAD_DE_pipSteps=( "1cleanInputTCGAminCount" "3" "4" )
-#TAD_DE_pipSteps=( "5fastSavePermut" "6fastSave")
-#TAD_DE_pipSteps=( "5sameNbr" )
-#TAD_DE_pipSteps=( "7sameNbr" )
-#TAD_DE_pipSteps=( "10sameNbr" )
-#TAD_DE_pipSteps=( "8cOnlyFCCfastSave" )
-#TAD_DE_pipSteps=( "6fastSave")
-#TAD_DE_pipSteps=( "8cOnlyRatioDownFastSave" )
-#TAD_DE_pipSteps=( "9" )
-#TAD_DE_pipSteps=( "10sameNbr" )
-#TAD_DE_pipSteps=( "11sameNbr" )
-#TAD_DE_pipSteps=( "19onlyFC" "19sameNbr" )
-
-#TAD_DE_pipSteps=( "9" "10sameNbr" "11sameNbr" "19sameNbr" "19onlyFC" )
-#TAD_DE_pipSteps=( "170revision2EZH2" )
-# STEP 9; STEP10sameNbr; STEP11sameNbr
-#TAD_DE_pipSteps=( "5fastSavePermut" "6fastSave" "5sameNbr" "8cOnlyFCCfastSave" "8cOnlyRatioDownFastSave" "9" "7sameNbr" "10sameNbr" "11sameNbr" "19sameNbr" "19onlyFC" "170revision2EZH2" )
-#TAD_DE_pipSteps=( "10sameNbr" "11sameNbr")
-#TAD_DE_pipSteps=( "10sameNbr" "11sameNbr" "19sameNbr" "19onlyFC" )
-
-#TAD_DE_pipSteps=( "0cleanInputTCGAminCount" "1cleanInputTCGAminCount" "3" "4" )
-
-#TAD_DE_pipSteps=( "1cleanInputTCGAminCount" "3" "4" )
-
-#TAD_DE_pipSteps=( "5fastSavePermut" "6fastSave" "5sameNbr" "8cOnlyFCCfastSave" "8cOnlyRatioDownFastSave" "9" "7sameNbr" "10sameNbr" "11sameNbr" "170revision2EZH2"  "19sameNbr" "19onlyFC" )
-
-TAD_DE_pipSteps=( "5" "6fastSave" "9" "10sameNbr" "11sameNbr" )
-#TAD_DE_pipSteps=( "6fastSave" "8cOnlyFCCfastSave" "8cOnlyRatioDownFastSave" "9" "7sameNbr" "10sameNbr" "11sameNbr" "170revision2EZH2"  "19sameNbr" "19onlyFC" )
-#TAD_DE_pipSteps=( "19onlyFC" "19sameNbr" )
-#TAD_DE_pipSteps=( "9" )
-
-# ./run_pipeline.sh Barutcu_MCF-10A_RANDOMMIDPOSDISC_40kb TCGAbrca_lum_bas
+# ./run_pipeline17.sh Barutcu_MCF-10A_RANDOMMIDPOSDISC_40kb TCGAbrca_lum_bas
+# ./run_pipeline17.sh GSE109229_SKBR3_RANDOMMIDPOSDISC_40kb TCGAbrca_lum_bas 
+# ./run_pipeline17.sh GSE105194_cerebellum_RANDOMMIDPOSDISC_40kb TCGAgbm_classical_neural
+# ./run_pipeline17.sh GSE105194_cerebellum_RANDOMMIDPOSDISC_40kb TCGAlgg_IDHwt_IDHmutnc
 
 runDir="/mnt/etemp/marie/v2_Yuanlong_Cancer_HiC_data_TAD_DA"
 
