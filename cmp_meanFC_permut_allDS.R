@@ -18,7 +18,7 @@ all_exprds <- sapply(all_hicds, function(x) list.files(file.path("PIPELINE/OUTPU
 
 
 # 
-rd_patterns <- c("RANDOMMIDPOS", "RANDOMNBRGENES", "RANDOMSHIFT", "PERMUTG2T", "RANDOMMIDPOSDISC")
+rd_patterns <- c("RANDOMMIDPOS", "RANDOMNBRGENES", "RANDOMSHIFT", "PERMUTG2T", "RANDOMMIDPOSDISC", "RANDOMMIDPOSSTRICT")
 
 
 
@@ -39,9 +39,10 @@ all_ds_meanFC_dt <- foreach(hicds = all_hicds, .combine='rbind') %dopar% {
 
 all_ds_meanFC_dt$hicds_lab <- gsub(".+RANDOMSHIFT_40kb", "RANDOMSHIFT", 
                                    gsub(".+RANDOMMIDPOSDISC_40kb", "RANDOMMIDPOSDISC",
+                                   gsub(".+RANDOMMIDPOSSTRICT_40kb", "RANDOMMIDPOSSTRICT",
                                gsub(".+RANDOMNBRGENES_40kb", "RANDOMNBRGENES",
                                     gsub(".+PERMUTG2T_40kb", "PERMUTG2T", 
-                               gsub(".+RANDOMMIDPOS_40kb", "RANDOMMIDPOS", all_ds_meanFC_dt$hicds)))))
+                               gsub(".+RANDOMMIDPOS_40kb", "RANDOMMIDPOS", all_ds_meanFC_dt$hicds))))))
 all_ds_meanFC_dt$hicds_lab[! all_ds_meanFC_dt$hicds_lab %in% rd_patterns] <- "OBSERVED"
 
 

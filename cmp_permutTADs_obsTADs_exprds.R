@@ -35,7 +35,7 @@ all_hicds <- all_hicds[!(grepl("RANDOM", all_hicds) | grepl("PERMUT", all_hicds)
 all_exprds <- sapply(all_hicds, function(x) list.files(file.path("PIPELINE/OUTPUT_FOLDER", x)))
 
 
-rd_patterns <- c("RANDOMMIDPOS", "RANDOMMIDPOSDISC", "RANDOMNBRGENES", "RANDOMSHIFT", "PERMUTG2T" )
+rd_patterns <- c("RANDOMMIDPOS", "RANDOMMIDPOSDISC", "RANDOMMIDPOSSTRICT" ,"RANDOMNBRGENES", "RANDOMSHIFT", "PERMUTG2T" )
 
 buildData <- TRUE
 
@@ -163,9 +163,10 @@ box_meanFC <- ggboxplot(data= cmp_obs_permut_TADs_dt, x="randomData", y= "ratioS
   theme( # Increase size of axis lines
     strip.text = element_text(size = 12),
     # top, right, bottom and left
-    # plot.margin = unit(c(1, 1, 4.5, 1), "lines"),
+    plot.margin = unit(c(1, 1, 4.5, 1), "lines"),
     plot.title = element_text(hjust = 0.5, face = "bold", size=16),
     plot.subtitle = element_text(hjust = 0.5, face = "italic", size = 14),
+    axis.text.x = element_text(angle = 90),
     panel.grid = element_blank(),
     panel.grid.major.y = element_line(colour = "grey"),
     panel.grid.minor.y = element_line(colour = "grey"))

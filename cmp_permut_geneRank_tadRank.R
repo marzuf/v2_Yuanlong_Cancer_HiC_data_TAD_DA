@@ -111,6 +111,67 @@ all_dt <- foreach(plot_ds = ds_withPerm, .combine='rbind') %dopar% {
     foo <- dev.off()
     cat(paste0("... written: ", outFile, "\n"))  
     
+    
+    my_x <- log10(merge_dt$tad_rank_obs)
+    my_y <- log10(merge_dt$tad_rank_perm)
+    
+    outFile <- file.path(outFolder, paste0(dirname(plot_ds), "_", basename(plot_ds), "_TADrank_", rd_type, "_vs_obs_densplot_log10.", plotType))    
+    do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+    
+    
+    densplot(
+      x=my_x,
+      xlab = "TAD rank: obs. [log10]",
+      ylab = paste0("TAD rank: ", rd_type, " [log10]"),
+      # main = paste0(plot_ds),
+      main = dirname(plot_ds),
+      y=my_y,
+      pch=16,
+      cex=0.7,
+      cex.lab=plotCex,
+      cex.main=plotCex,
+      cex.axis=plotCex
+    )
+    # mtext(side=3, text=paste0("with perm. ", rd_type))
+    mtext(side=3, text=paste0(basename(plot_ds), " (n=", length(my_x), ")"))
+    addCorr(x=my_x, y=my_y, legPos = "bottomright", bty="n")
+    foo <- dev.off()
+    cat(paste0("... written: ", outFile, "\n"))  
+    
+    
+    top100 <- merge_dt$tad_rank_obs <= 100 | merge_dt$tad_rank_perm <= 100
+    
+    my_x <- merge_dt$tad_rank_obs[top100]
+    my_y <- merge_dt$tad_rank_perm[top100]
+    
+    outFile <- file.path(outFolder, paste0(dirname(plot_ds), "_", basename(plot_ds), "_TADrank_", rd_type, "_vs_obs_densplot_top100.", plotType))    
+    
+    do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+    
+    
+    densplot(
+      x=my_x,
+      xlab = "TAD rank: obs. [top100]",
+      ylab = paste0("TAD rank: ", rd_type, " [top100]"),
+      # main = paste0(plot_ds),
+      main = dirname(plot_ds),
+      y=my_y,
+      pch=16,
+      cex=0.7,
+      cex.lab=plotCex,
+      cex.main=plotCex,
+      cex.axis=plotCex
+    )
+    # mtext(side=3, text=paste0("with perm. ", rd_type))
+    mtext(side=3, text=paste0(basename(plot_ds), " (n=", length(my_x), ")"))
+    addCorr(x=my_x, y=my_y, legPos = "bottomright", bty="n")
+    foo <- dev.off()
+    cat(paste0("... written: ", outFile, "\n"))  
+    
+    
+    
+    
+    
         
     
     merge_dt <- merge(sub_obs_dt[,c("entrezID", "tad_rank", "tad_adjCombPval", "adj.P.Val")],

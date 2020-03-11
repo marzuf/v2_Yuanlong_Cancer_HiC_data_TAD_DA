@@ -38,10 +38,10 @@ all_hicds <- all_hicds[! (grepl("RANDOM", all_hicds) | grepl("PERMUT", all_hicds
 all_exprds <- sapply(all_hicds, function(x) list.files(file.path(pipOutFolder, x)))
 
   
-rd_patterns <- c("RANDOMMIDPOS", "RANDOMNBRGENES", "RANDOMSHIFT", "PERMUTG2T", "RANDOMMIDPOSDISC" )
+rd_patterns <- c("RANDOMMIDPOS", "RANDOMNBRGENES", "RANDOMMIDPOSDISC" , "RANDOMMIDPOSSTRICT", "RANDOMSHIFT", "PERMUTG2T")
 rd_patt = rd_patterns[1]
 
-buildData <- FALSE
+buildData <- TRUE
 
 if(buildData){
   
@@ -166,7 +166,8 @@ for(mT in c("Nested", "Same")) {
   theme( # Increase size of axis lines
     strip.text = element_text(size = 12),
     # top, right, bottom and left
-    # plot.margin = unit(c(1, 1, 4.5, 1), "lines"),
+    plot.margin = unit(c(1, 1, 4.5, 1), "lines"),
+    axis.text.x = element_text(angle=90),
     plot.title = element_text(hjust = 0.5, face = "bold", size=16),
     plot.subtitle = element_text(hjust = 0.5, face = "italic", size = 14),
     panel.grid = element_blank(),
