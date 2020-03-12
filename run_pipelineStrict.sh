@@ -164,17 +164,17 @@ step2=1    # run the pipeline
 
 #TAD_DE_pipSteps=( "0cleanInputTCGAminCount" "1cleanInputTCGAminCount" "3" "4" )
 
-#TAD_DE_pipSteps=( "1cleanInputTCGAminCount" "3" "4" )
+TAD_DE_pipSteps=( "1cleanInputTCGAminCount" "3" "4" )
 
-#TAD_DE_pipSteps=( "5fastSavePermut" "6fastSave" "5sameNbr" "8cOnlyFCCfastSave" "8cOnlyRatioDownFastSave" "9" "7sameNbr" "10sameNbr" "11sameNbr" "170revision2EZH2Folders"  "19sameNbr" "19onlyFC" )
+#TAD_DE_pipSteps=( "5fastSavePermut" "6fastSave" "5sameNbr" "8cOnlyFCCfastSave" "8cOnlyRatioDownFastSave" "9" "7sameNbr" "10sameNbr" "11sameNbr" "170revision2EZH2"  "19sameNbr" "19onlyFC" )
 #TAD_DE_pipSteps=( "6fastSave" "8cOnlyFCCfastSave" "8cOnlyRatioDownFastSave" "9" "7sameNbr" "10sameNbr" "11sameNbr" "170revision2EZH2"  "19sameNbr" "19onlyFC" )
 #TAD_DE_pipSteps=( "19onlyFC" "19sameNbr" )
-TAD_DE_pipSteps=( "8cOnlyFCCfastSaveOnlyObs" )
+#TAD_DE_pipSteps=( "9" )
 
 #TAD_DE_pipSteps=( "7sameNbrSpearman" )
-#TAD_DE_pipSteps=( "10sameNbrSpearman" "11sameNbrSpearman" )
+# "10sameNbrSpearman" "11sameNbrSpearman" )
 
-# ./run_pipeline.sh ENCSR489OCU_NCI-H460_PERMUTG2T_40kb TCGAluad_norm_luad
+# ./run_pipeline.sh Barutcu_MCF-10A_RANDOMMIDPOSDISC_40kb TCGAbrca_lum_bas
 
 runDir="/mnt/etemp/marie/v2_Yuanlong_Cancer_HiC_data_TAD_DA"
 

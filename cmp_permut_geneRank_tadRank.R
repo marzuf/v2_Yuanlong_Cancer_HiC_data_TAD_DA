@@ -7,7 +7,6 @@ setDir <- ""
 
 # Rscript cmp_permut_geneRank_tadRank.R
 
-
 script_name <- "cmp_permut_geneRank_tadRank.R"
 
 startTime <- Sys.time()

@@ -61,9 +61,9 @@ pipFolder <- file.path(mainFolder, "PIPELINE", "OUTPUT_FOLDER")
 stopifnot(dir.exists(pipFolder))
 all_hicds <- list.files(pipFolder)
 
-# all_hicds <- all_hicds[grepl("RANDOM", all_hicds) | grepl("PERMUT", all_hicds)]
+all_hicds <- all_hicds[grepl("RANDOM", all_hicds) | grepl("PERMUT", all_hicds)]
 # all_hicds <- all_hicds[grepl("NCI-H460", all_hicds)]
-all_hicds <- all_hicds[grepl("RANDOMMIDPOS", all_hicds)]
+# all_hicds <- all_hicds[grepl("RANDOMMIDPOS", all_hicds)]
 
 
 file.path(mainFolder, all_hicds)[!dir.exists(file.path(mainFolder, all_hicds))]
@@ -114,8 +114,14 @@ if(buildTable) {
     exprds = all_exprds[[paste0(hicds)]][1]
     exprds_dt <- foreach(exprds = all_exprds[[paste0(hicds)]], .combine='rbind') %do% {
       
-      
-      if(!(exprds == "TCGAluad_norm_luad" | exprds == "TCGAluad_mutKRAS_mutEGFR")) return(NULL)
+
+      # if(!grepl("ENCSR489OCU_NCI-H460", hicds)) return(NULL)
+
+#cat(paste0(exprds, "\n"))
+
+      # if(exprds != "TCGAluad_norm_luad" ) return(NULL)
+     if(!(exprds == "TCGAluad_norm_luad" | exprds == "TCGAluad_mutKRAS_mutEGFR")) return(NULL)
+#      if(!(grepl("ENCSR489OCU_NCI-H460", hicds) & exprds == "TCGAluad_norm_luad" )) return(NULL)
       
       regionList_file <- file.path(pipFolder, hicds, exprds, script0_name, "pipeline_regionList.Rdata")
       stopifnot(file.exists(regionList_file))
@@ -134,6 +140,10 @@ if(buildTable) {
       comb_empPval_file <- file.path(pipFolder, hicds, exprds, script11same_name, "emp_pval_combined.Rdata" )
       
       if(!file.exists(comb_empPval_file)) cat(comb_empPval_file, "\n")
+      
+      if(!file.exists(comb_empPval_file)) return(NULL)
+      
+      
       
       stopifnot(file.exists(comb_empPval_file))
       comb_empPval <- eval(parse(text = load(paste0(comb_empPval_file))))
