@@ -158,7 +158,9 @@ step2=1    # run the pipeline
 #TAD_DE_pipSteps=( "9" "10sameNbr" "11sameNbr" "19sameNbr" "19onlyFC" )
 #TAD_DE_pipSteps=( "170revision2EZH2" )
 # STEP 9; STEP10sameNbr; STEP11sameNbr
-#TAD_DE_pipSteps=( "5fastSavePermut" "6fastSave" "5sameNbr" "8cOnlyFCCfastSave" "8cOnlyRatioDownFastSave" "9" "7sameNbr" "10sameNbr" "11sameNbr" "19sameNbr" "19onlyFC" "170revision2EZH2" )
+#TAD_DE_pipSteps=( "5fastSavePermut" "6fastSave" "5sameNbr" "8cOnlyFCCfastSave" "8cOnlyRatioDownFastSave" "9" "7sameNbr" "10sameNbr" "11sameNbr" "19sameNbr" "19onlyFC" "170revision2EZH2Folders" )
+#TAD_DE_pipSteps=( "6fastSave" )
+TAD_DE_pipSteps=( "5sameNbr" "8cOnlyFCCfastSave" "8cOnlyRatioDownFastSave" "9" "7sameNbr" "10sameNbr" "11sameNbr" "19onlyFC" "170revision2EZH2Folders" )
 #TAD_DE_pipSteps=( "10sameNbr" "11sameNbr")
 #TAD_DE_pipSteps=( "10sameNbr" "11sameNbr" "19sameNbr" "19onlyFC" )
 
@@ -169,12 +171,12 @@ step2=1    # run the pipeline
 #TAD_DE_pipSteps=( "5fastSavePermut" "6fastSave" "5sameNbr" "8cOnlyFCCfastSave" "8cOnlyRatioDownFastSave" "9" "7sameNbr" "10sameNbr" "11sameNbr" "170revision2EZH2Folders"  "19sameNbr" "19onlyFC" )
 #TAD_DE_pipSteps=( "6fastSave" "8cOnlyFCCfastSave" "8cOnlyRatioDownFastSave" "9" "7sameNbr" "10sameNbr" "11sameNbr" "170revision2EZH2"  "19sameNbr" "19onlyFC" )
 #TAD_DE_pipSteps=( "19onlyFC" "19sameNbr" )
-TAD_DE_pipSteps=( "8cOnlyFCCfastSaveOnlyObs" )
+#TAD_DE_pipSteps=( "8cOnlyFCCfastSaveOnlyObs" )
 
 #TAD_DE_pipSteps=( "7sameNbrSpearman" )
 #TAD_DE_pipSteps=( "10sameNbrSpearman" "11sameNbrSpearman" )
 
-# ./run_pipeline.sh ENCSR489OCU_NCI-H460_PERMUTG2T_40kb TCGAluad_norm_luad
+# ./run_pipeline.sh ENCSR489OCU_NCI-H460_RANDOMMIDPOSSTRICT_40kb TCGAluad_nonsmoker_smoker
 
 runDir="/mnt/etemp/marie/v2_Yuanlong_Cancer_HiC_data_TAD_DA"
 

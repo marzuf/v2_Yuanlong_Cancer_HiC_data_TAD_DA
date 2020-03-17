@@ -51,7 +51,7 @@ inFolder <- file.path("AUC_COEXPRDIST_WITHFAM_SORTNODUP")
 maxDist <- 500*1000
 
 rd_patterns <- paste0("", c("PERMUTG2T", "RANDOMMIDPOS", "RANDOMNBRGENES", "RANDOMSHIFT" , "RANDOMMIDPOSDISC"))
-rd_patterns <- c( "RANDOMMIDPOS",  "RANDOMMIDPOSDISC")
+rd_patterns <- c( "RANDOMMIDPOS",  "RANDOMMIDPOSDISC", "RANDOMMIDPOSSTRICT")
 rd_patt <- rd_patterns[1]
 
 dist_histBreaks_vect <- seq(0, maxDist, length.out=10+1)

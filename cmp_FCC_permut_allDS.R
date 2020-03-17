@@ -16,7 +16,7 @@ dir.create(outFolder, recursive = TRUE)
 
 all_hicds <- list.files("PIPELINE/OUTPUT_FOLDER")
 
-all_hicds <- all_hicds[!( grepl("RANDOMNBRGENES", all_hicds) | grepl("PERMUTG2T", all_hicds) | grepl("RANDOMSHIFT", all_hicds) | grepl("RANDOMMIDPOSSTRICT", all_hicds) )]
+all_hicds <- all_hicds[!( grepl("RANDOMNBRGENES", all_hicds) | grepl("PERMUTG2T", all_hicds) | grepl("RANDOMSHIFT", all_hicds) )]
 
 all_exprds <- sapply(all_hicds, function(x) list.files(file.path("PIPELINE/OUTPUT_FOLDER", x)))
 
@@ -24,7 +24,7 @@ all_exprds <- sapply(all_hicds, function(x) list.files(file.path("PIPELINE/OUTPU
 
 # 
 rd_patterns <- c("RANDOMMIDPOS","RANDOMMIDPOSDISC" , "RANDOMMIDPOSSTRICT", "RANDOMNBRGENES", "RANDOMSHIFT", "PERMUTG2T")
-plot_patt <-  c("RANDOMMIDPOS","RANDOMMIDPOSDISC" )
+plot_patt <-  c("RANDOMMIDPOS","RANDOMMIDPOSDISC" , "RANDOMMIDPOSSTRICT")
 
 
 source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
