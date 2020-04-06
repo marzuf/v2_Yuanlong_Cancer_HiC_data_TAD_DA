@@ -77,6 +77,7 @@ buildTable <- TRUE
 
 if(length(args) == 0) {
   all_hicds <- list.files(pipOutFolder)
+  all_hicds <- all_hicds[! (grepl("RANDOM", all_hicds) | grepl("PERMUT", all_hicds)) ]
   all_exprds <- sapply(all_hicds, function(x) list.files(file.path(pipOutFolder, x)))
 } else{
   all_hicds <- hicds
@@ -255,7 +256,7 @@ if(buildTable) {
     hicds_dt
   } # end-foreach iterating over hicds
   outFile <- file.path(outFolder, "all_result_dt.Rdata")
-  save(all_result_dt, file = outFile)
+  save(all_result_dt, file = outFile, version=2)
   cat(paste0("... written: ", outFile,  "\n"))
   
   

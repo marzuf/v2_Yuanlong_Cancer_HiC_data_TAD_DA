@@ -2,7 +2,7 @@
 # -----------------------
 #  TAD_ID | genes | meanFC | meanCorr | adj. comb. p-value | signif. at FDR 0.1 ?  | signif. at FDR 0.2  
 
-# Rscript create_final_table_bothSameNbr.R
+# Rscript create_final_table_bothRandomRescaled.R
 
 # 12.08.2019 -> added start and end positions
 
@@ -11,14 +11,14 @@ options(scipen = 100)
 SSHFS <- FALSE
 setDir <- ifelse(SSHFS, "/media/electron", "")
 
-script_name <- "create_final_table.R"
+script_name <- "create_final_table_bothRandomRescaled.R"
 cat("> START ", script_name, "\n")
 startTime <- Sys.time()
 
 script0_name <- "0_prepGeneData"
 script3_name <- "3_runMeanTADLogFC"
 script4_name <- "4_runMeanTADCorr"
-script11same_name <- "11sameNbrSameNbr_runEmpPvalCombined"
+script11same_name <- "11randomRescaled_runEmpPvalCombined"
 script19_name <- "19onlyFC_SAM_emp_measurement" # 
 script19sameNbr_name <- "19sameNbr_SAM_emp_measurement"
 script8c_name <- "8cOnlyRatioDownFastSave_runAllDown" # -> 
@@ -54,7 +54,7 @@ stopifnot(dir.exists(pipFolder))
 pipOutFolder <- file.path(pipFolder, "PIPELINE", "OUTPUT_FOLDER")
 stopifnot(dir.exists(pipOutFolder))
 
-outFolder <- "CREATE_FINAL_TABLE_BOTHSAMENBR" # "CREATE_FINAL_TABLE_10000" for 10000 permut
+outFolder <- "CREATE_FINAL_TABLE_BOTHRANDOMRESCALED" # "CREATE_FINAL_TABLE_10000" for 10000 permut
 dir.create(outFolder, recursive = TRUE)
 
 args <- commandArgs(trailingOnly = TRUE)
@@ -150,6 +150,7 @@ if(buildTable) {
       stopifnot(setequal(all_regs, names(tad_corr)))
 
       comb_empPval_file <- file.path(pipOutFolder, hicds, exprds, script11same_name, "emp_pval_combined.Rdata" )
+cat(paste0(comb_empPval_file, "\n"))
       stopifnot(file.exists(comb_empPval_file))
       comb_empPval <- eval(parse(text = load(paste0(comb_empPval_file))))
       stopifnot(setequal(all_regs, names(comb_empPval)))
