@@ -1,4 +1,4 @@
-# Rscript cmp_nSignif_sampleSize.R
+# Rscript cmp_nSignif_sampleSize_wtmut.R
 
 setDir <- "/media/electron"
 setDir <- ""
@@ -14,21 +14,28 @@ plotType <- "svg"
 myHeightGG <- 7
 myWidthGG <- 9
 
-outFolder <- "CMP_NSIGNIF_SAMPLESIZE"
+outFolder <- "CMP_NSIGNIF_SAMPLESIZE_WTMUT"
 dir.create(outFolder, recursive = TRUE)
 
 tadSignifThresh <- 0.01
 geneSignifThresh <- 0.01
 
-init_hicds <- "ENCSR312KHQ_SK-MEL-5"
-exprds <- "TCGAskcm_lowInf_highInf"
+init_hicds <- "GSE105381_HepG2"
+exprds <- "TCGAlihc_wt_mutCTNNB1"
 
 script1_name <- "1_runGeneDE"
 script11_name <- "11sameNbr_runEmpPvalCombined"
 
 nsub=""
-nsub=20
-all_tadSignif_dt <- foreach(nsub = c("", seq(from=20, to=100, by=20)), .combine='rbind') %dopar% {
+nsub=1
+
+all_sub_nbr1 <- c(64,128)
+all_sub_nbr2 <- c(23,46)
+nsub=2
+
+allsub <- 1:2
+
+all_tadSignif_dt <- foreach(nsub = c("", allsub), .combine='rbind') %dopar% {
   
   if(nsub == "") {
     hicds <- paste0(init_hicds,"_", nsub, "40kb")
@@ -38,8 +45,13 @@ all_tadSignif_dt <- foreach(nsub = c("", seq(from=20, to=100, by=20)), .combine=
   source(file.path("PIPELINE", "INPUT_FILES", hicds, paste0("run_settings_", exprds, ".R")))  
   s1 <- get(load(file.path(setDir, sample1_file)))
   s2 <- get(load(file.path(setDir, sample2_file)))
-  stopifnot(length(s1) == length(s2))
-  if(nsub != "") stopifnot(length(s1) == nsub)
+  # stopifnot(length(s1) == length(s2))
+  
+  cat(length(s1), "\n")
+  cat(all_sub_nbr1[as.numeric(nsub)], "\n")
+  
+  if(nsub != "") stopifnot(length(s1) == all_sub_nbr1[as.numeric(nsub)])
+  if(nsub != "") stopifnot(length(s2) == all_sub_nbr2[as.numeric(nsub)])
   
   pval <- get(load(file.path("PIPELINE/OUTPUT_FOLDER", hicds, exprds, script11_name, "emp_pval_combined.Rdata")))
   adj_pval <- p.adjust(pval, method="BH")
@@ -76,18 +88,19 @@ save(tadSignif_agg_dt, file=outFile, version=2)
 cat(paste0("... written: ", outFile, "\n"))
 
 
-all_geneSignif_dt <- foreach(nsub = c("", seq(from=20, to=100, by=20)), .combine='rbind') %dopar% {
+all_geneSignif_dt <- foreach(nsub = c("", allsub), .combine='rbind') %dopar% {
   
   if(nsub == "") {
-    hicds <- paste0(init_hicds,"_", nsub, "40kb")
+    hicds <- paste0(init_hicds, "_", nsub, "40kb")
   } else{
     hicds <- paste0(init_hicds, "_RANDOMSUB", nsub, "_40kb")
   }
   source(file.path("PIPELINE", "INPUT_FILES", hicds, paste0("run_settings_", exprds, ".R")))  
   s1 <- get(load(file.path(setDir, sample1_file)))
   s2 <- get(load(file.path(setDir, sample2_file)))
-  stopifnot(length(s1) == length(s2))
-  if(nsub != "") stopifnot(length(s1) == nsub)
+  # stopifnot(length(s1) == length(s2))
+  if(nsub != "") stopifnot(length(s1) == all_sub_nbr1[as.numeric(nsub)])
+  if(nsub != "") stopifnot(length(s2) == all_sub_nbr2[as.numeric(nsub)])
   
   de_dt <- get(load(file.path("PIPELINE/OUTPUT_FOLDER", hicds, exprds, script1_name, "DE_topTable.Rdata")))
   
