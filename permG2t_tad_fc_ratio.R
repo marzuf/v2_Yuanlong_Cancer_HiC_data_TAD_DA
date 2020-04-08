@@ -37,8 +37,14 @@ nPermut <- 1000
 all_hicds <- list.files(file.path(pipFolder))
 all_exprds <- sapply(all_hicds, function(x) list.files(file.path(pipFolder, x)))
 
+# hicds_toplot <- c("ENCSR504OTV_transverse_colon_RANDOMMIDPOSSTRICT_40kb","ENCSR312KHQ_SK-MEL-5_RANDOMMIDPOSSTRICT_40kb")
+# exprds_toplot <- c("TCGAcoad_msi_mss", "TCGAskcm_wt_mutCTNNB1")
 hicds= "ENCSR489OCU_NCI-H460_40kb"
 exprds="TCGAluad_mutKRAS_mutEGFR"
+hicds="ENCSR504OTV_transverse_colon_40kb"
+exprds="TCGAcoad_msi_mss"
+hicds="ENCSR312KHQ_SK-MEL-5_40kb"
+exprds="TCGAskcm_wt_mutCTNNB1"
 myhicds=hicds
 myexprds=exprds
 
@@ -51,8 +57,8 @@ if(buildData) {
       cat(paste0("... start ", hicds, " - ", exprds, "\n"))
       
       cat(paste0("... load permutation data\n"))
-      # permut_dt <-  get(load(file.path(pipFolder, hicds, exprds, script5_name, "permutationsDT.Rdata")))
-      permut_dt <-  get(load(paste0(hicds, "_", exprds, "_1000Permut_permDT.Rdata")))
+      permut_dt <-  get(load(file.path(pipFolder, hicds, exprds, script5_name, "permutationsDT.Rdata")))
+      # permut_dt <-  get(load(paste0(hicds, "_", exprds, "_1000Permut_permDT.Rdata")))
       cat(paste0("... loaded\n"))
       
       geneList <- get(load(file.path(pipFolder, hicds, exprds, script0_name, "pipeline_geneList.Rdata")))

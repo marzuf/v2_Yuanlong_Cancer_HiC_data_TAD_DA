@@ -100,10 +100,6 @@ source("../Yuanlong_Cancer_HiC_data_TAD_DA/subtype_cols.R")
 source("../FIGURES_V2_YUANLONG/settings.R")
 
 
-plot(plot_dt$nbrTADs_obs, plot_dt$nbrTADs_rd)
-plot(plot_dt$meanG2t_obs, plot_dt$meanG2t_rd)
-
-plot(plot_dt$nbrTADs_obs, plot_dt$fcc_auc)
 
 
 plot_dt$diff_auc <- plot_dt$fcc_auc - plot_dt$rd_fcc_auc
@@ -160,12 +156,9 @@ for(xvar in c("diff_nTADs", "diff_g2t")) {
   hicds2 <- "ENCSR312KHQ_SK-MEL-5_40kb"
   exprds2 <- "TCGAskcm_wt_mutCTNNB1"
   
-  
   text(x = plot_dt[plot_dt$hicds == hicds2 & plot_dt$exprds == exprds2,paste0(xvar)],
        y = plot_dt[plot_dt$hicds == hicds2 & plot_dt$exprds == exprds2,paste0(yvar)],
        labels = plot_dt[plot_dt$hicds == hicds2 & plot_dt$exprds == exprds2,"dataset"])
-  
-  
   
   
   foo <- dev.off()
@@ -173,4 +166,184 @@ for(xvar in c("diff_nTADs", "diff_g2t")) {
   
   
 }
+
+#########################################
+
+yvar <- "nbrTADs_obs"
+my_y <- plot_dt[,paste0(yvar)]
+ylab <- "# TADs (PERMG2T=OBS.)"
+
+xvar <- "nbrTADs_rd"
+my_x <- plot_dt[,paste0(xvar)]
+xlab <- paste0("# TADs (", rd_type, ")")
+
+outFile <- file.path(outFolder, paste0(yvar, "_vs_", xvar, "_", rd_type, "_dotplot.", plotType))
+do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+plot(
+  x  = my_x,
+  y  = my_y,
+  main = paste0(ylab, " ~ ", xlab),
+  xlab=xlab,
+  ylab=ylab,
+  cex.main=plotCex,
+  cex.lab=plotCex,
+  cex.axis=plotCex,
+  col=plot_dt$dotcols,
+  pch=16,
+  cex=0.7
+)
+curve(x*1, lty=2, add=T, col="grey")
+addCorr(x=my_x, y=my_y, bty="n")
+mtext(side=3, text = paste0("PERMG2T vs. ", rd_type))
+#  TCGAcoad_msi_mss
+# xdt[xdt$PERMG2T_FCC_AUC >= 1.5 & xdt$RANDOMMIDPOSSTRICT_FCC_AUC <= 1.2,]
+# ENCSR312KHQ_SK-MEL-5_40kb TCGAskcm_wt_mutCTNNB1
+
+
+hicds1 <- "ENCSR504OTV_transverse_colon_40kb"
+exprds1 <- "TCGAcoad_msi_mss"
+
+plot_dt$dataset <- paste0(plot_dt$hicds, "\n", plot_dt$exprds)
+
+text(x = plot_dt[plot_dt$hicds == hicds1 & plot_dt$exprds == exprds1,paste0(xvar)],
+     y = plot_dt[plot_dt$hicds == hicds1 & plot_dt$exprds == exprds1,paste0(yvar)],
+     labels = plot_dt[plot_dt$hicds == hicds1 & plot_dt$exprds == exprds1,"dataset"])
+
+
+hicds2 <- "ENCSR312KHQ_SK-MEL-5_40kb"
+exprds2 <- "TCGAskcm_wt_mutCTNNB1"
+
+text(x = plot_dt[plot_dt$hicds == hicds2 & plot_dt$exprds == exprds2,paste0(xvar)],
+     y = plot_dt[plot_dt$hicds == hicds2 & plot_dt$exprds == exprds2,paste0(yvar)],
+     labels = plot_dt[plot_dt$hicds == hicds2 & plot_dt$exprds == exprds2,"dataset"])
+
+
+foo <- dev.off()
+cat(paste0("... written: ", outFile, "\n"))
+
+#########################################
+
+
+yvar <- "meanG2t_obs"
+my_y <- plot_dt[,paste0(yvar)]
+ylab <- "avg. genes by TAD (PERMG2T=OBS.)"
+
+xvar <- "meanG2t_rd"
+my_x <- plot_dt[,paste0(xvar)]
+xlab <- paste0("avg. genes by TAD (", rd_type, ")")
+
+outFile <- file.path(outFolder, paste0(yvar, "_vs_", xvar, "_", rd_type, "_dotplot.", plotType))
+do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+plot(
+  x  = my_x,
+  y  = my_y,
+  main = paste0(ylab, " ~ ", xlab),
+  xlab=xlab,
+  ylab=ylab,
+  cex.main=plotCex,
+  cex.lab=plotCex,
+  cex.axis=plotCex,
+  col=plot_dt$dotcols,
+  pch=16,
+  cex=0.7
+)
+curve(x*1, lty=2, add=T, col="grey")
+addCorr(x=my_x, y=my_y, bty="n")
+mtext(side=3, text = paste0("PERMG2T vs. ", rd_type))
+#  TCGAcoad_msi_mss
+# xdt[xdt$PERMG2T_FCC_AUC >= 1.5 & xdt$RANDOMMIDPOSSTRICT_FCC_AUC <= 1.2,]
+# ENCSR312KHQ_SK-MEL-5_40kb TCGAskcm_wt_mutCTNNB1
+
+
+hicds1 <- "ENCSR504OTV_transverse_colon_40kb"
+exprds1 <- "TCGAcoad_msi_mss"
+
+plot_dt$dataset <- paste0(plot_dt$hicds, "\n", plot_dt$exprds)
+
+text(x = plot_dt[plot_dt$hicds == hicds1 & plot_dt$exprds == exprds1,paste0(xvar)],
+     y = plot_dt[plot_dt$hicds == hicds1 & plot_dt$exprds == exprds1,paste0(yvar)],
+     labels = plot_dt[plot_dt$hicds == hicds1 & plot_dt$exprds == exprds1,"dataset"])
+
+
+hicds2 <- "ENCSR312KHQ_SK-MEL-5_40kb"
+exprds2 <- "TCGAskcm_wt_mutCTNNB1"
+
+text(x = plot_dt[plot_dt$hicds == hicds2 & plot_dt$exprds == exprds2,paste0(xvar)],
+     y = plot_dt[plot_dt$hicds == hicds2 & plot_dt$exprds == exprds2,paste0(yvar)],
+     labels = plot_dt[plot_dt$hicds == hicds2 & plot_dt$exprds == exprds2,"dataset"])
+
+
+foo <- dev.off()
+cat(paste0("... written: ", outFile, "\n"))
+
+
+#########################################
+
+all_cols <- colnames(plot_dt)
+all_cols <- all_cols[!all_cols %in% c("hicds", "exprds", "dataset", "dotcols")]
+
+for(i in 1:(length(all_cols)-1)) {
+  for(j in (i+1):length(all_cols)){
+    
+    xvar <- all_cols[i]
+    yvar <- all_cols[j]
+    
+    my_y <- plot_dt[,paste0(yvar)]
+    ylab <- yvar
+    
+    my_x <- plot_dt[,paste0(xvar)]
+    xlab <- xvar
+    
+    outFile <- file.path(outFolder, paste0(yvar, "_vs_", xvar, "_", rd_type, "_raw_dotplot.", plotType))
+    do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+    plot(
+      x  = my_x,
+      y  = my_y,
+      main = paste0(ylab, " ~ ", xlab),
+      xlab=xlab,
+      ylab=ylab,
+      cex.main=plotCex,
+      cex.lab=plotCex,
+      cex.axis=plotCex,
+      col=plot_dt$dotcols,
+      pch=16,
+      cex=0.7
+    )
+    addCorr(x=my_x, y=my_y, bty="n")
+    # mtext(side=3, text = paste0("PERMG2T vs. ", rd_type))
+    #  TCGAcoad_msi_mss
+    # xdt[xdt$PERMG2T_FCC_AUC >= 1.5 & xdt$RANDOMMIDPOSSTRICT_FCC_AUC <= 1.2,]
+    # ENCSR312KHQ_SK-MEL-5_40kb TCGAskcm_wt_mutCTNNB1
+    
+    
+    hicds1 <- "ENCSR504OTV_transverse_colon_40kb"
+    exprds1 <- "TCGAcoad_msi_mss"
+    
+    plot_dt$dataset <- paste0(plot_dt$hicds, "\n", plot_dt$exprds)
+    
+    text(x = plot_dt[plot_dt$hicds == hicds1 & plot_dt$exprds == exprds1,paste0(xvar)],
+         y = plot_dt[plot_dt$hicds == hicds1 & plot_dt$exprds == exprds1,paste0(yvar)],
+         labels = plot_dt[plot_dt$hicds == hicds1 & plot_dt$exprds == exprds1,"dataset"])
+    
+    
+    hicds2 <- "ENCSR312KHQ_SK-MEL-5_40kb"
+    exprds2 <- "TCGAskcm_wt_mutCTNNB1"
+    
+    text(x = plot_dt[plot_dt$hicds == hicds2 & plot_dt$exprds == exprds2,paste0(xvar)],
+         y = plot_dt[plot_dt$hicds == hicds2 & plot_dt$exprds == exprds2,paste0(yvar)],
+         labels = plot_dt[plot_dt$hicds == hicds2 & plot_dt$exprds == exprds2,"dataset"])
+    
+    
+    foo <- dev.off()
+    cat(paste0("... written: ", outFile, "\n"))
+    
+    
+    
+    
+    
+  }
+}
+
+
+
 

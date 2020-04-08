@@ -27,6 +27,7 @@ script4_name <- "4_runMeanTADCorr"
 
 script9_name <- "9_runEmpPvalMeanTADLogFC"
 script9sameNbr_name <- "9sameNbr_runEmpPvalMeanTADLogFC"
+script9sameNbrRescaled_name <- "9sameNbrRescaled_runEmpPvalMeanTADLogFC"
 script9random_name <- "9random_runEmpPvalMeanTADLogFC"
 script9randomResc_name <- "9randomRescaled_runEmpPvalMeanTADLogFC"
 script10_name <- "10sameNbr_runEmpPvalMeanTADCorr"
@@ -52,6 +53,7 @@ if(buildTable){
       
       logfc_pval_permG2T <- get(load(file.path(pipFolder, hicds, exprds, script9_name, "emp_pval_meanLogFC.Rdata")))
       logfc_pval_sameNbr <- get(load(file.path(pipFolder, hicds, exprds, script9sameNbr_name, "emp_pval_meanLogFC.Rdata")))
+      logfc_pval_sameNbrResc <- get(load(file.path(pipFolder, hicds, exprds, script9sameNbrRescaled_name, "emp_pval_meanLogFC.Rdata")))
       logfc_pval_random <- get(load(file.path(pipFolder, hicds, exprds, script9random_name, "emp_pval_meanLogFC.Rdata")))
       logfc_pval_randomResc <- get(load(file.path(pipFolder, hicds, exprds, script9randomResc_name, "emp_pval_meanLogFC.Rdata")))
       
@@ -70,6 +72,7 @@ if(buildTable){
         
         logfc_pval_permG2T = logfc_pval_permG2T,
         logfc_pval_sameNbr = logfc_pval_sameNbr,
+        logfc_pval_sameNbrResc = logfc_pval_sameNbrResc,
         logfc_pval_random = logfc_pval_random,
         logfc_pval_randomResc = logfc_pval_randomResc,
         

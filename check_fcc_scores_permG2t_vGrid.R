@@ -2,15 +2,15 @@
 
 options(scipen=100)
 
-# Rscript check_fcc_scores_random_vGrid.R
+# Rscript check_fcc_scores_permG2t_vGrid.R
 
-script_name <- "check_fcc_scores_random_vGrid.R"
+script_name <- "check_fcc_scores_permG2t_vGrid.R"
 
 startTime <- Sys.time()
 
 cat("> START ", script_name, "\n")
 
-buildTable <- F
+buildTable <- TRUE
 
 require(flux)
 require(foreach)
@@ -23,7 +23,7 @@ registerDoMC(40)
 
 source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 
-outFolder <- file.path("CHECK_FCC_SCORES_RANDOM_VGRID")
+outFolder <- file.path("CHECK_FCC_SCORES_PERMG2T_VGRID")
 dir.create(outFolder, recursive = TRUE)
 
 plotCex <- 1.4
@@ -31,28 +31,26 @@ plotType <- "svg"
 myHeight <- 8
 myWidth <- 10
 
-all_fcc_obs_files <- list.files("PIPELINE/OUTPUT_FOLDER", pattern = "all_obs_prodSignedRatio.Rdata", recursive = TRUE, full.names = TRUE)
+# all_fcc_obs_files <- list.files("PIPELINE/OUTPUT_FOLDER", pattern = "all_obs_prodSignedRatio.Rdata", recursive = TRUE, full.names = TRUE)
 # all_fcc_obs_files <- all_fcc_obs_files[!grepl("_RANDOM", all_fcc_obs_files)]
 # all_fcc_obs_files <- all_fcc_obs_files[!grepl("_PERMUT", all_fcc_obs_files)]
-all_fcc_obs_files <- all_fcc_obs_files[grepl("_RANDOMMIDPOSSTRICT", all_fcc_obs_files)]
-all_rd_obs_files <- list.files("PIPELINE/OUTPUT_FOLDER", pattern="all_obs_ratioDown.Rdata", recursive=TRUE, full.names = TRUE)
+# all_rd_obs_files <- list.files("PIPELINE/OUTPUT_FOLDER", pattern="all_obs_ratioDown.Rdata", recursive=TRUE, full.names = TRUE)
 # all_rd_obs_files <- all_rd_obs_files[!grepl("_RANDOM", all_rd_obs_files)]
 # all_rd_obs_files <- all_rd_obs_files[!grepl("_PERMUT", all_rd_obs_files)]
-all_rd_obs_files <- all_rd_obs_files[grepl("_RANDOMMIDPOSSTRICT", all_rd_obs_files)]
-all_negFC_obs_files <- list.files("OBS_TAD_NEGATIVE_FC", pattern="all_obs_negFC.Rdata", recursive=TRUE, full.names = TRUE)
-all_negFC_obs_files <- all_negFC_obs_files[grepl("_RANDOMMIDPOSSTRICT", all_negFC_obs_files)]
-all_ratioFC_obs_files <- list.files("OBS_TAD_FC_RATIO", pattern="all_obs_ratioFC.Rdata", recursive=TRUE, full.names = TRUE)
-all_ratioFC_obs_files <- all_ratioFC_obs_files[grepl("_RANDOMMIDPOSSTRICT", all_ratioFC_obs_files)]
-
-stopifnot(length(all_rd_obs_files) == length(all_fcc_obs_files) )
-stopifnot(length(all_rd_obs_files) == length(all_negFC_obs_files) )
-stopifnot(length(all_rd_obs_files) == length(all_ratioFC_obs_files) )
+# all_negFC_obs_files <- list.files("OBS_TAD_NEGATIVE_FC", pattern="all_obs_negFC.Rdata", recursive=TRUE, full.names = TRUE)
+# all_ratioFC_obs_files <- list.files("OBS_TAD_FC_RATIO", pattern="all_obs_ratioFC.Rdata", recursive=TRUE, full.names = TRUE)
+# 
+# stopifnot(length(all_rd_obs_files) == length(all_fcc_obs_files) )
+# stopifnot(length(all_rd_obs_files) == length(all_negFC_obs_files) )
+# stopifnot(length(all_rd_obs_files) == length(all_ratioFC_obs_files) )
 
 pipFolder <- file.path( "PIPELINE", "OUTPUT_FOLDER")
 all_hicds <- list.files(file.path(pipFolder))
-#all_hicds <- all_hicds[!grepl("_RANDOM", all_hicds)]
-#all_hicds <- all_hicds[!grepl("_PERMUT", all_hicds)]
-all_hicds <- all_hicds[grepl("_RANDOMMIDPOSSTRICT", all_hicds)]
+all_hicds <- all_hicds[!grepl("_RANDOM", all_hicds)]
+all_hicds <- all_hicds[!grepl("_PERMUT", all_hicds)]
+
+all_hicds <- all_hicds[!grepl("NCI-H460_", all_hicds)]
+
 all_exprds <- sapply(all_hicds, function(x) list.files(file.path(pipFolder, x)))
 
 ratio_vect <- seq(from=0, to=1, by=0.1)
@@ -61,36 +59,46 @@ ratio_fract_names <- paste0("ratio \u2208 ]", ratio_vect[1:(length(ratio_vect)-1
 ratio_fract_names <- paste0("]", ratio_vect[1:(length(ratio_vect)-1)], ", ",ratio_vect[2:length(ratio_vect)], "]")
 ratio_fract_names[ratio_fract_names == "]0, 0.1]"] <- "[0, 0.1]"
 
+hicds = "ENCSR504OTV_transverse_colon_40kb"
+exprds ="TCGAcoad_msi_mss"
+
+keepPermut <- 1000
 
 if(buildTable) {
   
   all_values_dt <- foreach(hicds = all_hicds, .combine='rbind') %dopar%{
     ds_values <- foreach(exprds = all_exprds[[paste0(hicds)]], .combine='rbind') %do% {
       
-      fcc_value <- get(load(file.path("PIPELINE/OUTPUT_FOLDER", hicds, exprds, "8cOnlyFCC_runAllDown/all_obs_prodSignedRatio.Rdata")))
+
+      # load("PERMG2T_TAD_FC_RATIO/ENCSR504OTV_transverse_colon_40kb/TCGAcoad_msi_mss/ratioFC_1000Permut_permDT.Rdata")
       
-      negFC_value <- get(load(file.path("OBS_TAD_NEGATIVE_FC", hicds, exprds, "all_obs_negFC.Rdata")))
+      ratioDown_file <- file.path("PIPELINE/OUTPUT_FOLDER", hicds, exprds, "8cOnlyRatioDownFastSave_runAllDown/ratioDown_permDT.Rdata")
       
-      rd_value <- get(load(file.path("PIPELINE/OUTPUT_FOLDER", hicds, exprds, "8cOnlyRatioDownFastSave_runAllDown/all_obs_ratioDown.Rdata")))
+      if(!file.exists(ratioDown_file)) return(NULL)
       
-      ratioFC_value <- get(load(file.path("OBS_TAD_FC_RATIO", hicds, exprds, "all_obs_ratioFC.Rdata")))
+      ratioFC_file <- file.path("PERMG2T_TAD_FC_RATIO", hicds, exprds, paste0("ratioFC_", keepPermut, "Permut_permDT.Rdata"))
       
-      stopifnot(setequal(names(fcc_value), names(negFC_value)))
-      stopifnot(setequal(names(fcc_value), names(rd_value)))
-      stopifnot(setequal(names(fcc_value), names(ratioFC_value)))
-      stopifnot(length(fcc_value) == length(negFC_value))
-      stopifnot(length(fcc_value) == length(rd_value))
-      stopifnot(length(fcc_value) == length(ratioFC_value))
+      if(!file.exists(ratioFC_file)) return(NULL)
       
-      all_tads <- names(fcc_value)
+      cat("... ", hicds, " - " ,exprds, "\n")
+      
+      ratioDown_value_dt <- get(load(ratioDown_file))
+      rD_value <- ratioDown_value_dt[,1:keepPermut]
+      
+      
+      ratioFC_value <- get(load(ratioFC_file))
+      
+      stopifnot(dim(rD_value) == dim(ratioFC_value))
+      
+      stopifnot(rownames(rD_value) == rownames(ratioFC_value))
+      
       
       data.frame(
         hicds = hicds,
         exprds = exprds,
-        FCCscore = fcc_value[all_tads],
-        negFC = negFC_value[all_tads],
-        ratioFC = ratioFC_value[all_tads],
-        rD = rd_value[all_tads],
+
+        ratioFC = as.numeric(ratioFC_value),
+        rD = as.numeric(rD_value),
         stringsAsFactors = FALSE
       )
     } # end foreach iterating exprds
@@ -148,10 +156,10 @@ stopifnot(!is.na(nCount_ratioDown_ratioFC_fract_dt$ratioDown_fract_lab))
 stopifnot(!is.na(nCount_ratioDown_ratioFC_fract_dt$ratioFC_fract_lab))
 
 
-grid_plot <- ggplot(data = nCount_ratioDown_ratioFC_fract_dt, aes(x=ratioDown_fract_lab, y=ratioFC_fract_lab, fill=ratioDown_ratioFC_nCout)) +
+grid_plot <- ggplot(data = nCount_ratioDown_ratioFC_fract_dt, aes(x=ratioDown_fract_lab, y=ratioFC_fract_lab, fill=ratioDown_ratioFC_nCout)) + 
   ggtitle(paste0("# TADs by ratioDown and ratioFC"),   subtitle = paste0("obs. data - all datasets (n=", length(unique(file.path(all_values_dt$hicds, all_values_dt$exprds))), ")"))+
-  scale_x_discrete(name="ratioDown")  +
-  scale_y_discrete(name="ratioFC")  +
+  scale_x_discrete(name="ratioDown")  + 
+  scale_y_discrete(name="ratioFC")  + 
   geom_tile() +
   labs(fill = "# TADs")+
   scale_fill_gradient( trans = 'log', na.value = "white" )  +
@@ -188,16 +196,14 @@ outFile <- file.path(outFolder, "mat_dt.Rdata")
 save(mat_dt, file=outFile, version=2)
 cat(paste0("... written: ", outFile, "\n"))
 
-# 
-# hicds_toplot <- c("ENCSR504OTV_transverse_colon_RANDOMMIDPOSSTRICT_40kb","ENCSR312KHQ_SK-MEL-5_RANDOMMIDPOSSTRICT_40kb")
-# exprds_toplot <- c("TCGAcoad_msi_mss", "TCGAskcm_wt_mutCTNNB1")
 
-hicds_toplot <- c("ENCSR504OTV_transverse_colon_RANDOMMIDPOSSTRICT_40kb")
+
+hicds_toplot <- c("ENCSR504OTV_transverse_colon_40kb")
 exprds_toplot <- c("TCGAcoad_msi_mss")
 
-hicds_toplot <- c("ENCSR312KHQ_SK-MEL-5_RANDOMMIDPOSSTRICT_40kb")
-exprds_toplot <- c( "TCGAskcm_wt_mutCTNNB1")
 
+hicds_toplot <- c("ENCSR312KHQ_SK-MEL-5_40kb")
+exprds_toplot <- c( "TCGAskcm_wt_mutCTNNB1")
 
 init_all_values_dt <- all_values_dt
 
@@ -267,7 +273,6 @@ for(i in 1:length(hicds_toplot)){
 
 
 
-stopifnot( (2*all_values_dt$ratioFC - 1) * (2* all_values_dt$rD- 1) == all_values_dt$FCCscore)
 #######################################################################################################################################
 #######################################################################################################################################
 #######################################################################################################################################
