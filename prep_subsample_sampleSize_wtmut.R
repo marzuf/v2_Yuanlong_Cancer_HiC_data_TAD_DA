@@ -25,15 +25,17 @@ stopifnot(!any(s2 %in% s1))
 # 256  -> 64  -> 128
 # 92  -> 23   -> 46
 
-all_sub_nbr1 <- c(64,128)
-all_sub_nbr2 <- c(23,46)
+all_sub_nbr1 <- c(64,128,192)
+all_sub_nbr2 <- c(23,46,69)
+
+
 
 stopifnot(all_sub_nbr1/all_sub_nbr2 == length(s1)/length(s2))
 
 stopifnot(length(all_sub_nbr1) == length(all_sub_nbr2))
 
-iSub = 1
-for(iSub in 1:length(all_sub_nbr1)) {
+iSub = 3
+#for(iSub in 1:length(all_sub_nbr1)) {
   
   nSub2 <- all_sub_nbr2[iSub]
   
@@ -67,7 +69,7 @@ for(iSub in 1:length(all_sub_nbr1)) {
   stopifnot( length(sub_s1) == nSub1)
   stopifnot( length(sub_s2) == nSub2)
   
-}
+#}
 
 # ... written: //mnt/ed4/marie/other_datasets/TCGAlihc_wt_mutCTNNB1_sub1/kich_ID.Rdata
 # ... written: //mnt/ed4/marie/other_datasets//TCGAlihc_wt_mutCTNNB1_sub1/norm_ID.Rdata
@@ -81,11 +83,14 @@ for(iSub in 1:length(all_sub_nbr1)) {
 # 
 #   cp -r GSE105381_HepG2_40kb GSE105381_HepG2_RANDOMSUB2_40kb
 # rm -rf GSE105381_HepG2_RANDOMSUB2_40kb/FINAL_DOMAINS*
-  
+
+#   cp -r GSE105381_HepG2_40kb GSE105381_HepG2_RANDOMSUB3_40kb
+# rm -rf GSE105381_HepG2_RANDOMSUB3_40kb/FINAL_DOMAINS*
+#  
 # then run_pipeline_sh but only step1 to create the setting file
   # ./run_pipeline.sh GSE105381_HepG2_RANDOMSUB1_40kb TCGAlihc_wt_mutCTNNB1
 # ./run_pipeline.sh GSE105381_HepG2_RANDOMSUB2_40kb TCGAlihc_wt_mutCTNNB1
-# ./run_pipeline.sh ENCSR079VIJ_G401_RANDOMSUB3_40kb TCGAlihc_wt_mutCTNNB1
+# ./run_pipeline.sh GSE105381_HepG2_RANDOMSUB3_40kb TCGAlihc_wt_mutCTNNB1
 
 # change in the setting file:
 
@@ -110,4 +115,12 @@ stopifnot(ncol(x) == all_sub_nbr1[2] + all_sub_nbr2[2])
 
 x = get(load("/media/electron//mnt/etemp/marie/v2_Yuanlong_Cancer_HiC_data_TAD_DA/PIPELINE/OUTPUT_FOLDER/GSE105381_HepG2_RANDOMSUB2_40kb/TCGAlihc_wt_mutCTNNB1/1_runGeneDE/DE_rnaseqDT.Rdata"))
 stopifnot(ncol(x) == all_sub_nbr1[2] + all_sub_nbr2[2])
+
+
+x = get(load("/media/electron//mnt/etemp/marie/v2_Yuanlong_Cancer_HiC_data_TAD_DA/PIPELINE/OUTPUT_FOLDER/GSE105381_HepG2_RANDOMSUB3_40kb/TCGAlihc_wt_mutCTNNB1/0_prepGeneData/rna_fpkmDT.Rdata"))
+stopifnot(ncol(x) == all_sub_nbr1[3] + all_sub_nbr2[3])
+
+x = get(load("/media/electron//mnt/etemp/marie/v2_Yuanlong_Cancer_HiC_data_TAD_DA/PIPELINE/OUTPUT_FOLDER/GSE105381_HepG2_RANDOMSUB3_40kb/TCGAlihc_wt_mutCTNNB1/1_runGeneDE/DE_rnaseqDT.Rdata"))
+stopifnot(ncol(x) == all_sub_nbr1[3] + all_sub_nbr2[3])
+
 
