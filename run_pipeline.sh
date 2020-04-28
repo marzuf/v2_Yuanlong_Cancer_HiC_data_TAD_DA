@@ -103,7 +103,7 @@ echo "... > Hi-C dataset: $hic_dataset"
 echo "... > Gene expression dataset: $expr_dataset"
 
 #********************** HARD-CODED SETTINGS FOR THE PIPELINE ********************************************
-step1=1     # prepare setting file
+step1=0     # prepare setting file
 step2=1    # run the pipeline
 
 # NB: 1cleanInput is same as 1cleanInputTCGAminCount, except added change rowToKeep based on minCount
@@ -160,15 +160,18 @@ step2=1    # run the pipeline
 # STEP 9; STEP10sameNbr; STEP11sameNbr
 #TAD_DE_pipSteps=( "5fastSavePermut" "6fastSave" "5sameNbr" "8cOnlyFCCfastSave" "8cOnlyRatioDownFastSave" "9" "7sameNbr" "10sameNbr" "11sameNbr" "19sameNbr" "19onlyFC" "170revision2EZH2Folders" )
 #TAD_DE_pipSteps=( "6fastSave" )
-TAD_DE_pipSteps=( "5sameNbr" "8cOnlyFCCfastSave" "8cOnlyRatioDownFastSave" "9" "7sameNbr" "10sameNbr" "11sameNbr" "19onlyFC" "170revision2EZH2Folders" )
+#TAD_DE_pipSteps=( "5sameNbr" "8cOnlyFCCfastSave" "8cOnlyRatioDownFastSave" "9" "7sameNbr" "10sameNbr" "11sameNbr" "19onlyFC" "170revision2EZH2Folders" )
 #TAD_DE_pipSteps=( "10sameNbr" "11sameNbr")
 #TAD_DE_pipSteps=( "10sameNbr" "11sameNbr" "19sameNbr" "19onlyFC" )
 
+#TAD_DE_pipSteps=( "0cleanInputTCGAminCount")
 #TAD_DE_pipSteps=( "0cleanInputTCGAminCount" "1cleanInputTCGAminCount" "3" "4" )
-
+#TAD_DE_pipSteps=(  "5fastSavePermut" "6fastSave" "5sameNbr" "9" "7sameNbr" "10sameNbr" )
+#TAD_DE_pipSteps=(  "9sameNbrRescaled" )
 #TAD_DE_pipSteps=( "1cleanInputTCGAminCount" "3" "4" )
 
-#TAD_DE_pipSteps=( "5fastSavePermut" "6fastSave" "5sameNbr" "8cOnlyFCCfastSave" "8cOnlyRatioDownFastSave" "9" "7sameNbr" "10sameNbr" "11sameNbr" "170revision2EZH2Folders"  "19sameNbr" "19onlyFC" )
+##TAD_DE_pipSteps=( "5fastSavePermut" "6fastSave" "5sameNbr" "8cOnlyFCCfastSave" "8cOnlyRatioDownFastSave" "9" "7sameNbr" "10sameNbr" "11sameNbr" "170revision2EZH2Folders"  "19sameNbr" "19onlyFC" )
+#TAD_DE_pipSteps=( "6fastSave" "5sameNbr" "8cOnlyFCCfastSave" "8cOnlyRatioDownFastSave" "9" "7sameNbr" "10sameNbr" "11sameNbr" "170revision2EZH2Folders"  "19sameNbr" "19onlyFC" )
 #TAD_DE_pipSteps=( "6fastSave" "8cOnlyFCCfastSave" "8cOnlyRatioDownFastSave" "9" "7sameNbr" "10sameNbr" "11sameNbr" "170revision2EZH2"  "19sameNbr" "19onlyFC" )
 #TAD_DE_pipSteps=( "19onlyFC" "19sameNbr" )
 #TAD_DE_pipSteps=( "8cOnlyFCCfastSaveOnlyObs" )
@@ -176,7 +179,86 @@ TAD_DE_pipSteps=( "5sameNbr" "8cOnlyFCCfastSave" "8cOnlyRatioDownFastSave" "9" "
 #TAD_DE_pipSteps=( "7sameNbrSpearman" )
 #TAD_DE_pipSteps=( "10sameNbrSpearman" "11sameNbrSpearman" )
 
-# ./run_pipeline.sh ENCSR489OCU_NCI-H460_RANDOMMIDPOSSTRICT_40kb TCGAluad_nonsmoker_smoker
+#TAD_DE_pipSteps=( "5sameNbr" "6sameNbr" "7sameNbr" "8sameNbr" "9sameNbr" "10sameNbr" "11sameNbrSameNbr" )
+#TAD_DE_pipSteps=( "9sameNbrDouble" "11sameNbrSameNbrDouble" ) 
+#TAD_DE_pipSteps=( "9random" ) 
+#TAD_DE_pipSteps=( "9random" "10random" "11random" ) 
+
+
+# 28.04.2020
+
+#TAD_DE_pipSteps=( "0cleanInputTCGAminCount" "1cleanInputTCGAminCount" "3" "4" "5fastSavePermut" "6fastSave" "5sameNbr" "9" "7sameNbr" "10sameNbr" "11sameNbr" )
+#TAD_DE_pipSteps=(  "6fastSave" "5sameNbr" "9" "7sameNbr" "10sameNbr" "11sameNbr" )
+
+# ./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_RANDOMSUB20-2_40kb TCGAskcm_lowInf_highInf  # run electron - STOPPED
+# ./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_RANDOMSUB20-3_40kb TCGAskcm_lowInf_highInf  # run electron - STOPPED
+# ./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_RANDOMSUB20-4_40kb TCGAskcm_lowInf_highInf  # run electron - DONE
+# ./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_RANDOMSUB20-5_40kb TCGAskcm_lowInf_highInf  # run electron - run ELECTRON
+
+#TAD_DE_pipSteps=("3" "4" "5fastSavePermut" "6fastSave" "5sameNbr" "9" "7sameNbr" "10sameNbr" "11sameNbr" )
+
+# ./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_RANDOMSUB40-2_40kb TCGAskcm_lowInf_highInf  # run positron - DONE
+# ./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_RANDOMSUB40-3_40kb TCGAskcm_lowInf_highInf  # run positron - DONE
+# ./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_RANDOMSUB40-4_40kb TCGAskcm_lowInf_highInf  # run positron - DONE
+# ./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_RANDOMSUB40-5_40kb TCGAskcm_lowInf_highInf  # run positron - DONE
+
+# ./run_pipeline.sh GSE105381_HepG2_RANDOMSUB3_40kb TCGAlihc_wt_mutCTNNB1 #  run positron - DONE ?
+
+#TAD_DE_pipSteps=( "0cleanInputTCGAminCount" "1cleanInputTCGAminCount")
+TAD_DE_pipSteps=("3" "4" "5fastSavePermut" "6fastSave" "5sameNbr" "9" "7sameNbr" "10sameNbr" "11sameNbr" )
+
+# ./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_RANDOMSUB60-2_40kb TCGAskcm_lowInf_highInf  # run 
+# ./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_RANDOMSUB60-3_40kb TCGAskcm_lowInf_highInf  # run 
+# ./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_RANDOMSUB60-4_40kb TCGAskcm_lowInf_highInf  # run 
+# ./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_RANDOMSUB60-5_40kb TCGAskcm_lowInf_highInf  # run 
+# ./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_RANDOMSUB80-2_40kb TCGAskcm_lowInf_highInf  # run 
+# ./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_RANDOMSUB80-3_40kb TCGAskcm_lowInf_highInf  # run 
+# ./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_RANDOMSUB80-4_40kb TCGAskcm_lowInf_highInf  # run 
+# ./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_RANDOMSUB80-5_40kb TCGAskcm_lowInf_highInf  # run 
+# ./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_RANDOMSUB100-2_40kb TCGAskcm_lowInf_highInf  # run 
+# ./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_RANDOMSUB100-3_40kb TCGAskcm_lowInf_highInf  # run 
+# ./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_RANDOMSUB100-4_40kb TCGAskcm_lowInf_highInf  # run 
+# ./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_RANDOMSUB100-5_40kb TCGAskcm_lowInf_highInf  # run 
+
+# ./run_pipeline.sh ENCSR079VIJ_G401_RANDOMSUB1-2_40kb TCGAkich_norm_kich # run POSITRON
+# ./run_pipeline.sh ENCSR079VIJ_G401_RANDOMSUB1-3_40kb TCGAkich_norm_kich # run POS
+# ./run_pipeline.sh ENCSR079VIJ_G401_RANDOMSUB1-4_40kb TCGAkich_norm_kich # run EL
+# ./run_pipeline.sh ENCSR079VIJ_G401_RANDOMSUB1-5_40kb TCGAkich_norm_kich # run EL
+
+# ./run_pipeline.sh ENCSR079VIJ_G401_RANDOMSUB2-2_40kb TCGAkich_norm_kich # run 
+# ./run_pipeline.sh ENCSR079VIJ_G401_RANDOMSUB2-3_40kb TCGAkich_norm_kich # run 
+# ./run_pipeline.sh ENCSR079VIJ_G401_RANDOMSUB2-4_40kb TCGAkich_norm_kich # run 
+# ./run_pipeline.sh ENCSR079VIJ_G401_RANDOMSUB2-5_40kb TCGAkich_norm_kich # run 
+
+# ./run_pipeline.sh ENCSR079VIJ_G401_RANDOMSUB3-2_40kb TCGAkich_norm_kich # run 
+# ./run_pipeline.sh ENCSR079VIJ_G401_RANDOMSUB3-3_40kb TCGAkich_norm_kich # run 
+# ./run_pipeline.sh ENCSR079VIJ_G401_RANDOMSUB3-4_40kb TCGAkich_norm_kich # run 
+# ./run_pipeline.sh ENCSR079VIJ_G401_RANDOMSUB3-5_40kb TCGAkich_norm_kich # run 
+
+# ./run_pipeline.sh GSE105381_HepG2_RANDOMSUB1-2_40kb TCGAlihc_wt_mutCTNNB1 #  run
+# ./run_pipeline.sh GSE105381_HepG2_RANDOMSUB1-3_40kb TCGAlihc_wt_mutCTNNB1 #  run 
+# ./run_pipeline.sh GSE105381_HepG2_RANDOMSUB1-4_40kb TCGAlihc_wt_mutCTNNB1 #  run 
+# ./run_pipeline.sh GSE105381_HepG2_RANDOMSUB1-5_40kb TCGAlihc_wt_mutCTNNB1 #  run 
+
+# ./run_pipeline.sh GSE105381_HepG2_RANDOMSUB2-2_40kb TCGAlihc_wt_mutCTNNB1 #  run 
+# ./run_pipeline.sh GSE105381_HepG2_RANDOMSUB2-3_40kb TCGAlihc_wt_mutCTNNB1 #  run 
+# ./run_pipeline.sh GSE105381_HepG2_RANDOMSUB2-4_40kb TCGAlihc_wt_mutCTNNB1 #  run 
+# ./run_pipeline.sh GSE105381_HepG2_RANDOMSUB2-5_40kb TCGAlihc_wt_mutCTNNB1 #  run 
+
+# ./run_pipeline.sh GSE105381_HepG2_RANDOMSUB3-2_40kb TCGAlihc_wt_mutCTNNB1 #  run  
+# ./run_pipeline.sh GSE105381_HepG2_RANDOMSUB3-3_40kb TCGAlihc_wt_mutCTNNB1 #  run 
+# ./run_pipeline.sh GSE105381_HepG2_RANDOMSUB3-4_40kb TCGAlihc_wt_mutCTNNB1 #  run 
+# ./run_pipeline.sh GSE105381_HepG2_RANDOMSUB3-5_40kb TCGAlihc_wt_mutCTNNB1 #  run 
+
+# ./run_pipeline.sh ENCSR079VIJ_G401_RANDOMSUB3-5_40kb TCGAkich_norm_kich
+
+# ./run_pipeline.sh GSE105381_HepG2_RANDOMSUB1-5_40kb TCGAlihc_wt_mutCTNNB1
+# ./run_pipeline.sh GSE105381_HepG2_RANDOMSUB2-5_40kb TCGAlihc_wt_mutCTNNB1
+
+
+#TAD_DE_pipSteps=( "0cleanInputTCGAminCountCheckRm" )
+# ./run_pipeline.sh ENCSR489OCU_NCI-H460_40kb TCGAluad_norm_luad
+
 
 runDir="/mnt/etemp/marie/v2_Yuanlong_Cancer_HiC_data_TAD_DA"
 
@@ -235,8 +317,9 @@ checkFile old_setting_file $old_setting_file
 
 new_setting_file="$new_inputFolder/run_settings_${expr_dataset}.R"
 
-runCMD "cp $old_setting_file $new_inputFolder"
-
+if [[ "$step1" -eq 1 ]] ; then
+	runCMD "cp $old_setting_file $new_inputFolder"
+fi
 # !!! TO CHECK FORMAT ZZZZZ
 # $hic_dataset/genes2tad/all_assigned_regions.txt
 # MCF-7/genes2tad/all_assigned_regions.txt
