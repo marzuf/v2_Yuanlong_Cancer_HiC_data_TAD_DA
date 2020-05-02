@@ -2,15 +2,15 @@ options(scipen=100)
 
 SSHFS=F
 
-# Rscript go_signif_geneLevel_tadLevel_intersectDiff.R <tadpval> <genepval>
-# Rscript go_signif_geneLevel_tadLevel_intersectDiff.R 0.01 0.05 
-# Rscript go_signif_geneLevel_tadLevel_intersectDiff.R 0.05 0.05 
-# Rscript go_signif_geneLevel_tadLevel_intersectDiff.R 0.01 0.01 
+# Rscript go_signif_geneLevel_tadLevel_intersectDiff_randommidposstrict.R <tadpval> <genepval>
+# Rscript go_signif_geneLevel_tadLevel_intersectDiff_randommidposstrict.R 0.01 0.05 
+# Rscript go_signif_geneLevel_tadLevel_intersectDiff_randommidposstrict.R 0.05 0.05 
+# Rscript go_signif_geneLevel_tadLevel_intersectDiff_randommidposstrict.R 0.01 0.01 
 
 hicds="K562_40kb"
 exprds="TCGAlaml_wt_mutFLT3"
 
-script_name <- "go_signif_geneLevel_tadLevel_intersectDiff.R"
+script_name <- "go_signif_geneLevel_tadLevel_intersectDiff_randommidposstrict.R"
 
 startTime <- Sys.time()
 
@@ -84,7 +84,7 @@ all_hicds <- list.files(pipFolder)
 file.path(mainFolder, all_hicds)[!dir.exists(file.path(mainFolder, all_hicds))]
 stopifnot(dir.exists(file.path(mainFolder, all_hicds)))
 
-all_hicds <- all_hicds[ ! grepl("RANDOM", all_hicds) & ! grepl("PERMUT", all_hicds)]
+all_hicds <- all_hicds[  grepl("RANDOMMIDPOSSTRICT", all_hicds)]
 
 all_exprds <- lapply(all_hicds, function(x) list.files(file.path(pipFolder, x)))
 names(all_exprds) <- all_hicds
@@ -103,7 +103,7 @@ genes_signifThresh <- as.numeric(args[2])
 stopifnot(!is.na(genes_signifThresh))
 stopifnot(!is.na(tads_signifThresh))
 
-final_dt_file <- file.path("CREATE_FINAL_TABLE", "all_result_dt.Rdata")
+final_dt_file <- file.path("CREATE_FINAL_TABLE_RANDOM", "all_result_dt.Rdata")
 stopifnot(file.exists(final_dt_file))
 final_dt <- get(load(final_dt_file))
 signif_column <- "adjPvalComb"
@@ -133,7 +133,7 @@ cat(paste0("tads_signifThresh = ", tads_signifThresh, "\n"))
 cat(paste0("genes_signifThresh = ", genes_signifThresh, "\n"))
 #stop("-ok\n")
 
-outFolder <- file.path("GO_SIGNIF_GENELEVEL_TADLEVEL_INTERSECTDIFF", paste0("tadPvalThresh", tads_signifThresh, "_genePvalThresh", genes_signifThresh))
+outFolder <- file.path("GO_SIGNIF_GENELEVEL_TADLEVEL_INTERSECTDIFF_RANDOMMIDPOSSTRICT", paste0("tadPvalThresh", tads_signifThresh, "_genePvalThresh", genes_signifThresh))
 dir.create(outFolder, recursive = TRUE)
 logFile <- file.path(outFolder, "go_signif_geneLevel_tadLevel_intersectDiff_logFile.txt")
 if(buildTable) file.remove(logFile)
