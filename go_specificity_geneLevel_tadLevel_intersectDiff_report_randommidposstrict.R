@@ -1,11 +1,13 @@
 script_name <- "go_specificity_geneLevel_tadLevel_intersectDiff_report_randommidposstrict.R"
 options(scipen=100)
 
+# here I look at the IC of the GO categories; in go_signif_... I look at the  IC of the genes
+
 SSHFS=F
 
 cat("> START ", script_name, "\n")
 
-# Rscript go_specificity_geneLevel_tadLevel_intersectDiff_report_randommidposstrict.R 0.01 0.05
+# Rscript go_specificity_geneLevel_tadLevel_intersectDiff_report_randommidposstrict.R 0.01 0.01
 
 library(clusterProfiler)
 library(ontologySimilarity)
@@ -442,7 +444,7 @@ subTit <- paste0("# datasets = ", nDS)
 # subTit <- paste0("notNa_tads=", notNa_tads, "; notNa_limma=", notNa_limma, "; notNa_tadsOnly=",
 #                  notNa_tadsOnly, "; notNa_limmaOnly=", notNa_limmaOnly, "; notNa_intersect=", notNa_intersect)
 p <- ggdensity(plot_dt, 
-               title = paste0("Information content of enriched GO"),
+               title = paste0("Information content of enriched GO - RANDOMMIDPOSSTRICT"),
                subtitle=paste0(subTit),
                x = "go_ic", 
                xlab="IC of enriched GO",

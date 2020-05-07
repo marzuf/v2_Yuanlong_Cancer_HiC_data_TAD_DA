@@ -6,6 +6,7 @@ SSHFS=F
 cat("> START ", script_name, "\n")
 
 # Rscript go_specificity_geneLevel_tadLevel_intersectDiff_report.R 0.01 0.05
+# Rscript go_specificity_geneLevel_tadLevel_intersectDiff_report.R 0.01 0.01
 
 library(clusterProfiler)
 library(ontologySimilarity)
@@ -39,7 +40,7 @@ col4 <- get_palette("Dark2", 5)[4]
 col5 <- get_palette("Dark2", 5)[5]
 
 
-buildTable <- FALSE
+buildTable <- TRUE
 
 mainFolder <- file.path(".")
 stopifnot(dir.exists(mainFolder))

@@ -4,9 +4,9 @@
 SSHFS <- F
 setDir <- ifelse(SSHFS, "/media/electron", "")
 
-plotType <- "svg"
+plotType <- "png"
 myHeight <- ifelse(plotType == "png", 480 , 7)
-myWidth <- ifelse(plotType == "png", 600, 10)
+myWidth <- ifelse(plotType == "png", 400, 10)
 plotCex <- 1.4
 
 require(flux)
@@ -55,15 +55,24 @@ if(buildData){
       meanCorr_dt <- data.frame(region=names(all_meanCorr_values), sample_meanCorr = as.numeric(all_meanCorr_values), stringsAsFactors = FALSE)
       meanCorr_dt <- na.omit(meanCorr_dt)
       
+      corr_file <- file.path(pipFolder, hicds, exprds, "4_runMeanTADCorr", "all_meanCorr_TAD.Rdata")
+      stopifnot(file.exists(corr_file))
+      corr_data <- get(load(corr_file))
+      
       fcc_file <- file.path(pipFolder, hicds, exprds, script8_name, "all_obs_prodSignedRatio.Rdata")
       stopifnot(file.exists(fcc_file))
       fcc_data <- get(load(fcc_file))
       
       stopifnot(meanCorr_dt$region %in% names(fcc_data))
+      stopifnot(meanCorr_dt$region %in% names(corr_data))
       
       fcc_dt <- data.frame(region=names(fcc_data), fcc = as.numeric(fcc_data), stringsAsFactors = FALSE)
+      corr_dt <- data.frame(region=names(corr_data), obsMeanCorr = as.numeric(corr_data), stringsAsFactors = FALSE)
       
       out_dt <- merge(meanCorr_dt, fcc_dt, by=c("region"), all.x=TRUE, all.y=FALSE)
+      stopifnot(!is.na(out_dt))
+      
+      out_dt <- merge(out_dt, corr_dt, by=c("region"), all.x=TRUE, all.y=FALSE)
       stopifnot(!is.na(out_dt))
       
       out_dt$hicds <- hicds
@@ -83,19 +92,42 @@ if(buildData){
   # load("SAMPLEMEANCORR_FCC/all_fcc_corr_dt.Rdata")
 }
 
-densplot(
-y=  all_fcc_corr_dt$sample_meanCorr,
-x=  all_fcc_corr_dt$fcc
-)
+source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
+
+all_fcc_corr_dt$corrRatio <- all_fcc_corr_dt$obsMeanCorr/all_fcc_corr_dt$sample_meanCorr
+all_fcc_corr_dt$corrDelta <- all_fcc_corr_dt$obsMeanCorr-all_fcc_corr_dt$sample_meanCorr
+
+all_y_vars <- c("sample_meanCorr", "corrRatio", "corrDelta")
+
+x_var <- "fcc"
+
+fcc_thresh <- 0.75
+
+for(y_var in all_y_vars){
+  
+  outFile <- file.path(outFolder, paste0(y_var, "_vs_", x_var, "_densplot.", plotType))
+  do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+  densplot(
+    y=  all_fcc_corr_dt[,y_var],
+    x=  all_fcc_corr_dt[,x_var]
+  )
+  
+  foo <- dev.off()
+  cat(paste0("... written: ", outFile, "\n"))
+  
+  outFile <- file.path(outFolder, paste0(y_var, "_vs_", x_var, "_upper", fcc_thresh, "fcc_densplot.", plotType))
+  do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+  densplot(
+    y=  all_fcc_corr_dt[all_fcc_corr_dt$fcc>fcc_thresh,y_var],
+    x=  all_fcc_corr_dt[all_fcc_corr_dt$fcc>fcc_thresh,x_var]
+  )
+  foo <- dev.off()
+  cat(paste0("... written: ", outFile, "\n"))
+  
+  
+}
 
 
-plot(
-  y=  all_fcc_corr_dt$sample_meanCorr[all_fcc_corr_dt$fcc>0.75],
-  x=  all_fcc_corr_dt$fcc[all_fcc_corr_dt$fcc>0.75]
-)
 
-plot(
-  y=  all_fcc_corr_dt$sample_meanCorr[all_fcc_corr_dt$hicds==hicds & all_fcc_corr_dt$exprds == exprds],
-  x=  all_fcc_corr_dt$fcc[all_fcc_corr_dt$hicds==hicds & all_fcc_corr_dt$exprds == exprds]
-)
+
   

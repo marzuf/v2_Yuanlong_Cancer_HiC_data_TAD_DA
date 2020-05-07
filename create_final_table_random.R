@@ -258,7 +258,7 @@ if(buildTable) {
     hicds_dt
   } # end-foreach iterating over hicds
   outFile <- file.path(outFolder, "all_result_dt.Rdata")
-  save(all_result_dt, file = outFile)
+  save(all_result_dt, file = outFile, version=2)
   cat(paste0("... written: ", outFile,  "\n"))
   
   

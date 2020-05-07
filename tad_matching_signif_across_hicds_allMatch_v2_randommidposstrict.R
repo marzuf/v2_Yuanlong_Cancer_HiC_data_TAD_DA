@@ -26,7 +26,7 @@ if(length(args) == 0) {
 }
 
 
-script_name <- "tad_matching_signif_across_hicds_allMatch_v2.R"
+script_name <- "tad_matching_signif_across_hicds_allMatch_v2_randommidposstrict.R"
 
 startTime <- Sys.time()
 
@@ -82,7 +82,7 @@ all_hicds <- all_hicds[grepl("RANDOMMIDPOSSTRICT", all_hicds)]
 all_exprds <- lapply(all_hicds, function(x) list.files(file.path(pipFolder, x)))
 names(all_exprds) <- all_hicds
 
-outFolder <- file.path("TAD_MATCHING_SIGNIF_ACROSS_HICDS_ALLMATCH_v2_RANDOMMIPOSSTRICT", data_cmpType)
+outFolder <- file.path("TAD_MATCHING_SIGNIF_ACROSS_HICDS_ALLMATCH_v2_RANDOMMIDPOSSTRICT", data_cmpType)
 dir.create(outFolder, recursive = TRUE)
 
 logFile <- file.path(outFolder, "tad_matching_signif_across_hicds_logFile.txt")
@@ -241,14 +241,38 @@ if(buildTable) {
   ####################################################################################################################################### >>> collect # of TADs and TAD size
   cat("... start matching\n")
   
-  ref_dataset = all_datasets[1]
-  # all_datasets=all_datasets[1:2]
+#  ref_dataset = all_datasets[1]
+
   all_signif_matching_dt <- foreach(ref_dataset = all_datasets, .combine='rbind') %dopar% {
+    
+    
     
     stopifnot(ref_dataset %in% names(all_data_list))
     ref_geneList <- all_data_list[[paste0(ref_dataset)]][["dataset_geneList"]]
     ref_g2t_dt <- all_data_list[[paste0(ref_dataset)]][["dataset_g2t_dt"]]
     ref_tadpos_dt <- all_data_list[[paste0(ref_dataset)]][["dataset_tadpos_dt"]]
+    
+    # if there was no signif data
+    
+    stopifnot(dirname(ref_dataset) %in% final_dt$hicds)
+    stopifnot(basename(ref_dataset) %in% final_dt$exprds)
+    
+    if(nrow(ref_g2t_dt) == 0) {
+      
+      stopifnot(nrow(ref_geneList) ==  0)
+      stopifnot(nrow(ref_tadpos_dt) == 0)
+      
+      tmp_dt <- final_dt[ final_dt$hicds == dirname(ref_dataset) & final_dt$exprds == basename(ref_dataset) ,]  
+      stopifnot(sum(tmp_dt[,paste0(signifcol)]) == 0)
+        
+      return(NULL)
+      
+      
+    } else {
+      stopifnot(nrow(ref_geneList) > 0)
+      stopifnot(nrow(ref_tadpos_dt) > 0)
+    }
+    
     
     stopifnot(setequal(ref_g2t_dt$region, ref_tadpos_dt$region))
     ref_tads <- as.character(ref_tadpos_dt$region)
@@ -257,6 +281,9 @@ if(buildTable) {
     
     size_dt <- ref_tadpos_dt
     size_dt$ref_totBp <- size_dt$end - size_dt$start + 1
+
+if(ref_dataset == all_datasets[15]) save(ref_g2t_dt, file="ref_g2t_dt.Rdata", version=2)
+if(ref_dataset == all_datasets[15]) save(ref_dataset, file="ref_dataset.Rdata", version=2)
     
     ngenes_dt <- aggregate(entrezID~region, FUN=length, data=ref_g2t_dt)
     colnames(ngenes_dt)[colnames(ngenes_dt)=="entrezID"] <- "ref_nGenes"
