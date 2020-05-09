@@ -47,6 +47,9 @@ stopifnot(dir.exists(mainFolder))
 pipFolder <- file.path(mainFolder, "PIPELINE", "OUTPUT_FOLDER")
 stopifnot(dir.exists(pipFolder))
 all_hicds <- list.files(pipFolder)
+
+all_hicds <- all_hicds[!grepl("RANDOM", all_hicds) & !grepl("PERMUT", all_hicds)]
+
 file.path(mainFolder, all_hicds)[!dir.exists(file.path(mainFolder, all_hicds))]
 stopifnot(dir.exists(file.path(mainFolder, all_hicds)))
 

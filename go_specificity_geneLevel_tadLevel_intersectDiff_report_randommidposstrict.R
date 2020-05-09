@@ -456,7 +456,7 @@ p <- ggdensity(plot_dt,
   labs(fill="", color="")+
   theme(
     plot.title = element_text(size=16, face = "bold", hjust=0.5),
-    plot.subtitle = element_text(size=12, hjust=0.5),
+    plot.subtitle = element_text(size=12, hjust=0.5, face="italic"),
     axis.text = element_text(size=12),
     axis.title = element_text(size=14)) + 
   scale_y_continuous(breaks = scales::pretty_breaks(n = 10)) + 

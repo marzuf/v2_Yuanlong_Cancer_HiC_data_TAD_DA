@@ -82,6 +82,9 @@ stopifnot(dir.exists(mainFolder))
 pipFolder <- file.path(mainFolder, "PIPELINE", "OUTPUT_FOLDER")
 stopifnot(dir.exists(pipFolder))
 all_hicds <- list.files(pipFolder)
+
+all_hicds <- all_hicds[grepl("RANDOMMIDPOSSTRICT", all_hicds)]
+
 file.path(mainFolder, all_hicds)[!dir.exists(file.path(mainFolder, all_hicds))]
 stopifnot(dir.exists(file.path(mainFolder, all_hicds)))
 
@@ -92,6 +95,8 @@ outFolder <- file.path("GO_SIGNIF_ACROSS_HICDS_v2_RANDOMMIDPOSSTRICT", data_cmpT
 dir.create(outFolder, recursive = TRUE)
 
 all_datasets <- unlist(lapply(1:length(all_exprds), function(x) file.path(names(all_exprds)[x], all_exprds[[x]])))
+
+nDS <- length(all_datasets)
 
 cat(paste0("n allDS = ", length(all_datasets), "\n"))
 
@@ -330,6 +335,7 @@ if(length(go_all_conserved_signif_tads_genes) > 0) {
               names.arg = gsub("GO_", "", conserved_signif_enrich_resultDT$Description[1:genes_signif_plotMax]), las=2,
               cex.names = 0.6
       )
+        mtext(side=3, text=paste0("(# datasets = ", nDS, ")"), font=3)
       foo <- dev.off()
       cat(paste0("... written: ", outFile, "\n"))
     }
@@ -380,6 +386,7 @@ if(length(go_all_not_conserved_signif_tads_genes) > 0) {
               names.arg = gsub("GO_", "", not_conserved_signif_enrich_resultDT$Description[1:genes_signif_plotMax]), las=2,
               cex.names = 0.6
       )
+        mtext(side=3, text=paste0("(# datasets = ", nDS, ")"), font=3)
       foo <- dev.off()
       cat(paste0("... written: ", outFile, "\n"))
     }
