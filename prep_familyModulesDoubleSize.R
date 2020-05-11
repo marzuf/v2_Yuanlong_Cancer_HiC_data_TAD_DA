@@ -1,6 +1,6 @@
 
 
-# Rscript prep_familyModules.R 
+# Rscript prep_familyModules_v2.R
 
 # don't add at TADs the end and beginning -> I just loose half TADs, and poor quality data at extremity
 
@@ -15,9 +15,7 @@ pipFolder <- file.path(runFolder, "PIPELINE", "OUTPUT_FOLDER")
 familyVar <- "hgnc_family_short"
 minCmpntSize <- 3
 
-nMaxSize <- 1
-
-outFolder <- file.path("PREP_FAMILYMODULES", nMaxSize)
+outFolder <- "PREP_FAMILYMODULES_V2"
 
 
 all_hicds <- list.files("PIPELINE/OUTPUT_FOLDER")
@@ -27,13 +25,12 @@ all_hicds <- all_hicds[!grepl("RANDOM", all_hicds) & !grepl("PERMUT", all_hicds)
 all_exprds <- sapply(all_hicds, function(x) list.files(file.path(pipFolder, x)))
 
 hicds = "Barutcu_MCF-10A_40kb"
-exprds="TCGAbrca_lum_bas"
 
 all_hicds=all_hicds[2:length(all_hicds)]
-all_hicds=all_hicds[1]
-FOO1 <- foreach(hicds = all_hicds) %do%{
+
+all_dt <- foreach(hicds = all_hicds, .combine='rbind') %do%{
   cat(paste0("... start: ", hicds, "\n"))
-  FOO2 <- foreach(exprds = all_exprds[[paste0(hicds)]]) %do% {
+  exprds_dt <- foreach(exprds = all_exprds[[paste0(hicds)]], .combine='rbind') %do% {
     cat(paste0("... start: ", hicds," - ", exprds,  "\n"))
     
     # fcc_file <- file.path(pipFolder, hicds, exprds, step8fcc_folder, "all_obs_prodSignedRatio.Rdata")
@@ -49,8 +46,6 @@ FOO1 <- foreach(hicds = all_hicds) %do%{
     # retrieve the average TAD size
     meanTADsize <- mean(onlyTAD_dt$midPos)
     stopifnot(!is.na(meanTADsize))
-    
-    maxGeneDist <- nMaxSize*meanTADsize
     
     corMethod <- "pearson"
     familyData <- "hgnc_family_short"
@@ -131,8 +126,7 @@ FOO1 <- foreach(hicds = all_hicds) %do%{
     
     all_fams <- unique(familyDT[,familyVar])
     myfam = all_fams[1]
-    # all_fams_dt <-  foreach(myfam = all_fams, .combine='rbind') %dopar% {
-      all_fams_dt <-  foreach(myfam = all_fams) %dopar% {
+    all_fams_dt <-  foreach(myfam = all_fams, .combine='rbind') %dopar% {
       
       cat(paste0(hicds, " - " , exprds, " - " , myfam, "\n"))
       
@@ -145,11 +139,7 @@ FOO1 <- foreach(hicds = all_hicds) %do%{
                                          all_dist_pairs$gene2 %in% myfam_entrez, ]
       
       
-      
-      
-      fam_edge_table_tmp <- fam_dist_pairs[fam_dist_pairs$dist <= maxGeneDist,c("gene1","gene2", "dist")]
-      fam_edge_table <- fam_edge_table_tmp
-      fam_edge_table$dist <- NULL
+      fam_edge_table <- fam_dist_pairs[fam_dist_pairs$dist <= meanTADsize,c("gene1","gene2")]
       stopifnot(fam_edge_table$gene1 < fam_edge_table$gene2)
       
       fam_net <- graph_from_data_frame(d=fam_edge_table, directed=F) 
@@ -161,57 +151,28 @@ FOO1 <- foreach(hicds = all_hicds) %do%{
       
       if(length(fam_to_keep) == 0) return(NULL)
       
-      # fam_components_dt <- data.frame(
-      #   entrezID=as.character(names(fam_components)),
-      #   famCpmnt = as.numeric(fam_components),
-      #   stringsAsFactors = FALSE
-      # )
+      fam_components_dt <- data.frame(
+         entrezID=as.character(names(fam_components)),
+         famCpmnt = as.numeric(fam_components),
+        # famCpmnt = paste0(myfam, "_cpt", as.numeric(fam_components)),
+         stringsAsFactors = FALSE
+       )
       # 347688  10376   7846  27175  51174 113691  51807 112714   7277 203068 347733 
       # 1      2      2      3      3      4      4      5      6      7      7 
       # 79861  84790   7283 6453 48 113457  80086  51175   7280 
       # 1      2      3      4      5      6      7      7 
-      # fam_edge_coexpr_dt <- merge(fam_edge_table, coexprDT, by=c("gene1", "gene2"), all.x=TRUE, all.y=FALSE)
-      # stopifnot(!is.na(fam_edge_coexpr_dt))
-      fam_edge_cmpnt_dt <- fam_edge_table
-      fam_edge_cmpnt_dt$cpt1 <- fam_components[as.character(fam_edge_cmpnt_dt$gene1)]
-      fam_edge_cmpnt_dt$cpt2 <- fam_components[as.character(fam_edge_cmpnt_dt$gene2)]
-      stopifnot(fam_edge_cmpnt_dt$cpt1 == fam_edge_cmpnt_dt$cpt2)
+
+    keep_fam_cpt_dt <- fam_components_dt[ as.character(fam_components_dt$famCpmnt) %in% as.character(fam_to_keep),]
+    stopifnot(nrow(keep_fam_cpt_dt) > 0)
+      stopifnot(table(keep_fam_cpt_dt$famCpmnt) > 1)
       
-      keep_fam_edge_cmpnt_dt <- fam_edge_cmpnt_dt[fam_edge_cmpnt_dt$cpt1 %in% fam_to_keep,]
-      disc_fam_edge_cmpnt_dt <- fam_edge_cmpnt_dt[! fam_edge_cmpnt_dt$cpt1 %in% fam_to_keep,]
-      
-      stopifnot(table(disc_fam_edge_cmpnt_dt$cpt1) <= 1)
-      stopifnot(table(keep_fam_edge_cmpnt_dt$cpt1) > 1)
-      
+    keep_fam_cpt_dt$cpt <- paste0(myfam, "_cpt", as.character(keep_fam_cpt_dt$famCpmnt))
+
       out_dt <- keep_fam_edge_cmpnt_dt  
-      out_dt$cpt <- paste0(myfam, "_cpt", out_dt$cpt2)
-      out_dt$cpt2 <- NULL
-      out_dt$cpt1 <- NULL
-      
-      stopifnot(out_dt$gene1 %in% fam_edge_table_tmp$gene1 | out_dt$gene1 %in% fam_edge_table_tmp$gene2)
-      stopifnot(out_dt$gene2 %in% fam_edge_table_tmp$gene2 | out_dt$gene2 %in% fam_edge_table_tmp$gene2)
-      
-      # retrieve the actual max dist inside the component
-      tmp_dt <- fam_edge_table_tmp[
-        (fam_edge_table_tmp$gene1 %in% out_dt$gene1 |  fam_edge_table_tmp$gene1 %in% out_dt$gene2) &
-          (fam_edge_table_tmp$gene2 %in% out_dt$gene1 |  fam_edge_table_tmp$gene2 %in% out_dt$gene2),
-      ]
-      maxCptDist <- as.numeric(max(tmp_dt$dist))
-      stopifnot(!is.na(maxCptDist))
-      
-      out_dt_m <- melt(out_dt, id="cpt")
-      out_dt_m$variable <- NULL
-      out_dt_m <- unique(out_dt_m)
-      stopifnot(table(out_dt_m$cpt) >= minCmpntSize)
-      rownames(out_dt_m) <- NULL
-      out_dt_m$entrezID <- as.character(out_dt_m$value)
-      out_dt_m$value <- NULL
-      stopifnot(!duplicated(out_dt_m$entrezID))
-      list(
-        fam_cpt_dt = out_dt_m,
-        maxPairDist = maxGeneDist,
-        maxCptDist = maxCptDist
-      )
+      stopifnot(table(out_dt$cpt) >= minCmpntSize)
+      out_dt$entrezID <- as.character(out_dt$entrezID)
+      stopifnot(!duplicated(out_dt$entrezID))
+      out_dt
       
     }
     
@@ -222,31 +183,3 @@ FOO1 <- foreach(hicds = all_hicds) %do%{
     
   }
 }
-
-
-# ALTERNATIVE - but then tricky to recover actual maxdist:
-# fam_components_dt <- data.frame(
-#   entrezID=as.character(names(fam_components)),
-#   famCpmnt = as.numeric(fam_components),
-#   # famCpmnt = paste0(myfam, "_cpt", as.numeric(fam_components)),
-#   stringsAsFactors = FALSE
-# )
-# # 347688  10376   7846  27175  51174 113691  51807 112714   7277 203068 347733 
-# # 1      2      2      3      3      4      4      5      6      7      7 
-# # 79861  84790   7283 6453 48 113457  80086  51175   7280 
-# # 1      2      3      4      5      6      7      7 
-# 
-# keep_fam_cpt_dt <- fam_components_dt[ as.character(fam_components_dt$famCpmnt) %in% as.character(fam_to_keep),]
-# stopifnot(nrow(keep_fam_cpt_dt) > 0)
-# stopifnot(table(keep_fam_cpt_dt$famCpmnt) > 1)
-# 
-# keep_fam_cpt_dt$cpt <- paste0(myfam, "_cpt", as.character(keep_fam_cpt_dt$famCpmnt))
-# 
-# out_dt <- keep_fam_edge_cmpnt_dt  
-# stopifnot(table(out_dt$cpt) >= minCmpntSize)
-# out_dt$entrezID <- as.character(out_dt$entrezID)
-# stopifnot(!duplicated(out_dt$entrezID))
-# 
-# # retrieve maxGeneDist
-# stopifnot(out_dt$en)
-# fam_edge_table_tmp
