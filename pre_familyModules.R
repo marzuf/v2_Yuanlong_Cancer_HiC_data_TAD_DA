@@ -7,36 +7,39 @@
 require(doMC)
 require(foreach)
 registerDoMC(40)
+require(reshape2)
+require(igraph)
 
 runFolder <- "."
-binSize <- 40*10^3
+pipFolder <- file.path(runFolder, "PIPELINE", "OUTPUT_FOLDER")
+familyVar <- "hgnc_family_short"
+minCmpntSize <- 3
+
+outFolder <- "PREP_FAMILYMODULES"
 
 
 all_hicds <- list.files("PIPELINE/OUTPUT_FOLDER")
 # all_hicds=all_hicds[1]
 # all_hicds=all_hicds[2:length(all_hicds)]
 all_hicds <- all_hicds[!grepl("RANDOM", all_hicds) & !grepl("PERMUT", all_hicds)]
+all_exprds <- sapply(all_hicds, function(x) list.files(file.path(pipFolder, x)))
 
 hicds = "Barutcu_MCF-10A_40kb"
 
+all_hicds=all_hicds[2:length(all_hicds)]
 
-all_dt <- foreach(hicds = all_hicds, .combine='rbind') %dopar%{
+all_dt <- foreach(hicds = all_hicds, .combine='rbind') %do%{
   cat(paste0("... start: ", hicds, "\n"))
   exprds_dt <- foreach(exprds = all_exprds[[paste0(hicds)]], .combine='rbind') %do% {
     cat(paste0("... start: ", hicds," - ", exprds,  "\n"))
     
-    
-    
     # fcc_file <- file.path(pipFolder, hicds, exprds, step8fcc_folder, "all_obs_prodSignedRatio.Rdata")
     # stopifnot(file.exists(fcc_file))  
-
-  
   
     tad_dt_file <- file.path(runFolder, hicds, "genes2tad", "all_assigned_regions.txt")
     tad_dt <- read.delim(tad_dt_file, stringsAsFactors = FALSE, header=FALSE, col.names=c("chromo","region", "start", "end"))
     
     onlyTAD_dt <- tad_dt[grep("_TAD", tad_dt$region),]
-    
     
     onlyTAD_dt$midPos <- 0.5*(onlyTAD_dt$end + onlyTAD_dt$start)
     
@@ -52,26 +55,27 @@ all_dt <- foreach(hicds = all_hicds, .combine='rbind') %dopar%{
     stopifnot(file.exists(distFile))
     
     # CHANGED 08.01.19 !!!
-    coexprFile <- file.path("CREATE_COEXPR_SORTNODUP", hicds, exprds,  corMethod, "coexprDT.Rdata")
-    stopifnot(file.exists(coexprFile))
+    # coexprFile <- file.path("CREATE_COEXPR_SORTNODUP", hicds, exprds,  corMethod, "coexprDT.Rdata")
+    # stopifnot(file.exists(coexprFile))
     
-    sameTADfile <- file.path("CREATE_SAME_TAD_SORTNODUP", hicds, "all_TAD_pairs.Rdata")
-    stopifnot(file.exists(sameTADfile))
+    # sameTADfile <- file.path("CREATE_SAME_TAD_SORTNODUP", hicds, "all_TAD_pairs.Rdata")
+    # stopifnot(file.exists(sameTADfile))
     
     # ADDED 08.01.19 to accommodate updated family file
     sameFamFolder <- file.path("CREATE_SAME_FAMILY_SORTNODUP", hicds)
     # checking the file comes after (iterating over family and family_short)
     stopifnot(dir.exists(sameFamFolder))
-    sameFamFile <- file.path(sameFamFolder, paste0(familyData, "_family_all_family_pairs.Rdata")) # at least this one should exist !
+    sameFamFile <- file.path(sameFamFolder, paste0(familyData, "_all_family_pairs.Rdata")) # at least this one should exist !
     stopifnot(file.exists(sameFamFile))
     
-    dataset_pipDir <- file.path("PIPELINE", "OUTPUT_FOLDER", curr_TADlist, curr_dataset) # used to retrieve gene list
+    dataset_pipDir <- file.path("PIPELINE", "OUTPUT_FOLDER", hicds, exprds) # used to retrieve gene list
     stopifnot(dir.exists(dataset_pipDir))
     
     ### => CHANGED FOR THE TISSUE DATA TO USE TISSUE SPECIFIC FAMILY FILES !!!
     # inFoldFamily <- file.path(setDir, paste0("/mnt/ed4/marie/scripts/TAD_DE_pipeline_v2_", caller, "/", "PREP_GENE_FAMILIES_TAD_DATA"))
     inFoldFamily <- file.path("PREP_GENE_FAMILIES_TAD_DATA", hicds)
-    familyDT <- eval(parse(text = load(file.path(inFoldFamily, paste0(familyData, "_entrezID_family_TAD_DT.Rdata")))))
+    familyData2 <- "hgnc"
+    familyDT <- eval(parse(text = load(file.path(inFoldFamily, paste0(familyData2, "_entrezID_family_TAD_DT.Rdata")))))
     familyDT$entrezID <- as.character(familyDT$entrezID)
     
     # entrezID chromo   start     end      region
@@ -87,12 +91,6 @@ all_dt <- foreach(hicds = all_hicds, .combine='rbind') %dopar%{
     # -> retrieve the ones in dist <= meantadsize
     # -> check: meanCorr == average of coexpr from coexprdt
     
-    txt <- paste0("... distFile = ",  distFile, "\n")
-    
-    
-    
-    
-    
     cat(paste0("... load DIST data\t", distFile, "\t", Sys.time(), "\t"))
     load(distFile)
     cat(paste0(Sys.time(), "\n"))
@@ -103,66 +101,99 @@ all_dt <- foreach(hicds = all_hicds, .combine='rbind') %dopar%{
     # UPDATE 30.06.2018
     stopifnot(all_dist_pairs$gene1 < all_dist_pairs$gene2)
     
-    cat(paste0("... load TAD data\t", sameTADfile, "\t", Sys.time(), "\t"))
-    ### =>>> CHANGED HERE FOR OTHER TAD FILE !!!
-    load(sameTADfile)
-    cat(paste0(Sys.time(), "\n"))
-    head(all_TAD_pairs)
-    nrow(all_TAD_pairs)
-    all_TAD_pairs$gene1 <- as.character(all_TAD_pairs$gene1)
-    all_TAD_pairs$gene2 <- as.character(all_TAD_pairs$gene2)
-    # UPDATE 30.06.2018
-    stopifnot(all_TAD_pairs$gene1 < all_TAD_pairs$gene2)
+    # cat(paste0("... load TAD data\t", sameTADfile, "\t", Sys.time(), "\t"))
+    # ### =>>> CHANGED HERE FOR OTHER TAD FILE !!!
+    # load(sameTADfile)
+    # cat(paste0(Sys.time(), "\n"))
+    # head(all_TAD_pairs)
+    # nrow(all_TAD_pairs)
+    # all_TAD_pairs$gene1 <- as.character(all_TAD_pairs$gene1)
+    # all_TAD_pairs$gene2 <- as.character(all_TAD_pairs$gene2)
+    # # UPDATE 30.06.2018
+    # stopifnot(all_TAD_pairs$gene1 < all_TAD_pairs$gene2)
     
-    cat(paste0("... load COEXPR data\t",coexprFile, "\t", Sys.time(), "\t"))
-    load(coexprFile)
-    cat(paste0(Sys.time(), "\n"))
-    head(coexprDT)
-    nrow(coexprDT)
-    coexprDT$gene1 <- as.character(coexprDT$gene1)
-    coexprDT$gene2 <- as.character(coexprDT$gene2)
-    all_TAD_pairs$gene2
-    # UPDATE 30.06.2018
-    stopifnot(coexprDT$gene1 < coexprDT$gene2)
-    
-    
+    # cat(paste0("... load COEXPR data\t",coexprFile, "\t", Sys.time(), "\t"))
+    # load(coexprFile)
+    # cat(paste0(Sys.time(), "\n"))
+    # head(coexprDT)
+    # nrow(coexprDT)
+    # coexprDT$gene1 <- as.character(coexprDT$gene1)
+    # coexprDT$gene2 <- as.character(coexprDT$gene2)
+    # all_TAD_pairs$gene2
+    # # UPDATE 30.06.2018
+    # stopifnot(coexprDT$gene1 < coexprDT$gene2)
     
     
-    
-    
-    foo <- foreach(chr = unique(tad_dt$chromo)) %dopar% {
+    all_fams <- unique(familyDT[,familyVar])
+    myfam = all_fams[1]
+    all_fams_dt <-  foreach(myfam = all_fams, .combine='rbind') %dopar% {
       
-      sub_dt <- onlyTAD_dt[onlyTAD_dt$chromo == chr,c("chromo", "start", "end", "midPos_bin")]
+      cat(paste0(hicds, " - " , exprds, " - " , myfam, "\n"))
       
-      stopifnot(sub_dt$end > sub_dt$start)
-      stopifnot(sub_dt$end %% binSize == 0)
-      stopifnot(sub_dt$start %% binSize == 1)
+      myfam_entrez <- familyDT$entrezID[familyDT[,familyVar] == myfam]
       
-      new_tad_dt <- data.frame(
-        chromo = chr,
-        start = sub_dt$midPos_bin[1:(nrow(sub_dt)-1)]+1,
-        end = sub_dt$midPos_bin[2:nrow(sub_dt)],
-        stringsAsFactors = FALSE
-      )
+      stopifnot(myfam_entrez %in% all_dist_pairs$gene1 |  myfam_entrez %in% all_dist_pairs$gene2)
+      # stopifnot(myfam_entrez %in% all_TAD_pairs$gene1 |  myfam_entrez %in% all_TAD_pairs$gene2)
       
-      stopifnot(new_tad_dt$end > new_tad_dt$start)
-      stopifnot(new_tad_dt$end %% binSize == 0)
-      stopifnot(new_tad_dt$start %% binSize == 1)
+      fam_dist_pairs <- all_dist_pairs[all_dist_pairs$gene1 %in% myfam_entrez &
+                                         all_dist_pairs$gene2 %in% myfam_entrez, ]
       
-      outFile <- file.path(outFolder, paste0(rd_hicds, "_", chr, "_YL_", binSize/1000, "kb_final_domains.txt"))
-      write.table(new_tad_dt, file = outFile, sep="\t", col.names=F, row.names=F, quote=F, append=F )
-      cat(paste0("... written: ", outFile, "\n"))
       
+      fam_edge_table <- fam_dist_pairs[fam_dist_pairs$dist <= meanTADsize,c("gene1","gene2")]
+      stopifnot(fam_edge_table$gene1 < fam_edge_table$gene2)
+      
+      fam_net <- graph_from_data_frame(d=fam_edge_table, directed=F) 
+      # plot it
+      # plot(fam_net)
+      fam_components <-  components(fam_net)$membership
+      fam_size <-  components(fam_net)$csize
+      fam_to_keep <- which(fam_size >= minCmpntSize)
+      
+      if(length(fam_to_keep) == 0) return(NULL)
+      
+      # fam_components_dt <- data.frame(
+      #   entrezID=as.character(names(fam_components)),
+      #   famCpmnt = as.numeric(fam_components),
+      #   stringsAsFactors = FALSE
+      # )
+      # 347688  10376   7846  27175  51174 113691  51807 112714   7277 203068 347733 
+      # 1      2      2      3      3      4      4      5      6      7      7 
+      # 79861  84790   7283 6453 48 113457  80086  51175   7280 
+      # 1      2      3      4      5      6      7      7 
+      # fam_edge_coexpr_dt <- merge(fam_edge_table, coexprDT, by=c("gene1", "gene2"), all.x=TRUE, all.y=FALSE)
+      # stopifnot(!is.na(fam_edge_coexpr_dt))
+      fam_edge_cmpnt_dt <- fam_edge_table
+      fam_edge_cmpnt_dt$cpt1 <- fam_components[as.character(fam_edge_cmpnt_dt$gene1)]
+      fam_edge_cmpnt_dt$cpt2 <- fam_components[as.character(fam_edge_cmpnt_dt$gene2)]
+      stopifnot(fam_edge_cmpnt_dt$cpt1 == fam_edge_cmpnt_dt$cpt2)
+      
+      keep_fam_edge_cmpnt_dt <- fam_edge_cmpnt_dt[fam_edge_cmpnt_dt$cpt1 %in% fam_to_keep,]
+      disc_fam_edge_cmpnt_dt <- fam_edge_cmpnt_dt[! fam_edge_cmpnt_dt$cpt1 %in% fam_to_keep,]
+      
+      stopifnot(table(disc_fam_edge_cmpnt_dt$cpt1) <= 1)
+      stopifnot(table(keep_fam_edge_cmpnt_dt$cpt1) > 1)
+      
+      out_dt <- keep_fam_edge_cmpnt_dt  
+      out_dt$cpt <- paste0(myfam, "_cpt", out_dt$cpt2)
+      out_dt$cpt2 <- NULL
+      out_dt$cpt1 <- NULL
+      
+      out_dt_m <- melt(out_dt, id="cpt")
+      out_dt_m$variable <- NULL
+      out_dt_m <- unique(out_dt_m)
+      stopifnot(table(out_dt_m$cpt) >= minCmpntSize)
+      rownames(out_dt_m) <- NULL
+      out_dt_m$entrezID <- as.character(out_dt_m$value)
+      out_dt_m$value <- NULL
+      stopifnot(!duplicated(out_dt_m$entrezID))
+      out_dt_m
       
     }
     
+    outFile <- file.path(outFolder, hicds, exprds, "all_fams_dt.Rdata")
+    dir.create(dirname(outFile), recursive = TRUE)
+    save(all_fams_dt, file = outFile,version=2 )
+    cat(paste0("... written: ", outFile, "\n"))
+    
   }
-  
-  # call assign_genes
-  mycmd <- paste0("./3_assign_genes.sh ", rd_hicds)
-  cat(paste0("> ", mycmd, "\n"))
-  system(mycmd)
 }
-
-
-
