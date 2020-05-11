@@ -2,9 +2,9 @@
 
 startTime <- Sys.time()
 
-# Rscript familyModules_runMeanTADCorr.R
+# Rscript familyCliques_runMeanTADCorr.R
 
-script_name <- "familyModules_runMeanTADCorr.R"
+script_name <- "familyCliques_runMeanTADCorr.R"
 
 source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 
@@ -35,9 +35,9 @@ corrMethod <- "pearson"
 nMaxSize <- 1
 
 
-outFolder <- file.path("FAMILYMODULES_RUNMEANTADCORR", nMaxSize)
+outFolder <- file.path("FAMILYCLIQUES_RUNMEANTADCORR", nMaxSize)
 
-inFolder <- file.path("PREP_FAMILYMODULES", nMaxSize)
+inFolder <- file.path("PREP_FAMILYCLIQUES", nMaxSize)
 
 all_hicds <- list.files("PIPELINE/OUTPUT_FOLDER")
 # all_hicds=all_hicds[1]
@@ -51,6 +51,7 @@ exprds="TCGAbrca_lum_bas"
 buildData <- FALSE
 
 all_hicds=all_hicds[1:5]
+all_hicds=all_hicds[1]
 
 if(buildData) {
   
@@ -67,10 +68,10 @@ if(buildData) {
       stopifnot(file.exists(famMod_file))
       fam_data <- get(load(famMod_file))
       
-      fam_dt <- do.call(rbind, lapply(fam_data, function(x) x[["fam_cpt_dt"]]))
+      fam_dt <- do.call(rbind, lapply(fam_data, function(x) x[["fam_cl_dt"]]))
       
       fam_dt$entrezID <- as.character(fam_dt$entrezID)
-      fam_dt$cpt <- as.character(fam_dt$cpt)
+      fam_dt$clique <- as.character(fam_dt$clique)
       
       # INPUT DATA
       gene2tadDT_file <- file.path(hicds, "genes2tad", "all_genes_positions.txt")
@@ -101,22 +102,22 @@ if(buildData) {
       stopifnot(fam_dt$entrezID %in% gene2tadDT$entrezID)  ### I took only genes from TADs !!!!
       # stopifnot(fam_dt$entrezID %in% names(pipeline_geneList))  ### NOT TRUE !!! I took only genes from TADs !!!!
       
-      all_famCpts <- unique(fam_dt$cpt)
-      famCpt = all_famCpts[1]
-      all_meanCorr_famCpts <- foreach(famCpt=all_famCpts) %dopar% {
+      all_famCls <- unique(fam_dt$clique)
+      famCl = all_famCls[1]
+      all_meanCorr_famCls <- foreach(famCl=all_famCls) %dopar% {
         
-        cpt_genes <- fam_dt$entrezID[as.character(fam_dt$cpt) == as.character(famCpt)]
-        stopifnot(length(cpt_genes) >= minCmpntSize)
+        cl_genes <- fam_dt$entrezID[as.character(fam_dt$clique) == as.character(famCl)]
+        stopifnot(length(cl_genes) >= minCmpntSize)
         
-        cpt_gene2tad_dt <- gene2tadDT[gene2tadDT$entrezID %in% cpt_genes,]
-        stopifnot(nrow(cpt_gene2tad_dt) == length(cpt_genes))
+        cl_gene2tad_dt <- gene2tadDT[gene2tadDT$entrezID %in% cl_genes,]
+        stopifnot(nrow(cl_gene2tad_dt) == length(cl_genes))
         
-        if(max(table(cpt_gene2tad_dt$region)/nrow(cpt_gene2tad_dt)) > maxSameTAD) return(paste0("sameTAD>", maxSameTAD))
+        if(max(table(cl_gene2tad_dt$region)/nrow(cl_gene2tad_dt)) > maxSameTAD) return(paste0("sameTAD>", maxSameTAD))
         
-        rowsToKeep <- which(rna_geneList %in% cpt_genes)
+        rowsToKeep <- which(rna_geneList %in% cl_genes)
         
         keptGenes <- rna_geneList[rowsToKeep]
-        keptTADs <- cpt_gene2tad_dt$region
+        keptTADs <- cl_gene2tad_dt$region
         
         if(length(rowsToKeep) < minGenes) return(paste0("<", minGenes, "genes"))
         # this is ok because I have reordered norm_rnaseqDT : norm_rnaseqDT <- norm_rnaseqDT[names(rna_geneList),]    
@@ -148,23 +149,23 @@ if(buildData) {
       
       cat(paste0("... end intra-cpt correlation\n"))
       
-      names(all_meanCorr_famCpts) <- all_famCpts
-      stopifnot(length(all_meanCorr_famCpts) == length(all_famCpts))
+      names(all_meanCorr_famCls) <- all_famCls
+      stopifnot(length(all_meanCorr_famCls) == length(all_famCls))
       
-      outFile <- file.path(outFolder, hicds, exprds, "all_meanCorr_famCpts.Rdata")
+      outFile <- file.path(outFolder, hicds, exprds, "all_meanCorr_famCls.Rdata")
       dir.create(dirname(outFile), recursive = TRUE)
-      save(all_meanCorr_famCpts, file= outFile)
+      save(all_meanCorr_famCls, file= outFile)
       cat(paste0("... written: ", outFile,  "\n"))
       
-      # famCorr_data <- get(load("FAMILYMODULES_RUNMEANTADCORR/Barutcu_MCF-10A_40kb/TCGAbrca_lum_bas/all_meanCorr_famCpts.Rdata"))
-      famCorr_data <- all_meanCorr_famCpts
+      # famCorr_data <- get(load("FAMILYMODULES_RUNMEANTADCORR/Barutcu_MCF-10A_40kb/TCGAbrca_lum_bas/all_meanCorr_famCls.Rdata"))
+      famCorr_data <- all_meanCorr_famCls
       famCorr_dataF <- famCorr_data[lengths(famCorr_data) == 3]
       famCorr <- unlist(lapply(famCorr_dataF,  function(x) x[["meanCorr"]]))
       obsCorr <- get(load(file.path("PIPELINE", "OUTPUT_FOLDER", hicds, exprds, "4_runMeanTADCorr", "all_meanCorr_TAD.Rdata" )))
       
       
       
-      outFile <- file.path(outFolder, hicds, exprds, paste0(hicds, "_", exprds, "_obs_famCpt_meanCorr_density.", plotType))
+      outFile <- file.path(outFolder, hicds, exprds, paste0(hicds, "_", exprds, "_obs_famCl_meanCorr_density.", plotType))
       do.call(plotType, list(outFile, height=myHeight, width=myWidth))
       plot_multiDens(
         list(famCmpnt_meanCorr = famCorr,
@@ -199,7 +200,7 @@ all_obs_corr <- lapply(all_corr, function(sublist) lapply(sublist, function(x) x
 nDS <- length(unlist(all_fam_corr, recursive = FALSE))
 
 
-outFile <- file.path(outFolder, paste0("allDS_obs_famCpt_meanCorr_density.", plotType))
+outFile <- file.path(outFolder, paste0("allDS_obs_famCl_meanCorr_density.", plotType))
 do.call(plotType, list(outFile, height=myHeight, width=myWidth))
 plot_multiDens(
   list(famCmpnt_meanCorr = unlist(all_fam_corr),
