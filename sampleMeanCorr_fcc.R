@@ -1,12 +1,12 @@
 
-# Rscript sampleMeanCorr_fcc
+# Rscript sampleMeanCorr_fcc.R
 
 SSHFS <- F
 setDir <- ifelse(SSHFS, "/media/electron", "")
 
 plotType <- "png"
-myHeight <- ifelse(plotType == "png", 480 , 7)
-myWidth <- ifelse(plotType == "png", 400, 10)
+myHeight <- ifelse(plotType == "png", 400 , 7)
+myWidth <- ifelse(plotType == "png", 400, 7)
 plotCex <- 1.4
 
 require(flux)
@@ -103,13 +103,20 @@ x_var <- "fcc"
 
 fcc_thresh <- 0.75
 
+plotCex <- 1.4
+
 for(y_var in all_y_vars){
   
   outFile <- file.path(outFolder, paste0(y_var, "_vs_", x_var, "_densplot.", plotType))
   do.call(plotType, list(outFile, height=myHeight, width=myWidth))
   densplot(
     y=  all_fcc_corr_dt[,y_var],
-    x=  all_fcc_corr_dt[,x_var]
+    x=  all_fcc_corr_dt[,x_var],
+    xlab = x_var,
+    ylab = y_var,
+    cex.main=plotCex,
+    cex.lab=plotCex,
+    cex.axis=plotCex
   )
   
   foo <- dev.off()
@@ -119,7 +126,12 @@ for(y_var in all_y_vars){
   do.call(plotType, list(outFile, height=myHeight, width=myWidth))
   densplot(
     y=  all_fcc_corr_dt[all_fcc_corr_dt$fcc>fcc_thresh,y_var],
-    x=  all_fcc_corr_dt[all_fcc_corr_dt$fcc>fcc_thresh,x_var]
+    x=  all_fcc_corr_dt[all_fcc_corr_dt$fcc>fcc_thresh,x_var],
+    xlab = x_var,
+    ylab = y_var,
+    cex.main=plotCex,
+    cex.lab=plotCex,
+    cex.axis=plotCex
   )
   foo <- dev.off()
   cat(paste0("... written: ", outFile, "\n"))

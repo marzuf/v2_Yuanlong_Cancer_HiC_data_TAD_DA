@@ -45,9 +45,9 @@ all_exprds <- sapply(all_hicds, function(x) list.files(file.path(pipFolder, x)))
 
 hicds = "Barutcu_MCF-10A_40kb"
 
-all_hicds=all_hicds[1:2]
-
-all_hicds=all_hicds[1]
+# all_hicds=all_hicds[1:2]
+# 
+# all_hicds=all_hicds[1]
 
 exprds="TCGAbrca_lum_bas"
 
@@ -208,7 +208,7 @@ plot_multiDens(
   list(famCmpnt_ratioDown = unlist(all_fam_ratioDown),
        obsTAD_ratioDown = unlist(all_obs_ratioDown)),
   my_xlab = paste0("intra-TAD/component ratioDown"),
-  plotTit = paste0( "all datasets - n =", nDS )
+  plotTit = paste0( "famCliques - ratioDown - all datasets - n =", nDS )
 )
 mtext(side=3, text = paste0("minCmpntSize=", minCmpntSize, "; minGenes=", minGenes,  "; maxSameTAD=", maxSameTAD), font=3)
 foo <- dev.off()

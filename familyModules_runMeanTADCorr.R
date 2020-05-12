@@ -48,9 +48,9 @@ all_exprds <- sapply(all_hicds, function(x) list.files(file.path(pipFolder, x)))
 hicds = "Barutcu_MCF-10A_40kb"
 exprds="TCGAbrca_lum_bas"
 
-buildData <- FALSE
+buildData <- TRUE
 
-all_hicds=all_hicds[1:5]
+#all_hicds=all_hicds[1:5]
 
 if(buildData) {
   
@@ -205,7 +205,7 @@ plot_multiDens(
   list(famCmpnt_meanCorr = unlist(all_fam_corr),
        obsTAD_meanCorr = unlist(all_obs_corr)),
   my_xlab = paste0("intra-TAD/component meanCorr"),
-  plotTit = paste0( "all datasets - n =", nDS )
+  plotTit = paste0( "famCpts - meanCorr - all datasets - n =", nDS )
 )
 mtext(side=3, text = paste0("minCmpntSize=", minCmpntSize, "; minGenes=", minGenes,  "; maxSameTAD=", maxSameTAD), font=3)
 foo <- dev.off()
