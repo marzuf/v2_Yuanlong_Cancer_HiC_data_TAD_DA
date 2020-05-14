@@ -17,7 +17,7 @@ pipFolder <- file.path(runFolder, "PIPELINE", "OUTPUT_FOLDER")
 familyVar <- "hgnc_family_short"
 minCmpntSize <- 3
 
-nMaxSize <- 1
+nMaxSize <- 2
 
 outFolder <- file.path("PREP_FAMILYMODULES", nMaxSize)
 
@@ -37,7 +37,7 @@ exprds="TCGAbrca_lum_bas"
 # all_hicds=all_hicds[2:length(all_hicds)]
 # all_hicds=all_hicds[1]
 
-buildData <- FALSE
+buildData <- TRUE
 
 if(buildData){
   
@@ -57,7 +57,8 @@ if(buildData){
       onlyTAD_dt$midPos <- 0.5*(onlyTAD_dt$end + onlyTAD_dt$start)
       
       # retrieve the average TAD size
-      meanTADsize <- mean(onlyTAD_dt$midPos)
+#      meanTADsize <- mean(onlyTAD_dt$midPos) # 14.05.2020 CORRECTED
+      meanTADsize <- mean(onlyTAD_dt$end-onlyTAD_dt$start+1) # 14.05.2020 CORRECTED
       stopifnot(!is.na(meanTADsize))
       
       maxGeneDist <- nMaxSize*meanTADsize

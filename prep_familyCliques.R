@@ -37,7 +37,7 @@ hicds = "Barutcu_MCF-10A_40kb"
 # all_hicds=all_hicds[1]
 # all_hicds=all_hicds[2:length(all_hicds)]
 
-buildData <- FALSE
+buildData <- TRUE
 
 if(buildData) {
   
@@ -58,7 +58,9 @@ if(buildData) {
       onlyTAD_dt$midPos <- 0.5*(onlyTAD_dt$end + onlyTAD_dt$start)
       
       # retrieve the average TAD size
-      meanTADsize <- mean(onlyTAD_dt$midPos)
+#      meanTADsize <- mean(onlyTAD_dt$midPos) # corrected 14.05.2020
+      meanTADsize <- mean(onlyTAD_dt$end - onlyTAD_dt$start + 1) # corrected 14.05.2020
+      stopifnot(meanTADsize > 0)
       stopifnot(!is.na(meanTADsize))
       
       maxGeneDist <- nMaxSize*meanTADsize

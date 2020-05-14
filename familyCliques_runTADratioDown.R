@@ -1,5 +1,7 @@
 #!/usr/bin/Rscript
 
+stop("-- use: _runTADmeanCorrRatioDown.R - corrected version\n")
+
 startTime <- Sys.time()
 
 # Rscript familyCliques_runTADratioDown.R
@@ -33,8 +35,8 @@ maxSameTAD <- 0.5
 nMaxSize <- 1
 
 
-outFolder <- file.path("FAMILYCLIQUES_RUNTADRATIODOWN", nMaxSize)
-inFolder <- file.path("PREP_FAMILYCLIQUES", nMaxSize)
+outFolder <- file.path("FAMILYCLIQUES_RUNTADRATIODOWN_V2", nMaxSize)
+inFolder <- file.path("WRONG_PREPFAMILYCLIQUES", nMaxSize)
 
 
 all_hicds <- list.files("PIPELINE/OUTPUT_FOLDER")
@@ -43,11 +45,11 @@ all_hicds <- list.files("PIPELINE/OUTPUT_FOLDER")
 all_hicds <- all_hicds[!grepl("RANDOM", all_hicds) & !grepl("PERMUT", all_hicds)]
 all_exprds <- sapply(all_hicds, function(x) list.files(file.path(pipFolder, x)))
 
-hicds = "Barutcu_MCF-10A_40kb"
+# hicds = "Barutcu_MCF-10A_40kb"
 
 # all_hicds=all_hicds[1:2]
 # 
-# all_hicds=all_hicds[1]
+all_hicds=all_hicds
 
 exprds="TCGAbrca_lum_bas"
 
@@ -78,9 +80,10 @@ if(buildData){
       stopifnot(file.exists(gene2tadDT_file))
       gene2tadDT <- read.delim(gene2tadDT_file, header=F, col.names = c("entrezID", "chromo", "start", "end", "region"), stringsAsFactors = F)
       gene2tadDT$entrezID <- as.character(gene2tadDT$entrezID)
-      
+      all_gene2tadDT <- gene2tadDT
       gene2tadDT <- gene2tadDT[grepl("_TAD", gene2tadDT$region),]
       
+      stopifnot(fam_dt$entrezID %in% gene2tadDT$entrezID)
       
       pipeline_geneList <- get(load(file.path(pipFolder, hicds, exprds, "0_prepGeneData", "pipeline_geneList.Rdata")))
       rna_geneList <- get(load(file.path(pipFolder, hicds, exprds, "0_prepGeneData", "rna_geneList.Rdata")))
@@ -88,7 +91,19 @@ if(buildData){
       de_DT <-  get(load(file.path(pipFolder, hicds, exprds, "1_runGeneDE", "DE_topTable.Rdata")))
       # stopifnot(names(rna_geneList) %in% de_DT$genes) FALSE
       # stopifnot(de_DT$genes %in% rna_geneList ) # FALSE
+
       stopifnot(de_DT$genes %in% names(rna_geneList) )
+      de_DT$genes2 <- rna_geneList[de_DT$genes]
+      stopifnot(de_DT$genes2 %in% rna_geneList)
+      # stopifnot(de_DT$genes %in% all_gene2tadDT$entrezID) # not TRUE
+      stopifnot(de_DT$genes2 %in% all_gene2tadDT$entrezID) # here I have genes from TADs in de_DT
+      stopifnot(!is.na(de_DT$genes2))
+
+      # stopifnot(fam_dt$entrezID %in% de_DT$genes2) # not true because de_DT has 
+      
+      # which(! fam_dt$entrezID %in% de_DT$genes2) 
+      
+      stopifnot(sum(fam_dt$entrezID %in% de_DT$genes2) >= sum(fam_dt$entrezID %in% de_DT$genes))
       
       sum(fam_dt$entrezID %in% names(pipeline_geneList)) # 2493
       sum(fam_dt$entrezID %in% pipeline_geneList) # 2495
@@ -98,9 +113,12 @@ if(buildData){
       sum(names(rna_geneList) %in% de_DT$genes)
       sum((rna_geneList) %in% de_DT$genes)
       
-      de_DT <- de_DT[de_DT$genes %in% names(rna_geneList),]
-      nrow(de_DT)
-      rna_geneList <- rna_geneList[names(rna_geneList) %in% de_DT$genes]
+      # de_DT <- de_DT[de_DT$genes %in% names(rna_geneList),]
+      # nrow(de_DT)
+      # rna_geneList <- rna_geneList[names(rna_geneList) %in% de_DT$genes]
+      # 
+      # stopifnot(de_DT$genes %in% names(rna_geneList) )
+      
       
       # stopifnot(rna_geneList %in% rownames(norm_rnaseqDT)) # ! wrong
       # stopifnot(names(rna_geneList) %in% rownames(norm_rnaseqDT))
@@ -116,21 +134,21 @@ if(buildData){
         
         cl_genes <- fam_dt$entrezID[as.character(fam_dt$clique) == as.character(famCpt)]
         stopifnot(length(cl_genes) >= minCmpntSize)
-        
-        cl_gene2tad_dt <- gene2tadDT[gene2tadDT$entrezID %in% cl_genes,]
-        stopifnot(nrow(cl_gene2tad_dt) == length(cl_genes))
-        
+
+        # ADDED 14.05
+        stopifnot(cl_genes %in% gene2tadDT$entrezID)
+        cl_gene2tad_dt <- gene2tadDT[gene2tadDT$entrezID %in% cl_genes &
+                                       gene2tadDT$entrezID %in% de_DT$genes2 ,
+                                       ] # need to subset here for then next if keptTADs !
+
         keptTADs <- cl_gene2tad_dt$region
         
         if(max(table(cl_gene2tad_dt$region)/nrow(cl_gene2tad_dt)) > maxSameTAD) return(paste0("sameTAD>", maxSameTAD))
         
-        stopifnot(de_DT$genes %in% names(rna_geneList) )
+        stopifnot(cl_gene2tad_dt$entrezID %in% de_DT$genes2)
+        cl_de_DT <- de_DT[de_DT$genes2 %in% cl_gene2tad_dt$entrezID,]
         
-        cl_rna_geneList <- rna_geneList[rna_geneList %in% cl_genes]
-        cl_de_DT <- de_DT[de_DT$genes %in% names(cl_rna_geneList),]
-        
-        stopifnot(cl_de_DT$genes %in% names(cl_rna_geneList) )
-        stopifnot(length(cl_rna_geneList) == nrow(cl_de_DT))
+        stopifnot(nrow(cl_de_DT) == nrow(cl_gene2tad_dt))
         
         if(nrow(cl_de_DT) < minGenes) return(paste0("<", minGenes, "genes"))
         
@@ -139,7 +157,7 @@ if(buildData){
         
         list(
           ratioDown=cl_ratioDown,
-          keptGenes=cl_rna_geneList,
+          keptGenes=cl_de_DT$genes2,
           keptTADs=keptTADs
         )
       }

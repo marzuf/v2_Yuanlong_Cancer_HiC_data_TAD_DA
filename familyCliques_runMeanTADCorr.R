@@ -1,5 +1,8 @@
 #!/usr/bin/Rscript
 
+
+stop("-- use: _runTADmeanCorrRatioDown.R - corrected version\n")
+
 startTime <- Sys.time()
 
 # Rscript familyCliques_runMeanTADCorr.R
@@ -37,7 +40,7 @@ nMaxSize <- 1
 
 outFolder <- file.path("FAMILYCLIQUES_RUNMEANTADCORR", nMaxSize)
 
-inFolder <- file.path("PREP_FAMILYCLIQUES", nMaxSize)
+inFolder <- file.path("WRONG_PREPFAMILYCLIQUES", nMaxSize)
 
 all_hicds <- list.files("PIPELINE/OUTPUT_FOLDER")
 # all_hicds=all_hicds[1]
@@ -78,7 +81,7 @@ if(buildData) {
       stopifnot(file.exists(gene2tadDT_file))
       gene2tadDT <- read.delim(gene2tadDT_file, header=F, col.names = c("entrezID", "chromo", "start", "end", "region"), stringsAsFactors = F)
       gene2tadDT$entrezID <- as.character(gene2tadDT$entrezID)
-      
+      all_gene2tadDT <- gene2tadDT
       gene2tadDT <- gene2tadDT[grepl("_TAD", gene2tadDT$region),]
       
       
@@ -94,8 +97,11 @@ if(buildData) {
       norm_rnaseqDT <- eval(parse(text = load(file.path(pipFolder, hicds, exprds,
                                                         "0_prepGeneData", "rna_qqnorm_rnaseqDT.Rdata")))) 
       
+      stopifnot((rna_geneList) %in% all_gene2tadDT$entrezID)
+      stopifnot(rownames(norm_rnaseqDT) %in% names(rna_geneList))
       # stopifnot(rna_geneList %in% rownames(norm_rnaseqDT)) # ! wrong
       stopifnot(names(rna_geneList) %in% rownames(norm_rnaseqDT))
+      stopifnot(setequal(names(rna_geneList) ,rownames(norm_rnaseqDT)))
       # reorder
       norm_rnaseqDT <- norm_rnaseqDT[names(rna_geneList),]
       
@@ -109,12 +115,16 @@ if(buildData) {
         cl_genes <- fam_dt$entrezID[as.character(fam_dt$clique) == as.character(famCl)]
         stopifnot(length(cl_genes) >= minCmpntSize)
         
-        cl_gene2tad_dt <- gene2tadDT[gene2tadDT$entrezID %in% cl_genes,]
-        stopifnot(nrow(cl_gene2tad_dt) == length(cl_genes))
+        cl_gene2tad_dt <- gene2tadDT[gene2tadDT$entrezID %in% cl_genes &
+                                       # corrected here 14.05 -> I need to check here that I have expression data for these genes
+                                       gene2tadDT$entrezID %in% rna_geneList,
+                                       ]
+        stopifnot(cl_gene2tad_dt$entrezID %in% rna_geneList) 
         
         if(max(table(cl_gene2tad_dt$region)/nrow(cl_gene2tad_dt)) > maxSameTAD) return(paste0("sameTAD>", maxSameTAD))
         
         rowsToKeep <- which(rna_geneList %in% cl_genes)
+        stopifnot(rowsToKeep == which(rna_geneList %in% cl_gene2tad_dt$entrezID))
         
         keptGenes <- rna_geneList[rowsToKeep]
         keptTADs <- cl_gene2tad_dt$region
@@ -154,7 +164,7 @@ if(buildData) {
       
       outFile <- file.path(outFolder, hicds, exprds, "all_meanCorr_famCls.Rdata")
       dir.create(dirname(outFile), recursive = TRUE)
-      save(all_meanCorr_famCls, file= outFile)
+      save(all_meanCorr_famCls, file= outFile, version=2)
       cat(paste0("... written: ", outFile,  "\n"))
       
       # famCorr_data <- get(load("FAMILYMODULES_RUNMEANTADCORR/Barutcu_MCF-10A_40kb/TCGAbrca_lum_bas/all_meanCorr_famCls.Rdata"))
