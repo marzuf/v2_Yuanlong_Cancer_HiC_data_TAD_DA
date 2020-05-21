@@ -45,7 +45,7 @@ source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 source("plot_lolliTAD_funct.R")
 source("my_heatmap.2.R")
 
-buildTable <- FALSE
+buildTable <- TRUE
 
 plotType <- "png"
 myHeight <- ifelse(plotType=="png", 400, 7)
@@ -76,6 +76,7 @@ stopifnot(dir.exists(mainFolder))
 pipFolder <- file.path(mainFolder, "PIPELINE", "OUTPUT_FOLDER")
 stopifnot(dir.exists(pipFolder))
 all_hicds <- list.files(pipFolder)
+all_hicds <- all_hicds[!grepl("PERMUT", all_hicds) & !grepl("RANDOM", all_hicds)]
 stopifnot(dir.exists(file.path(mainFolder, all_hicds)))
 
 all_exprds <- lapply(all_hicds, function(x) list.files(file.path(pipFolder, x)))

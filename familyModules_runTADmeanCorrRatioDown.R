@@ -32,8 +32,7 @@ minGenes <- 3
 maxSameTAD <- 0.5
 corrMethod <- "pearson"
 
-nMaxSize <- 1
-
+nMaxSize <- 2
 
 outFolder <- file.path("FAMILYMODULES_RUNTADMEANCORRRATIODOWN", nMaxSize)
 

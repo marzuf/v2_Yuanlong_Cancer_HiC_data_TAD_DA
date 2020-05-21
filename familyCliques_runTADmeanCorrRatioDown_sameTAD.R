@@ -2,9 +2,9 @@
 
 startTime <- Sys.time()
 
-# Rscript familyCliques_runTADmeanCorrRatioDown.R
+# Rscript familyCliques_runTADmeanCorrRatioDown_sameTAD.R
 
-script_name <- "familyCliques_runTADmeanCorrRatioDown.R"
+script_name <- "familyCliques_runTADmeanCorrRatioDown_sameTAD.R"
 
 source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 
@@ -32,10 +32,10 @@ minGenes <- 3
 maxSameTAD <- 0.5
 corrMethod <- "pearson"
 
-nMaxSize <- 2
+nMaxSize <- 1
 
 
-outFolder <- file.path("FAMILYCLIQUES_RUNTADMEANCORRRATIODOWN", nMaxSize)
+outFolder <- file.path("FAMILYCLIQUES_RUNTADMEANCORRRATIODOWN_SAMETAD", nMaxSize)
 
 inFolder <- file.path("PREP_FAMILYCLIQUES", nMaxSize)
 
@@ -130,8 +130,8 @@ if(buildData) {
         stopifnot(corr_cl_gene2tad_dt$entrezID %in% rna_geneList) 
         stopifnot(fc_cl_gene2tad_dt$entrezID %in% rna_geneList) 
         
-        if(max(table(corr_cl_gene2tad_dt$region)/nrow(corr_cl_gene2tad_dt)) > maxSameTAD){
-          meanCorr <- paste0("sameTAD>", maxSameTAD)
+        if(max(table(corr_cl_gene2tad_dt$region)/nrow(corr_cl_gene2tad_dt)) <= maxSameTAD){
+          meanCorr <- paste0("sameTAD<=", maxSameTAD)
           corr_keptTADs <- corr_cl_gene2tad_dt$region
           corr_keptGenes <- corr_cl_gene2tad_dt$entrezID
           
@@ -176,8 +176,8 @@ if(buildData) {
         }
         
         
-        if(max(table(fc_cl_gene2tad_dt$region)/nrow(fc_cl_gene2tad_dt)) > maxSameTAD){
-          ratioDown <- paste0("sameTAD>", maxSameTAD)
+        if(max(table(fc_cl_gene2tad_dt$region)/nrow(fc_cl_gene2tad_dt)) <= maxSameTAD){
+          ratioDown <- paste0("sameTAD<=", maxSameTAD)
           fc_keptTADs <- fc_cl_gene2tad_dt$region
           fc_keptGenes <- fc_cl_gene2tad_dt$entrezID
         } else {

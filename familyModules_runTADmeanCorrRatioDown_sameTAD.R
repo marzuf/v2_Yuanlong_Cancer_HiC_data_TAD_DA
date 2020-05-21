@@ -2,9 +2,9 @@
 
 startTime <- Sys.time()
 
-# Rscript familyCliques_runTADmeanCorrRatioDown.R
+# Rscript familyModules_runTADmeanCorrRatioDown_sameTAD.R
 
-script_name <- "familyCliques_runTADmeanCorrRatioDown.R"
+script_name <- "familyModules_runTADmeanCorrRatioDown_sameTAD.R"
 
 source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 
@@ -34,10 +34,9 @@ corrMethod <- "pearson"
 
 nMaxSize <- 2
 
+outFolder <- file.path("FAMILYMODULES_RUNTADMEANCORRRATIODOWN_SAMETAD", nMaxSize)
 
-outFolder <- file.path("FAMILYCLIQUES_RUNTADMEANCORRRATIODOWN", nMaxSize)
-
-inFolder <- file.path("PREP_FAMILYCLIQUES", nMaxSize)
+inFolder <- file.path("PREP_FAMILYMODULES", nMaxSize)
 
 all_hicds <- list.files("PIPELINE/OUTPUT_FOLDER")
 # all_hicds=all_hicds[1]
@@ -68,10 +67,10 @@ if(buildData) {
       stopifnot(file.exists(famMod_file))
       fam_data <- get(load(famMod_file))
       
-      fam_dt <- do.call(rbind, lapply(fam_data, function(x) x[["fam_cl_dt"]]))
+      fam_dt <- do.call(rbind, lapply(fam_data, function(x) x[["fam_cpt_dt"]]))
       
       fam_dt$entrezID <- as.character(fam_dt$entrezID)
-      fam_dt$clique <- as.character(fam_dt$clique)
+      fam_dt$cpt <- as.character(fam_dt$cpt)
       
       # INPUT DATA
       gene2tadDT_file <- file.path(hicds, "genes2tad", "all_genes_positions.txt")
@@ -107,44 +106,44 @@ if(buildData) {
       norm_rnaseqDT <- norm_rnaseqDT[names(rna_geneList),]
       
       
-      all_famCls <- unique(fam_dt$clique)
-      all_meanCorr_ratioDown_famCls <- foreach(famCl=all_famCls) %dopar% {
+      all_famCpts <- unique(fam_dt$cpt)
+      all_meanCorr_ratioDown_famCpts <- foreach(famCpt=all_famCpts) %dopar% {
         
-        cl_genes <- fam_dt$entrezID[as.character(fam_dt$clique) == as.character(famCl)]
-        stopifnot(length(cl_genes) >= minCmpntSize)
+        cpt_genes <- fam_dt$entrezID[as.character(fam_dt$cpt) == as.character(famCpt)]
+        stopifnot(length(cpt_genes) >= minCmpntSize)
         
-        corr_cl_gene2tad_dt <- gene2tadDT[gene2tadDT$entrezID %in% cl_genes &
+        corr_cpt_gene2tad_dt <- gene2tadDT[gene2tadDT$entrezID %in% cpt_genes &
                                        # corrected here 14.05 -> I need to check here that I have expression data for these genes
                                        gene2tadDT$entrezID %in% rna_geneList,
                                      ]
         
-        fc_cl_gene2tad_dt <- gene2tadDT[gene2tadDT$entrezID %in% cl_genes &
+        fc_cpt_gene2tad_dt <- gene2tadDT[gene2tadDT$entrezID %in% cpt_genes &
                                        gene2tadDT$entrezID %in% de_DT$genes2 ,
                                      ] # need to subset here for then next if keptTADs !
         
         # the DE table is filtered for minCount, not the corr data
         
-        stopifnot(nrow(fc_cl_gene2tad_dt) <= nrow(corr_cl_gene2tad_dt))
-        stopifnot(fc_cl_gene2tad_dt$entrezID %in% corr_cl_gene2tad_dt$entrezID)
+        stopifnot(nrow(fc_cpt_gene2tad_dt) <= nrow(corr_cpt_gene2tad_dt))
+        stopifnot(fc_cpt_gene2tad_dt$entrezID %in% corr_cpt_gene2tad_dt$entrezID)
         
-        stopifnot(corr_cl_gene2tad_dt$entrezID %in% rna_geneList) 
-        stopifnot(fc_cl_gene2tad_dt$entrezID %in% rna_geneList) 
+        stopifnot(corr_cpt_gene2tad_dt$entrezID %in% rna_geneList) 
+        stopifnot(fc_cpt_gene2tad_dt$entrezID %in% rna_geneList) 
         
-        if(max(table(corr_cl_gene2tad_dt$region)/nrow(corr_cl_gene2tad_dt)) > maxSameTAD){
-          meanCorr <- paste0("sameTAD>", maxSameTAD)
-          corr_keptTADs <- corr_cl_gene2tad_dt$region
-          corr_keptGenes <- corr_cl_gene2tad_dt$entrezID
+        if(max(table(corr_cpt_gene2tad_dt$region)/nrow(corr_cpt_gene2tad_dt)) <= maxSameTAD){
+          meanCorr <- paste0("sameTAD<=", maxSameTAD)
+          corr_keptTADs <- corr_cpt_gene2tad_dt$region
+          corr_keptGenes <- corr_cpt_gene2tad_dt$entrezID
           
         } else {
-          rowsToKeep <- which(rna_geneList %in% cl_genes)
-          stopifnot(rowsToKeep == which(rna_geneList %in% corr_cl_gene2tad_dt$entrezID))
+          rowsToKeep <- which(rna_geneList %in% cpt_genes)
+          stopifnot(rowsToKeep == which(rna_geneList %in% corr_cpt_gene2tad_dt$entrezID))
           stopifnot(rownames(norm_rnaseqDT) == names(rna_geneList))
 
           
           if(length(rowsToKeep) < minGenes) {
             meanCorr <- paste0("<", minGenes, "genes")
-            corr_keptTADs <- corr_cl_gene2tad_dt$region
-            corr_keptGenes <- corr_cl_gene2tad_dt$entrezID
+            corr_keptTADs <- corr_cpt_gene2tad_dt$region
+            corr_keptGenes <- corr_cpt_gene2tad_dt$entrezID
             
             
           }else{
@@ -170,31 +169,31 @@ if(buildData) {
             meanCorr <- mean(corrMatrix_all[lower.tri(corrMatrix_all, diag = withDiag)], na.rm=T)
             corr_keptGenes <- rna_geneList[rowsToKeep]
             stopifnot(length(rowsToKeep) == length(corr_keptGenes))
-            corr_keptTADs <- corr_cl_gene2tad_dt$region
+            corr_keptTADs <- corr_cpt_gene2tad_dt$region
             }
 
         }
         
         
-        if(max(table(fc_cl_gene2tad_dt$region)/nrow(fc_cl_gene2tad_dt)) > maxSameTAD){
-          ratioDown <- paste0("sameTAD>", maxSameTAD)
-          fc_keptTADs <- fc_cl_gene2tad_dt$region
-          fc_keptGenes <- fc_cl_gene2tad_dt$entrezID
+        if(max(table(fc_cpt_gene2tad_dt$region)/nrow(fc_cpt_gene2tad_dt)) <= maxSameTAD){
+          ratioDown <- paste0("sameTAD<=", maxSameTAD)
+          fc_keptTADs <- fc_cpt_gene2tad_dt$region
+          fc_keptGenes <- fc_cpt_gene2tad_dt$entrezID
         } else {
-          stopifnot(fc_cl_gene2tad_dt$entrezID %in% de_DT$genes2)
-          cl_de_DT <- de_DT[de_DT$genes2 %in% fc_cl_gene2tad_dt$entrezID,]
-          stopifnot(nrow(cl_de_DT) == nrow(fc_cl_gene2tad_dt))
-          if(nrow(cl_de_DT) < minGenes) {
+          stopifnot(fc_cpt_gene2tad_dt$entrezID %in% de_DT$genes2)
+          cpt_de_DT <- de_DT[de_DT$genes2 %in% fc_cpt_gene2tad_dt$entrezID,]
+          stopifnot(nrow(cpt_de_DT) == nrow(fc_cpt_gene2tad_dt))
+          if(nrow(cpt_de_DT) < minGenes) {
             ratioDown <- paste0("<", minGenes, "genes")
-            fc_keptTADs <- fc_cl_gene2tad_dt$region
-            fc_keptGenes <- fc_cl_gene2tad_dt$entrezID
+            fc_keptTADs <- fc_cpt_gene2tad_dt$region
+            fc_keptGenes <- fc_cpt_gene2tad_dt$entrezID
             
           } else {
-            ratioDown <- sum(sign(cl_de_DT$logFC) == -1)/nrow(cl_de_DT)
-            fc_keptGenes <- cl_de_DT$genes2
+            ratioDown <- sum(sign(cpt_de_DT$logFC) == -1)/nrow(cpt_de_DT)
+            fc_keptGenes <- cpt_de_DT$genes2
             
             
-            fc_keptTADs <- fc_cl_gene2tad_dt$region
+            fc_keptTADs <- fc_cpt_gene2tad_dt$region
           }
 
         }
@@ -213,26 +212,26 @@ if(buildData) {
       
       cat(paste0("... end intra-cpt correlation\n"))
       
-      names(all_meanCorr_ratioDown_famCls) <- all_famCls
-      stopifnot(length(all_meanCorr_ratioDown_famCls) == length(all_famCls))
+      names(all_meanCorr_ratioDown_famCpts) <- all_famCpts
+      stopifnot(length(all_meanCorr_ratioDown_famCpts) == length(all_famCpts))
       
-      outFile <- file.path(outFolder, hicds, exprds, "all_meanCorr_ratioDown_famCls.Rdata")
+      outFile <- file.path(outFolder, hicds, exprds, "all_meanCorr_ratioDown_famCpts.Rdata")
       dir.create(dirname(outFile), recursive = TRUE)
-      save(all_meanCorr_ratioDown_famCls, file= outFile, version=2)
+      save(all_meanCorr_ratioDown_famCpts, file= outFile, version=2)
       cat(paste0("... written: ", outFile,  "\n"))
       
-      # famCorr_data <- get(load("FAMILYMODULES_RUNMEANTADCORR/Barutcu_MCF-10A_40kb/TCGAbrca_lum_bas/all_meanCorr_ratioDown_famCls.Rdata"))
-      toKeep <- unlist(lapply(all_meanCorr_ratioDown_famCls, function(x) is.numeric(x [["meanCorr"]])))
-      stopifnot(length(toKeep) == length(all_meanCorr_ratioDown_famCls))
-      famCorr_dataF <- all_meanCorr_ratioDown_famCls[toKeep]
+      # famCorr_data <- get(load("FAMILYMODULES_RUNMEANTADCORR/Barutcu_MCF-10A_40kb/TCGAbrca_lum_bas/all_meanCorr_ratioDown_famCpts.Rdata"))
+      toKeep <- unlist(lapply(all_meanCorr_ratioDown_famCpts, function(x) is.numeric(x [["meanCorr"]])))
+      stopifnot(length(toKeep) == length(all_meanCorr_ratioDown_famCpts))
+      famCorr_dataF <- all_meanCorr_ratioDown_famCpts[toKeep]
       
       
       famCorr <- unlist(lapply(famCorr_dataF,  function(x) x[["meanCorr"]]))
       obsCorr <- get(load(file.path("PIPELINE", "OUTPUT_FOLDER", hicds, exprds, "4_runMeanTADCorr", "all_meanCorr_TAD.Rdata" )))
-      outFile <- file.path(outFolder, hicds, exprds, paste0(hicds, "_", exprds, "_obs_famCl_meanCorr_density.", plotType))
+      outFile <- file.path(outFolder, hicds, exprds, paste0(hicds, "_", exprds, "_obs_famCpt_meanCorr_density.", plotType))
       do.call(plotType, list(outFile, height=myHeight, width=myWidth))
       plot_multiDens(
-        list(famClique_meanCorr = famCorr,
+        list(famCmpnt_meanCorr = famCorr,
              obsTAD_meanCorr = obsCorr),
         plotTit = paste0(hicds, " -  ", exprds)
       )
@@ -242,20 +241,20 @@ if(buildData) {
       
       
       
-      # famRatioDown_data <- get(load("FAMILYMODULES_RUNMEANTADCORR/Barutcu_MCF-10A_40kb/TCGAbrca_lum_bas/all_meanCorr_ratioDown_famCls.Rdata"))
+      # famRatioDown_data <- get(load("FAMILYMODULES_RUNMEANTADCORR/Barutcu_MCF-10A_40kb/TCGAbrca_lum_bas/all_meanCorr_ratioDown_famCpts.Rdata"))
       
-      toKeep <- unlist(lapply(all_meanCorr_ratioDown_famCls, function(x) is.numeric(x [["ratioDown"]])))
-      stopifnot(length(toKeep) == length(all_meanCorr_ratioDown_famCls))
-      famRatioDown_dataF <- all_meanCorr_ratioDown_famCls[toKeep]
+      toKeep <- unlist(lapply(all_meanCorr_ratioDown_famCpts, function(x) is.numeric(x [["ratioDown"]])))
+      stopifnot(length(toKeep) == length(all_meanCorr_ratioDown_famCpts))
+      famRatioDown_dataF <- all_meanCorr_ratioDown_famCpts[toKeep]
       famRatioDown <- unlist(lapply(famRatioDown_dataF,  function(x) x[["ratioDown"]]))
       obsRatioDown <- get(load(file.path("PIPELINE", "OUTPUT_FOLDER", hicds, exprds, "8cOnlyRatioDownFastSave_runAllDown", "all_obs_ratioDown.Rdata" )))
       
       
       
-      outFile <- file.path(outFolder, hicds, exprds, paste0(hicds, "_", exprds, "_obs_famCl_ratioDown_density.", plotType))
+      outFile <- file.path(outFolder, hicds, exprds, paste0(hicds, "_", exprds, "_obs_famCpt_ratioDown_density.", plotType))
       do.call(plotType, list(outFile, height=myHeight, width=myWidth))
       plot_multiDens(
-        list(famClique_ratioDown = famRatioDown,
+        list(famCmpnt_ratioDown = famRatioDown,
              obsTAD_ratioDown = obsRatioDown),
         plotTit = paste0(hicds, " -  ", exprds)
       )
@@ -263,9 +262,9 @@ if(buildData) {
       foo <- dev.off()
       cat(paste0("... written: ", outFile,  "\n"))
       
-      list(famClique_ratioDown = famRatioDown,
+      list(famCmpnt_ratioDown = famRatioDown,
            obsTAD_ratioDown = obsRatioDown,
-          famClique_meanCorr = famCorr,
+          famCmpnt_meanCorr = famCorr,
            obsTAD_meanCorr = obsCorr
       )
     }
@@ -284,18 +283,18 @@ if(buildData) {
 }
 
 
-all_fam_corr <- lapply(all_meanCorr_ratioDown, function(sublist) lapply(sublist, function(x) x[["famClique_meanCorr"]]))
+all_fam_corr <- lapply(all_meanCorr_ratioDown, function(sublist) lapply(sublist, function(x) x[["famCmpnt_meanCorr"]]))
 all_obs_corr <- lapply(all_meanCorr_ratioDown, function(sublist) lapply(sublist, function(x) x[["obsTAD_meanCorr"]]))
 nDS <- length(unlist(all_fam_corr, recursive = FALSE))
 
 
-outFile <- file.path(outFolder, paste0("allDS_obs_famCl_meanCorr_density.", plotType))
+outFile <- file.path(outFolder, paste0("allDS_obs_famCpt_meanCorr_density.", plotType))
 do.call(plotType, list(outFile, height=myHeight, width=myWidth))
 plot_multiDens(
-  list(famClique_meanCorr = unlist(all_fam_corr),
+  list(famCmpnt_meanCorr = unlist(all_fam_corr),
        obsTAD_meanCorr = unlist(all_obs_corr)),
   my_xlab = paste0("intra-TAD/component meanCorr"),
-  plotTit = paste0( "famCliques - meanCorr - all datasets - n =", nDS )
+  plotTit = paste0( "famCpts - meanCorr - all datasets - n =", nDS )
 )
 mtext(side=3, text = paste0("minCmpntSize=", minCmpntSize, "; minGenes=", minGenes,  "; maxSameTAD=", maxSameTAD), font=3)
 foo <- dev.off()
@@ -303,18 +302,18 @@ cat(paste0("... written: ", outFile,  "\n"))
 
 
 
-all_fam_ratioDown <- lapply(all_meanCorr_ratioDown, function(sublist) lapply(sublist, function(x) x[["famClique_ratioDown"]]))
+all_fam_ratioDown <- lapply(all_meanCorr_ratioDown, function(sublist) lapply(sublist, function(x) x[["famCmpnt_ratioDown"]]))
 all_obs_ratioDown <- lapply(all_meanCorr_ratioDown, function(sublist) lapply(sublist, function(x) x[["obsTAD_ratioDown"]]))
 nDS <- length(unlist(all_fam_ratioDown, recursive = FALSE))
 
 
-outFile <- file.path(outFolder, paste0("allDS_obs_famCl_ratioDown_density.", plotType))
+outFile <- file.path(outFolder, paste0("allDS_obs_famCpt_ratioDown_density.", plotType))
 do.call(plotType, list(outFile, height=myHeight, width=myWidth))
 plot_multiDens(
-  list(famClique_ratioDown = unlist(all_fam_ratioDown),
+  list(famCmpnt_ratioDown = unlist(all_fam_ratioDown),
        obsTAD_ratioDown = unlist(all_obs_ratioDown)),
   my_xlab = paste0("intra-TAD/component ratioDown"),
-  plotTit = paste0( "famCliques - ratioDown - all datasets - n =", nDS )
+  plotTit = paste0( "famCpts - ratioDown - all datasets - n =", nDS )
 )
 mtext(side=3, text = paste0("minCmpntSize=", minCmpntSize, "; minGenes=", minGenes,  "; maxSameTAD=", maxSameTAD), font=3)
 foo <- dev.off()

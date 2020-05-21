@@ -15,7 +15,7 @@ pipFolder <- file.path(runFolder, "PIPELINE", "OUTPUT_FOLDER")
 familyVar <- "hgnc_family_short"
 minCptsize <- 3
 
-nMaxSize <- 1
+nMaxSize <- 2
 
 maxSameTAD <- 0.5
 minGenes <- 3
