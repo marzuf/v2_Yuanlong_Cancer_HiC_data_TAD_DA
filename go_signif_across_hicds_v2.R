@@ -91,7 +91,7 @@ stopifnot(dir.exists(file.path(mainFolder, all_hicds)))
 all_exprds <- lapply(all_hicds, function(x) list.files(file.path(pipFolder, x)))
 names(all_exprds) <- all_hicds
 
-outFolder <- file.path("GO_SIGNIF_ACROSS_HICDS_v2", data_cmpType)
+outFolder <- file.path("GO_SIGNIF_ACROSS_HICDS_v2_V2", data_cmpType)
 dir.create(outFolder, recursive = TRUE)
 
 all_datasets <- unlist(lapply(1:length(all_exprds), function(x) file.path(names(all_exprds)[x], all_exprds[[x]])))
