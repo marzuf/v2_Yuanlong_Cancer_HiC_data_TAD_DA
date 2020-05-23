@@ -231,6 +231,8 @@ if(buildData) file.remove(logFile)
 
 barplot_vars <- c("foldEnrichment", "geneRatio", "log10_pval")
 barplot_vars_tit <- setNames(c("Fold enrichment", "Gene ratio", paste0("-log10(", padjVarGO,  ")")), barplot_vars)
+barplot_vars <- c( "log10_pval")
+barplot_vars_tit <- setNames(c(paste0("-log10(", padjVarGO,  ")")), barplot_vars)
 
 plotMaxBars <- 10
 
@@ -296,6 +298,9 @@ cat("... available annot. for all_not_conserved_signif_tads_genes:\t", length(go
 stopifnot(go_all_conserved_signif_tads_genes %in% go_all_universe_genes)
 stopifnot(go_all_not_conserved_signif_tads_genes %in% go_all_universe_genes)
 
+save(go_all_conserved_signif_tads_genes, file = file.path(outFolder, "go_all_conserved_signif_tads_genes.Rdata"), version=2)
+#stop("-ok")
+
 #***** 1) conserved_signif
 cat(paste0(">  start enricher for conserved_signif \n"))
 
@@ -309,6 +314,8 @@ if(length(go_all_conserved_signif_tads_genes) > 0) {
                                       minGSSize = enricher_minGSSize, 
                                       maxGSSize = enricher_maxGSSize, 
                                       qvalueCutoff =enricher_qvalueCutoff)
+
+save(conserved_signif_enrich, version=2, file=file.path(outFolder, "conserved_signif_enrich.Rdata"))
   
   conserved_signif_enrich_resultDT <- conserved_signif_enrich@result
   conserved_signif_enrich_resultDT <- conserved_signif_enrich_resultDT[order(conserved_signif_enrich_resultDT[,enricher_results_sortGOby], decreasing=FALSE), ]
@@ -318,6 +325,8 @@ if(length(go_all_conserved_signif_tads_genes) > 0) {
   conserved_signif_enrich_resultDT$bgRatio <- as.numeric(sapply(conserved_signif_enrich_resultDT$BgRatio, function(x) {
     gr <- as.numeric(eval(parse(text = x ))); stopifnot(!is.na(gr)); gr})) 
   conserved_signif_enrich_resultDT$foldEnrichment <- conserved_signif_enrich_resultDT$geneRatio/conserved_signif_enrich_resultDT$bgRatio
+
+save(conserved_signif_enrich_resultDT, version=2, file=file.path(outFolder, "conserved_signif_enrich_resultDT_0.Rdata"))
   
   genes_signif_plotMax <- min(c(plotMaxBars, nrow(conserved_signif_enrich_resultDT)))
   if(genes_signif_plotMax > 0) {
@@ -345,6 +354,7 @@ if(length(go_all_conserved_signif_tads_genes) > 0) {
   conserved_signif_enrich_resultDT <- NULL
 }
 
+save(conserved_signif_enrich_resultDT, version=2, file=file.path(outFolder, "conserved_signif_enrich_resultDT_1.Rdata"))
 
 #***** 2) not_conserved_signif
 
@@ -399,14 +409,16 @@ if(length(go_all_not_conserved_signif_tads_genes) > 0) {
   not_conserved_signif_enrich_resultDT <- NULL
 }
 
+save(conserved_signif_enrich_resultDT, version=2, file=file.path(outFolder, "conserved_signif_enrich_resultDT_2.Rdata"))
+
 
 outFile <- file.path(outFolder,paste0(file_prefix, "not_conserved_signif_enrich_resultDT.Rdata"))
-save(not_conserved_signif_enrich_resultDT, file=outFile)
+save(not_conserved_signif_enrich_resultDT, file=outFile, version=2)
 cat(paste0("... written: ", outFile, "\n"))
 
 
 outFile <- file.path(outFolder,paste0(file_prefix, "conserved_signif_enrich_resultDT.Rdata"))
-save(conserved_signif_enrich_resultDT, file=outFile)
+save(conserved_signif_enrich_resultDT, file=outFile, version=2)
 cat(paste0("... written: ", outFile, "\n"))
 
 
