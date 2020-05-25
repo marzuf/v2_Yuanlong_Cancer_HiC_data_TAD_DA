@@ -1,0 +1,624 @@
+########################################################################################################################################################################################
+startTime <- Sys.time()
+cat(paste0("> Rscript immuneGO_sampleInf.R\n"))
+
+script_name <- "immuneGO_sampleInf.R"
+
+
+####### !!!!!!!!!!!  FOR THE MOMENT I DO NOT RESTRICT 
+# the datasets in which I look at expression (I do not ensure that is a DS where the conserved region is signif. DA)
+# rationale: I want to look if this set of genes is related to purity, irrespective of DA
+
+
+suppressPackageStartupMessages(library(foreach, warn.conflicts = FALSE, quietly = TRUE, verbose = FALSE))
+suppressPackageStartupMessages(library(doMC, warn.conflicts = FALSE, quietly = TRUE, verbose = FALSE))
+suppressPackageStartupMessages(library(reshape2, warn.conflicts = FALSE, quietly = TRUE, verbose = FALSE))
+suppressPackageStartupMessages(library(ggplot2, warn.conflicts = FALSE, quietly = TRUE, verbose = FALSE))
+
+source("../Yuanlong_Cancer_HiC_data_TAD_DA/subtype_cols.R")
+
+# Rscript immuneGO_sampleInf.R
+# Rscript immuneGO_sampleInf.R EPIC
+
+SSHFS <- FALSE
+setDir <- ifelse(SSHFS, "/media/electron", "")
+registerDoMC(ifelse(SSHFS, 2, 80))
+
+buildTable <- FALSE
+
+myHeight <- 400 
+myWidth <- 400
+plotType <- "png"
+plotCex <- 1.4
+mainFolder <- file.path(".")
+pipFolder <- file.path("PIPELINE", "OUTPUT_FOLDER")
+settingFolder <- file.path("PIPELINE", "INPUT_FILES")
+
+goSignifThresh <- 0.05
+tieMeth <- "min"
+fontFamily <- "Hershey"
+corMet <- "pearson"    
+strwdth <- 35
+
+plotType <- "svg"
+myHeightGG <- 7
+myWidthGG <- 9
+
+
+args <- commandArgs(trailingOnly = TRUE)
+if(length(args) == 1) {
+  purity_ds <- args[1]  
+} else{
+  purity_ds <- ""
+}
+
+
+if(purity_ds == "") {
+  file_suffix <- ""
+  purity_file <- file.path("tcga_purity_aran2015.csv")
+  purity_dt <- read.delim(purity_file, header=TRUE, sep="\t", stringsAsFactors = FALSE)
+  purity_metrics <- c("ESTIMATE", "ABSOLUTE", "LUMP", "IHC", "CPE")
+  pm <- purity_metrics[1]
+  # all the ranks are between 1 and 0
+} else if(purity_ds == "EPIC") {
+  file_suffix <- "_EPIC"
+  purity_file <- file.path("EPIC_PURITY/all_epic_purity_data.Rdata")
+  epic_purity_data <- get(load(purity_file))
+  purity_dt <- as.data.frame(do.call(rbind, c(lapply(epic_purity_data, function(x) x[["infiltration_fraction"]]))))
+  all_pm_metrics <- colnames(purity_dt) #"Bcells"      "CAFs"        "CD4_Tcells"  "CD8_Tcells"  "Endothelial" "Macrophages" "NKcells"     "otherCells" 
+  pm <- "otherCells"
+  purity_dt$Sample.ID <- rownames(purity_dt)
+  purity_dt$Sample.ID <- gsub("\\.", "-", purity_dt$Sample.ID)
+} else {
+  stop("--invalid purity_ds\n")
+}
+
+
+
+go_result_dt <- get(load("../MANUSCRIPT_FIGURES/FIG_4/GO_SIGNIF_ACROSS_HICDS_v2/conserved_signif_enrich_resultDT.Rdata"))
+nrow(go_result_dt)
+go_signif_dt <- go_result_dt[go_result_dt$p.adjust <= goSignifThresh,]
+nrow(go_signif_dt)
+go_signif_dt$p.adjust_rank <- rank(go_signif_dt$p.adjust, tie=tieMeth)
+
+
+outFolder <- file.path(paste0("IMMUNEGO_SAMPLEINF", file_suffix))
+dir.create(outFolder, recursive = TRUE)
+
+cat(paste0("!!! > purity metric: ", pm, "\n"))
+cat(paste0("!!! > goSignifThresh: ", goSignifThresh, "\n"))
+cat(paste0("!!! > tieMeth: ", tieMeth, "\n"))
+
+all_hicds <- list.files(pipFolder)
+all_hicds <- all_hicds[!grepl("RANDOM", all_hicds) & !grepl("PERMUT", all_hicds)]
+all_exprds <- lapply(all_hicds, function(x) list.files(file.path(pipFolder, x)))
+names(all_exprds) <- all_hicds
+all_ds <- unlist(sapply(names(all_exprds), function(x) file.path(x, all_exprds[[paste0(x)]])))
+names(all_ds) <- NULL
+ds=all_ds[3]
+
+cat(paste0(">>> purity metric\t=\t", pm, "\n"))
+
+# all_ds=all_ds[1]
+
+if(buildTable){
+
+  all_fpkmGO_purity_dt <- foreach(ds = all_ds, .combine='rbind') %dopar% {
+    
+    cat(paste0("... start: ", ds, "\n"))
+    
+    hicds <- dirname(ds)
+    exprds <- basename(ds)
+    
+    settingFile <- file.path(settingFolder, hicds, paste0("run_settings_", exprds, ".R"))
+    stopifnot(file.exists(settingFile))
+    source(settingFile)
+    
+    samp1 <- get(load(file.path(setDir, sample1_file)))
+    samp2 <- get(load(file.path(setDir, sample2_file)))
+    
+    pur_samp1 <- samp1[samp1 %in% purity_dt$Sample.ID | paste0(samp1, "A") %in% purity_dt$Sample.ID]
+    cat(paste0("For ", cond1, " - available samples:\t", length(pur_samp1), "/", length(samp1), "\n"))
+    
+    pur_samp2 <- samp2[samp2 %in% purity_dt$Sample.ID | paste0(samp2, "A") %in% purity_dt$Sample.ID]
+    cat(paste0("For ", cond2, " - available samples:\t", length(pur_samp2), "/", length(samp2), "\n"))
+    
+    if(length(pur_samp1) == 0 & length(pur_samp2) == 0) return(NULL)
+    
+    pur2_samp1 <- purity_dt$Sample.ID[purity_dt$Sample.ID %in% samp1  | purity_dt$Sample.ID %in% paste0(samp1, "A") ]
+    stopifnot(length(pur2_samp1) == length(pur_samp1))
+    
+    pur2_samp2 <- purity_dt$Sample.ID[purity_dt$Sample.ID %in% samp2  | purity_dt$Sample.ID %in% paste0(samp2, "A") ]
+    stopifnot(length(pur2_samp2) == length(pur_samp2))
+    
+    stopifnot(setequal(gsub("A$", "", pur2_samp1), pur_samp1))
+    stopifnot(setequal(gsub("A$", "", pur2_samp2), pur_samp2))
+    
+    fpkm_file <- file.path(pipFolder, hicds, exprds, "0_prepGeneData", "rna_fpkmDT.Rdata")
+    stopifnot(file.exists(fpkm_file))
+    fpkm_dt <- get(load(fpkm_file))  
+    
+    gene_file <- file.path(pipFolder, hicds, exprds, "0_prepGeneData", "pipeline_geneList.Rdata")
+    stopifnot(file.exists(gene_file))
+    geneList <- get(load(gene_file))  
+    stopifnot(names(geneList) %in% rownames(fpkm_dt))
+    fpkm_dt <- fpkm_dt[rownames(fpkm_dt) %in% names(geneList),]
+    newnames <- sapply(rownames(fpkm_dt), function(x) geneList[x])
+    stopifnot(!duplicated(newnames))
+    stopifnot(length(newnames) == nrow(fpkm_dt))
+    rownames(fpkm_dt) <- as.character(newnames)
+    
+    stopifnot(pur_samp1 %in% colnames(fpkm_dt)); stopifnot(pur_samp2 %in% colnames(fpkm_dt))
+    stopifnot(pur2_samp1 %in% purity_dt$Sample.ID); stopifnot(pur2_samp2 %in% purity_dt$Sample.ID)
+    
+    all_samps <- sort(c(pur_samp1, pur_samp2))
+    stopifnot(!duplicated(all_samps))
+    all_samps2 <- sort(c(pur2_samp1, pur2_samp2))
+    stopifnot(!duplicated(all_samps2))
+    stopifnot(gsub("A$", "", all_samps2) == all_samps)
+    
+    purity_values <- setNames(purity_dt[purity_dt$Sample.ID %in% pur2_samp1 | purity_dt$Sample.ID %in% pur2_samp2,paste0(pm)],
+                              purity_dt[purity_dt$Sample.ID %in% pur2_samp1 | purity_dt$Sample.ID %in% pur2_samp2,paste0("Sample.ID")])
+    
+    stopifnot(setequal(names(purity_values), all_samps2))
+    names(purity_values) <- gsub("A$", "", names(purity_values))
+    stopifnot(setequal(names(purity_values), all_samps))
+    
+    all_gos <- as.character(go_signif_dt$ID)
+    curr_go = all_gos[3]
+    
+    go_expr_dt <- foreach(curr_go = all_gos, .combine='rbind') %dopar% {
+      go_rank <- unique(go_signif_dt$p.adjust_rank[as.character(go_signif_dt$ID) == curr_go])
+      stopifnot(length(go_rank) == 1)
+      curr_entrezID <- as.character(go_signif_dt$geneID[as.character(go_signif_dt$ID) == curr_go])
+      stopifnot(length(curr_entrezID) == 1)
+      go_entrezID <- unlist(strsplit(x=curr_entrezID, split="/"))
+
+      pip_go_entrezID <- go_entrezID[go_entrezID %in% geneList]
+      
+      if(length(pip_go_entrezID) == 0) return(NULL)
+      
+      stopifnot(pip_go_entrezID %in% rownames(fpkm_dt))
+      
+      go_fpkm_dt <- fpkm_dt[pip_go_entrezID, c(all_samps)]
+      stopifnot(ncol(go_fpkm_dt) == length(all_samps))
+      stopifnot(nrow(go_fpkm_dt) == length(pip_go_entrezID))
+      
+      go_fpkm_dt$entrezID <- rownames(go_fpkm_dt)
+      m_go_fpkm_dt <- melt(go_fpkm_dt, id="entrezID")
+      m_go_fpkm_dt$entrezID <- as.character(m_go_fpkm_dt$entrezID)
+      m_go_fpkm_dt$variable <- as.character(m_go_fpkm_dt$variable)
+      stopifnot(m_go_fpkm_dt$entrezID == pip_go_entrezID)
+      stopifnot(setequal(m_go_fpkm_dt$variable,all_samps))
+      colnames(m_go_fpkm_dt)[colnames(m_go_fpkm_dt) == "variable"] <- "sample"
+      colnames(m_go_fpkm_dt)[colnames(m_go_fpkm_dt) == "value"] <- "geneExpr"
+      stopifnot(m_go_fpkm_dt$sample %in% names(purity_values))
+      m_go_fpkm_dt$samplePurity <- purity_values[paste0(m_go_fpkm_dt$sample)]
+      # stopifnot(!is.na(m_go_fpkm_dt)) # FALSE: there is some NA purity values
+      # e.g.
+      # purity_dt[purity_dt$Sample.ID == "TCGA-55-A490-01A",]
+      # Sample.ID Cancer.type ESTIMATE ABSOLUTE   LUMP IHC    CPE  X
+      # 5696 TCGA-55-A490-01A        LUAD      NaN      NaN 0.6508 0.9 0.6244 NA
+      m_go_fpkm_dt$go_id <- curr_go
+      m_go_fpkm_dt$go_rank <- go_rank
+      m_go_fpkm_dt$nGOgenes <- length(go_entrezID)
+      m_go_fpkm_dt$nGOpipGenes <- length(pip_go_entrezID)
+      m_go_fpkm_dt
+    }
+    go_expr_dt$hicds <- hicds
+    go_expr_dt$exprds <- exprds
+    go_expr_dt$nAllSamp <- length(samp1)+length(samp2)
+    go_expr_dt$nPuritySamp <- length(all_samps)
+    go_expr_dt
+  }
+  outFile <- file.path(outFolder, "all_fpkmGO_purity_dt.Rdata")
+  save(all_fpkmGO_purity_dt, file=outFile, version=2)
+  cat(paste0("... written: ", outFile, "\n"))
+} else {
+  outFile <- file.path(outFolder, "all_fpkmGO_purity_dt.Rdata")
+  all_fpkmGO_purity_dt <- get(load(outFile))
+}
+    
+# load("IMMUNEGO_SAMPLEINF/all_fpkmGO_purity_dt.Rdata")
+
+
+#################################################################
+################################################################# # barplot all agg.
+#################################################################
+
+    
+all_cors <- do.call(rbind, by(all_fpkmGO_purity_dt, all_fpkmGO_purity_dt$go_id, function(sub_dt){
+  
+  my_x <- sub_dt$geneExpr
+  my_y <- sub_dt$samplePurity
+  mycor <- cor(my_x[!is.na(my_x) & !is.na(my_y)], 
+      my_y[!is.na(my_x) & !is.na(my_y)], method = corMet)
+  
+  my_x <- log10(sub_dt$geneExpr)
+  my_y <- sub_dt$samplePurity
+  mycor_log10 <- cor(my_x[!is.na(my_x) & !is.na(my_y) & is.finite(my_x) & is.finite(my_y)], 
+      my_y[!is.na(my_x) & !is.na(my_y) & is.finite(my_x) & is.finite(my_y)], method = corMet)
+  
+  curr_go <- unique(sub_dt$go_id)
+  curr_go_rank <- unique(sub_dt$go_rank)
+  
+  data.frame(
+    GO_id=curr_go,
+    GO_rank=curr_go_rank,
+    corr=mycor,
+    corr_log10=mycor_log10,
+    stringsAsFactors = FALSE
+  )
+  
+} ))   
+outFile <- file.path(outFolder, "all_cors.Rdata")
+save(all_cors, file=outFile, version=2)
+cat(paste0("... written: ", outFile, "\n"))
+# load("IMMUNEGO_SAMPLEINF/all_cors.Rdata")
+
+all_cors <- all_cors[order(all_cors$GO_rank),]
+
+all_cors$GO_id_labs <- unlist(lapply(strwrap(gsub("_", " ", as.character(all_cors$GO_id)),
+                                           width = strwdth, simplify=FALSE),
+                                   function(x) paste0(x, collapse="\n")))
+all_cors$GO_id <- factor(all_cors$GO_id, levels=all_cors$GO_id)
+all_cors$GO_id_labs <- factor(all_cors$GO_id_labs, levels=all_cors$GO_id_labs)
+stopifnot(!is.na(all_cors$GO_id))
+stopifnot(!is.na(all_cors$GO_id_labs))
+
+all_cors$corr_abs <- abs(all_cors$corr)
+all_cors$corr_log10_abs <- abs(all_cors$corr_log10)
+
+my_theme <-     theme(
+  # plot.margin = margin(b = 2, unit = "cm"),
+  text = element_text(family=fontFamily),
+  panel.grid.major.y =  element_line(colour = "grey", size = 0.5, linetype=1),
+  panel.grid.minor.y =  element_line(colour = "grey", size = 0.5, linetype=1),
+  panel.background = element_rect(fill = "transparent"),
+  panel.grid.major.x =  element_blank(),
+  panel.grid.minor.x =  element_blank(),
+  axis.line=element_line(),
+  axis.title.x = element_text(size=14, hjust=0.5, vjust=0.5),
+  axis.title.y = element_text(size=14, hjust=0.5, vjust=0.5),
+  axis.text.y = element_text(size=12, hjust=0.5, vjust=0.5),
+  axis.text.x = element_text(size=8, hjust=1, vjust=0.5, angle=90),
+  plot.title = element_text(hjust=0.5, size = 16, face="bold"),
+  plot.subtitle = element_text(hjust=0.5, size = 14, face="italic"),
+  legend.title = element_text(face="bold")
+)
+
+
+var_suff=""
+for(var_suff in c("", "_log10", "_abs", "_log10_abs")){
+  
+  plotTit <- paste0("Corr. GO gene expr. and purity overall DS")
+  subTit <- paste0(gsub("_", " ", var_suff, " - GO signif. thresh <= ", goSignifThresh))
+  
+  bar_p <- ggplot(all_cors, aes_string(x="GO_id_labs",y=paste0("corr", var_suff)))+
+    ggtitle(plotTit, subtitle=subTit)+
+    geom_bar(stat="identity")+
+    labs(x="", y =paste0(var_suff, " ", corMet, "'s correlation"))+
+    my_theme
+ 
+  outFile <- file.path(outFolder, paste0("GO_geneExpr_samplePurity_", corMet, "Corr", "_", var_suff, "_barplot.", plotType))
+  ggsave(bar_p, filename=outFile, height = myHeightGG, width=myWidthGG)
+  cat(paste0("... written: ", outFile, "\n"))
+  
+  
+  
+}
+#################################################################
+################################################################# # boxplot by DS & boxplot by GO
+#################################################################
+
+
+all_cors_byDS <- do.call(rbind, by(all_fpkmGO_purity_dt, all_fpkmGO_purity_dt$go_id, function(sub_dt){
+  
+  sub_dt$dataset <- file.path(sub_dt$hicds, sub_dt$exprds)
+  
+  out_dt <- foreach(ds= unique(as.character(sub_dt$dataset)), .combine='rbind') %dopar% {
+    
+    sub_dt2 <- sub_dt[sub_dt$dataset == ds,]
+    stopifnot(nrow(sub_dt2) > 0)
+    
+    my_x <- sub_dt2$geneExpr
+    my_y <- sub_dt2$samplePurity
+    mycor <- cor(my_x[!is.na(my_x) & !is.na(my_y)], 
+                 my_y[!is.na(my_x) & !is.na(my_y)], method = corMet)
+    
+    my_x <- log10(sub_dt2$geneExpr)
+    my_y <- sub_dt2$samplePurity
+    mycor_log10 <- cor(my_x[!is.na(my_x) & !is.na(my_y) & is.finite(my_x) & is.finite(my_y)], 
+                       my_y[!is.na(my_x) & !is.na(my_y) & is.finite(my_x) & is.finite(my_y)], method = corMet)
+    
+    curr_go <- unique(sub_dt2$go_id)
+    curr_go_rank <- unique(sub_dt2$go_rank)
+    
+    data.frame(
+      dataset = ds,
+      GO_id=curr_go,
+      GO_rank=curr_go_rank,
+      corr=mycor,
+      corr_log10=mycor_log10,
+      stringsAsFactors = FALSE
+    )
+  }
+  out_dt
+  
+} ))   
+rownames(all_cors_byDS) <- NULL
+outFile <- file.path(outFolder, "all_cors_byDS.Rdata")
+save(all_cors_byDS, file=outFile, version=2)
+cat(paste0("... written: ", outFile, "\n"))
+
+# load("IMMUNEGO_SAMPLEINF/all_cors_byDS.Rdata")
+
+tmp <- all_cors_byDS[,c("GO_rank", "GO_id")]
+tmp <- unique(tmp)
+tmp$GO_id_labs <- unlist(lapply(strwrap(gsub("_", " ", as.character(tmp$GO_id)),
+                                                  width = strwdth, simplify=FALSE),
+                                          function(x) paste0(x, collapse="\n")))
+tmp <- tmp[order(tmp$GO_rank),]
+
+all_cors_byDS <- all_cors_byDS[order(all_cors_byDS$GO_rank),]
+
+all_cors_byDS$GO_id_labs <- unlist(lapply(strwrap(gsub("_", " ", as.character(all_cors_byDS$GO_id)),
+                                             width = strwdth, simplify=FALSE),
+                                     function(x) paste0(x, collapse="\n")))
+all_cors_byDS$GO_id <- factor(all_cors_byDS$GO_id, levels=unique(tmp$GO_id))
+all_cors_byDS$GO_id_labs <- factor(all_cors_byDS$GO_id_labs, levels=tmp$GO_id_labs)
+stopifnot(!is.na(all_cors_byDS$GO_id))
+stopifnot(!is.na(all_cors_byDS$GO_id_labs))
+
+all_cors_byDS$corr_abs <- abs(all_cors_byDS$corr)
+all_cors_byDS$corr_log10_abs <- abs(all_cors_byDS$corr_log10)
+
+tmp2 <- aggregate(corr_abs~dataset, FUN=mean, data=all_cors_byDS)
+tmp2 <- tmp2[order(tmp2$corr, decreasing = TRUE),]
+all_cors_byDS$dataset_lab <- paste0(dirname(all_cors_byDS$dataset), "\n", basename(all_cors_byDS$dataset))
+
+all_cors_byDS$dataset <- factor(all_cors_byDS$dataset, levels=as.character(tmp2$dataset))
+stopifnot(!is.na(all_cors_byDS$dataset))
+
+all_cors_byDS$dataset_lab <- factor(all_cors_byDS$dataset_lab, levels=paste0(dirname(as.character(tmp2$dataset)),                                                                              "\n", basename(as.character(tmp2$dataset))))
+stopifnot(!is.na(all_cors_byDS$dataset_lab))
+all_cors_byDS$cmpType <- all_cmps[paste0(basename(as.character(all_cors_byDS$dataset)))]
+stopifnot(!is.na(all_cors_byDS$cmpType))
+
+var_suff=""
+for(var_suff in c("", "_log10", "_abs", "_log10_abs")){
+  
+  plotTit <- paste0("Corr. GO gene expr. and purity by DS")
+  subTit <- paste0(gsub("_", " ", var_suff, " - GO signif. thresh <= ", goSignifThresh))
+  
+  box_p <- ggplot(all_cors_byDS, aes_string(x="GO_id_labs",y=paste0("corr", var_suff)))+
+    ggtitle(plotTit, subtitle=subTit)+
+    geom_boxplot()+
+    labs(x="", y ="")+
+    my_theme
+  
+  outFile <- file.path(outFolder, paste0("GO_geneExpr_samplePurity_", corMet, "Corr", "_", var_suff, "_byDS_byGO_boxplot.", plotType))
+  ggsave(box_p, filename=outFile, height = myHeightGG, width=myWidthGG)
+  cat(paste0("... written: ", outFile, "\n"))
+  
+  box_p_cmp <- ggplot(all_cors_byDS, aes_string(x="GO_id_labs",y=paste0("corr", var_suff), color="cmpType"))+
+    ggtitle(plotTit, subtitle=subTit)+
+    geom_boxplot()+
+    labs(x="", y ="")+
+    my_theme
+  
+  outFile <- file.path(outFolder, paste0("GO_geneExpr_samplePurity_", corMet, "Corr", "_", var_suff, "_byDS_byGO_byCmp_boxplot.", plotType))
+  ggsave(box_p_cmp, filename=outFile, height = myHeightGG, width=myWidthGG)
+  cat(paste0("... written: ", outFile, "\n"))
+  
+  
+  box_p_ds <- ggplot(all_cors_byDS, aes_string(x="dataset_lab",y=paste0("corr", var_suff)))+
+    ggtitle(plotTit, subtitle=subTit)+
+    geom_boxplot()+
+    labs(x="", y ="")+
+    my_theme
+  
+  outFile <- file.path(outFolder, paste0("GO_geneExpr_samplePurity_", corMet, "Corr", "_", var_suff, "_byDS_byDS_boxplot.", plotType))
+  ggsave(box_p_ds, filename=outFile, height = myHeightGG, width=myWidthGG)
+  cat(paste0("... written: ", outFile, "\n"))
+  
+  
+  
+  
+}
+
+
+
+    
+#     
+#     
+#     purity_values <- setNames(purity_dt[purity_dt$Sample.ID %in% pur2_samp1 | purity_dt$Sample.ID %in% pur2_samp2,paste0(pm)],
+#                               purity_dt[purity_dt$Sample.ID %in% pur2_samp1 | purity_dt$Sample.ID %in% pur2_samp2,paste0("Sample.ID")])
+#     
+#     names(purity_values) <- gsub("A$", "", names(purity_values))
+#     pur2_samp1 <- gsub("A$", "", pur2_samp1)
+#     pur2_samp2 <- gsub("A$", "", pur2_samp2)
+#     stopifnot(setequal(names(purity_values), c(pur2_samp1, pur2_samp2)))
+#     
+#     stopifnot(setequal(names(purity_values), c(pur_samp1, pur_samp2)))
+#     stopifnot(length(purity_values) == length(c(pur_samp1, pur_samp2)))
+#     
+#     purity_values <- purity_values[c(pur2_samp1, pur2_samp2)]
+#     fpkm_dt <- fpkm_dt[,c(pur_samp1, pur_samp2)]
+#     
+#     fpkm_purity_dt <- fpkm_dt
+#     fpkm_purity_dt[(nrow(fpkm_purity_dt) + 1),] <- purity_values
+#     rownames(fpkm_purity_dt)[nrow(fpkm_purity_dt)] <- "purity"
+#     stopifnot(rownames(fpkm_purity_dt)[nrow(fpkm_purity_dt)] == "purity")
+#     
+#     cat(paste0("... ", hicds, " - ", exprds, " \t ", "corr. for all samples\n"))
+#     
+#     all_partial_corr_dt <- get_partial_corr_dt(fpkmdt_with_pur=fpkm_purity_dt, cormet=corMet, newcol="partial_coexpr")
+#     all_corr_dt <- get_full_corr_dt(fpkmdt=fpkm_dt, cormet=corMet, newcol="coexpr")
+#     
+#     all_dt <- merge(all_partial_corr_dt, all_corr_dt, by=c("gene1", "gene2")) 
+#     
+#     cat(paste0("... ", hicds, " - ", exprds, " \t ", "corr. for samp1\n"))    
+#     if(length(pur_samp1) > 1) {
+#       samp1_partial_corr_dt <- get_partial_corr_dt(fpkmdt_with_pur=fpkm_purity_dt[,c(pur_samp1)], cormet=corMet, newcol="partial_coexpr_samp1")
+#       samp1_corr_dt <- get_full_corr_dt(fpkmdt=fpkm_dt[,c(pur_samp1)], cormet=corMet, newcol="coexpr_samp1")
+#       samp1_dt <- merge(samp1_partial_corr_dt, samp1_corr_dt, by=c("gene1", "gene2")) 
+#       out_dt <- merge(all_dt, samp1_dt, by=c("gene1", "gene2")) 
+#     } else {
+#       out_dt <- all_dt
+#       out_dt$partial_coexpr_samp1 <- out_dt$coexpr_samp1 <- NA
+#     }
+#     
+#     cat(paste0("... ", hicds, " - ", exprds, " \t ", "corr. for samp2\n"))
+#     if(length(pur_samp2) > 1) {
+#       samp2_partial_corr_dt <- get_partial_corr_dt(fpkmdt_with_pur=fpkm_purity_dt[,c(pur_samp2)], cormet=corMet, newcol="partial_coexpr_samp2")
+#       samp2_corr_dt <- get_full_corr_dt(fpkmdt=fpkm_dt[,c(pur_samp2)], cormet=corMet, newcol="coexpr_samp2")
+#       samp2_dt <- merge(samp2_partial_corr_dt, samp2_corr_dt, by=c("gene1", "gene2")) 
+#       out_dt <- merge(out_dt, samp2_dt, by=c("gene1", "gene2")) 
+#     } else {
+#       out_dt$partial_coexpr_samp2 <- out_dt$coexpr_samp2 <- NA
+#     }
+#     
+#     out_dt$hicds <- hicds
+#     out_dt$exprds <- exprds
+#     
+#     out_dt
+#   } # end-iterating ds 
+#   
+#   
+#   outFile <- file.path(outFolder, "coexpr_and_purity_dt.Rdata")
+#   save(coexpr_and_purity_dt, file=outFile, version=2)
+#   cat(paste0("... written: ", outFile, "\n"))
+#   
+#   
+# } else {
+#   outFile <- file.path(outFolder, "coexpr_and_purity_dt.Rdata")
+#   # outFile <- file.path(outFolder, "sub_coexpr_and_purity_dt.Rdata")
+#   cat(paste0("... load coexpr data - ", Sys.time()))
+#   coexpr_and_purity_dt <- get(load(outFile))
+#   cat(paste0(" - ", Sys.time(), " - done\n"))
+# }
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# >   purity_file <- file.path("../OLDER_v2_Yuanlong_Cancer_HiC_data_TAD_DA/EPIC_PURITY//all_epic_purity_data.Rdata")
+# epic_purity_data <- get(load(purity_file))
+# [B] 7.6.1810  <ectron:/mnt/etemp/marie/MANUSCRIPT_FIGURES/FIG_2
+# 
+# > str(epic_purity_data[[1]][["infiltration_fraction"]])                                                                                                                                                     
+#  num [1:670, 1:8] 0.003125 0.006525 0.000781 0.007518 0.005236 ...
+#  - attr(*, "dimnames")=List of 2
+#   ..$ : chr [1:670] "TCGA-3C-AAAU-01" "TCGA-3C-AALK-01" "TCGA-4H-AAAK-01" "TCGA-5L-AAT0-01" ...
+#   ..$ : chr [1:8] "Bcells" "CAFs" "CD4_Tcells" "CD8_Tcells" ...
+# > (epic_purity_data[[1]][["infiltration_fraction"]][1:5,1:5])                                                                                                                                               
+#                       Bcells       CAFs CD4_Tcells   CD8_Tcells Endothelial
+# TCGA-3C-AAAU-01 0.0031254992 0.07052641 0.01975444 6.338933e-03  0.01984755
+# TCGA-3C-AALK-01 0.0065250394 0.40216937 0.03330637 2.264790e-06  0.02735698
+# TCGA-4H-AAAK-01 0.0007808537 0.46954227 0.02861602 2.638945e-05  0.01637793
+# TCGA-5L-AAT0-01 0.0075176516 0.26169569 0.04759900 1.154060e-02  0.02780030
+# 
+# 
+# aran_purity_file <- file.path("tcga_purity_aran2015.csv")
+# aran_purity_dt <- read.delim(aran_purity_file, header=TRUE, sep="\t", stringsAsFactors = FALSE)
+# purity_metrics <- c("ESTIMATE", "ABSOLUTE", "LUMP", "IHC", "CPE")
+# pm <- purity_metrics[1]
+# aran_purity_dt$Sample.ID <- gsub("A$", "", aran_purity_dt$Sample.ID)
+# 
+# epic_purity_file <- file.path("EPIC_PURITY/all_epic_purity_data.Rdata")
+# epic_purity_data <- get(load(epic_purity_file))
+# 
+# samples_dt <- do.call(rbind, lapply(1:length(epic_purity_data), function(x) {
+#   tmp <- rownames(epic_purity_data[[x]][["infiltration_fraction"]])
+#   data.frame(
+#     hicds = dirname(names(epic_purity_data)[x]),
+#     exprds = basename(names(epic_purity_data)[x]),
+#     Sample.ID = tmp,
+#     stringsAsFactors = FALSE
+#   )
+# }))
+# 
+# epic_purity_dt <- as.data.frame(do.call(rbind, c(lapply(epic_purity_data, function(x) x[["infiltration_fraction"]]))))
+#                                                  
+# epic_purity_dt$Sample.ID <- rownames(epic_purity_dt)
+# 
+# stopifnot(any(epic_purity_dt$Sample.ID %in% aran_purity_dt$Sample.ID))
+# 
+# 
+# 
+# go_result_dt <- get(load("../MANUSCRIPT_FIGURES/FIG_4/GO_SIGNIF_ACROSS_HICDS_v2/conserved_signif_enrich_resultDT.Rdata"))
+# nrow(go_result_dt)
+# go_signif_dt <- go_result_dt[go_result_dt$p.adjust <= goSignifThresh,]
+# nrow(go_signif_dt)
+# go_signif_dt$p.adjust_rank <- rank(go_signif_dt$p.adjust, tie=tieMeth)
+# 
+# all_gos <- as.character(go_signif_dt$ID)
+# curr_go = all_gos[1]
+# 
+# go_stat_dt <- foreach(curr_go = all_gos, .combine='rbind') %dopar% {
+#   go_rank <- unique(go_signif_dt$p.adjust_rank[as.character(go_signif_dt$ID) == curr_go])
+#   stopifnot(length(go_rank) == 1)
+#   curr_entrezID <- as.character(go_signif_dt$geneID[as.character(go_signif_dt$ID) == curr_go])
+#   stopifnot(length(curr_entrezID) == 1)
+#   go_entrezID <- unlist(strsplit(x=curr_entrezID, split="/"))
+#   stopifnot(all(go_entrezID %in% tadSignif_inDT$entrezID))
+#   go_symbol <- entrez2symb[paste0(go_entrezID)]
+#   go_inDT <- tadSignif_inDT[tadSignif_inDT$entrezID %in% go_entrezID,]
+#   occByGenes_dt <- aggregate(dataset ~ entrezID, data = go_inDT, FUN=length)
+#   nSignifByGenes_dt <- aggregate(adj.P.Val ~ entrezID, data = go_inDT, FUN=function(x) sum(x<=geneSignifThresh))
+#   occ_signif <- merge(occByGenes_dt, nSignifByGenes_dt, by="entrezID", all=T)
+#   stopifnot(!is.na(occ_signif))
+#   occ_signif$signifRatio <- occ_signif$adj.P.Val/occ_signif$dataset
+#   stopifnot(occ_signif$signifRatio>=0 & occ_signif$signifRatio <= 1)
+#   meanOccByGenes <- mean(occByGenes_dt$dataset)
+#   meanSignifByGenes <- mean(nSignifByGenes_dt$adj.P.Val)
+#   meanRatioSiginf <- mean(occ_signif$signifRatio)
+#   meanFC <- mean(go_inDT$logFC)
+#   median_tadRank <- median(go_inDT$tad_rank)
+#   median_geneRank <- median(go_inDT$gene_rank)
+#   data.frame(
+#     go_id = curr_go,
+#     go_rank=go_rank,
+#     median_tadRank=median_tadRank,
+#     median_geneRank=median_geneRank,
+#     meanFC=meanFC,
+#     meanOccByGenes=meanOccByGenes,
+#     meanSignifByGenes=meanSignifByGenes,
+#     meanRatioSiginf=meanRatioSiginf,
+#     go_genes=paste0(go_symbol, collapse=","),
+#     stringsAsFactors = FALSE
+#   )
+# }
+# 
+# outFile <- file.path(outFolder, "go_stat_dt.Rdata")
+# save(go_stat_dt, file=outFile, version=2)
+# cat(paste0("... written: ", outFile, "\n"))
+# # load("LOOK_CONSERVEDREG_IMMUNEGO/go_stat_dt.Rdata")
+# 
+# go_stat_dt <- go_stat_dt[order(go_stat_dt$go_rank),]
+# plot_dt <- go_stat_dt
+# plot_dt$go_id_lab <- unlist(lapply(strwrap(gsub("_", " ", plot_dt$go_id), 
+#                                            width = strwdth, simplify=FALSE), 
+#                                    function(x) paste0(x, collapse="\n")))
+# plot_dt$go_id <- factor(plot_dt$go_id, levels=plot_dt$go_id)
+# plot_dt$go_id_lab <- factor(plot_dt$go_id_lab, levels=plot_dt$go_id_lab)
+# 
+# 
+# 
