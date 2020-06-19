@@ -42,7 +42,7 @@ strwdth <- 35
 
 plotType <- "svg"
 myHeightGG <- 7
-myWidthGG <- 9
+myWidthGG <- 11
 
 
 args <- commandArgs(trailingOnly = TRUE)
@@ -297,7 +297,7 @@ for(var_suff in c("", "_log10", "_abs", "_log10_abs")){
   bar_p <- ggplot(all_cors, aes_string(x="GO_id_labs",y=paste0("corr", var_suff)))+
     ggtitle(plotTit, subtitle=subTit)+
     geom_bar(stat="identity")+
-    labs(x="", y =paste0(var_suff, " ", corMet, "'s correlation"))+
+    labs(x="Ranked GOs", y =paste0(var_suff, " ", corMet, "'s correlation"))+
     my_theme
  
   outFile <- file.path(outFolder, paste0("GO_geneExpr_samplePurity_", corMet, "Corr", "_", var_suff, "_barplot.", plotType))
@@ -394,7 +394,7 @@ for(var_suff in c("", "_log10", "_abs", "_log10_abs")){
   box_p <- ggplot(all_cors_byDS, aes_string(x="GO_id_labs",y=paste0("corr", var_suff)))+
     ggtitle(plotTit, subtitle=subTit)+
     geom_boxplot()+
-    labs(x="", y ="")+
+    labs(x="Ranked GOs", y =paste0(var_suff, " ", corMet, "'s correlation"))+
     my_theme
   
   outFile <- file.path(outFolder, paste0("GO_geneExpr_samplePurity_", corMet, "Corr", "_", var_suff, "_byDS_byGO_boxplot.", plotType))
@@ -404,7 +404,7 @@ for(var_suff in c("", "_log10", "_abs", "_log10_abs")){
   box_p_cmp <- ggplot(all_cors_byDS, aes_string(x="GO_id_labs",y=paste0("corr", var_suff), color="cmpType"))+
     ggtitle(plotTit, subtitle=subTit)+
     geom_boxplot()+
-    labs(x="", y ="")+
+    labs(x="Ranked GOs", y =paste0(var_suff, " ", corMet, "'s correlation"))+
     my_theme
   
   outFile <- file.path(outFolder, paste0("GO_geneExpr_samplePurity_", corMet, "Corr", "_", var_suff, "_byDS_byGO_byCmp_boxplot.", plotType))
@@ -415,7 +415,7 @@ for(var_suff in c("", "_log10", "_abs", "_log10_abs")){
   box_p_ds <- ggplot(all_cors_byDS, aes_string(x="dataset_lab",y=paste0("corr", var_suff)))+
     ggtitle(plotTit, subtitle=subTit)+
     geom_boxplot()+
-    labs(x="", y ="")+
+    labs(x="", y =paste0(var_suff, " ", corMet, "'s correlation"))+
     my_theme
   
   outFile <- file.path(outFolder, paste0("GO_geneExpr_samplePurity_", corMet, "Corr", "_", var_suff, "_byDS_byDS_boxplot.", plotType))

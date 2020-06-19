@@ -75,11 +75,16 @@ all_perm_dt <- foreach(i_perm=1:nPermut, .combine='rbind') %dopar% {
 }
   
 
+outFile <- file.path(outFolder, "all_perm_dt.Rdata")
+save(all_perm_dt, file = outFile)
+
+
 plotTit <- "Conserved signif. regions"
 subTit <- paste0("# obs. cons. regions = ", nrow(count_obsCons_dt), "; # permut = ", nPermut)
   
 outFile <- file.path(outFolder, paste0("obsCons_permCons_cons_line.", plotType))
 do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+par(bty="L")
 plot(NULL,
      xlim = c(0,1),
      ylim = range(c(count_obsCons_dt$conserved, all_perm_dt$conserved)),
@@ -88,8 +93,11 @@ plot(NULL,
      cex.main=plotCex,
      cex.axis=plotCex,
      cex.lab=plotCex,
+axes=F,
      main=plotTit)
-
+axis(2, lwd=0, lwd.ticks=1)
+axis(1, labels=F, tick=F)
+box(type="L")
 lines(x=count_obsCons_dt$region_rank/max(count_obsCons_dt$region_rank), 
       y  = count_obsCons_dt$conserved,
       col = mycols["obs."]
@@ -113,7 +121,7 @@ legend("topleft",
 foo <- dev.off()
 cat(paste0("... written: ", outFile, "\n"))
 
-
+stop("-ok")
 
 nConsByPermut_dt <- aggregate(region ~ conserved + permut, FUN=function(x) length(unique(x)),data=all_perm_dt)
 colnames(nConsByPermut_dt)[colnames(nConsByPermut_dt) == "region"] <- "nRegions"

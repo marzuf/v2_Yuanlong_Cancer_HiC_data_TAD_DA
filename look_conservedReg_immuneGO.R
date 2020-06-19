@@ -1,4 +1,5 @@
 # Rscript look_conservedReg_immuneGO.R
+# Rscript look_conservedReg_immuneGO.R norm_vs_tumor
 
 require(foreach)
 require(doMC)
@@ -6,15 +7,19 @@ require(EPIC)
 registerDoMC(40)
 require(ggplot2)
 require(reshape2)
+source("../MANUSCRIPT_FIGURES/full_dataset_names.R")
+source("../Yuanlong_Cancer_HiC_data_TAD_DA/subtype_cols.R")
 
 args <- commandArgs(trailingOnly = TRUE)
 stopifnot(length(args) <= 1)
 if(length(args) == 1) {
   mycmp <- args[1]
+  mycmp_prefix <- paste0(mycmp, "_")
   mycmp_lab <- mycmp
   stopifnot(mycmp %in% all_cmps)
 } else {
   mycmp <- ""
+  mycmp_prefix <- ""
   mycmp_lab <- "all"
 }
 
@@ -26,13 +31,11 @@ tieMeth <- "min"
 strwdth <- 35
 
 plotType <- "svg"
-myHeightGG <- 7
-myWidthGG <- 9
+myHeightGG <- 9
+myWidthGG <- 11
 
 fontFamily <- "Hershey"
 
-source("../MANUSCRIPT_FIGURES/full_dataset_names.R")
-source("../Yuanlong_Cancer_HiC_data_TAD_DA/subtype_cols.R")
 
 # setDir <- "/media/electron"
 setDir <- ""
@@ -71,7 +74,6 @@ dir.create(outFolder, recursive = TRUE)
 inDT <- get(load("GENE_RANK_TAD_RANK/all_gene_tad_signif_dt.Rdata"))
 inDT$entrezID <- as.character(inDT$entrezID)
 inDT$dataset <- file.path(inDT$hicds, inDT$exprds)
-tadSignif_inDT <-   inDT[inDT$tad_adjCombPval <= tadSignifThresh,]
 
 inDT$cmpType <- all_cmps[paste0(inDT$exprds)]
 stopifnot(!is.na(inDT$cmpType))
@@ -81,9 +83,10 @@ if(length(args) == 1){
   stopifnot(nrow(inDT) > 0)
 }
 
+tadSignif_inDT <-   inDT[inDT$tad_adjCombPval <= tadSignifThresh,]
 
 
-go_result_dt <- get(load("../MANUSCRIPT_FIGURES/FIG_4/GO_SIGNIF_ACROSS_HICDS_v2/conserved_signif_enrich_resultDT.Rdata"))
+go_result_dt <- get(load(file.path("../MANUSCRIPT_FIGURES/FIG_4/GO_SIGNIF_ACROSS_HICDS_v2", mycmp, paste0(mycmp_prefix,"conserved_signif_enrich_resultDT.Rdata"))))
 nrow(go_result_dt)
 go_signif_dt <- go_result_dt[go_result_dt$p.adjust <= goSignifThresh,]
 nrow(go_signif_dt)
@@ -109,7 +112,7 @@ go_stat_dt <- foreach(curr_go = all_gos, .combine='rbind') %dopar% {
   stopifnot(occ_signif$signifRatio>=0 & occ_signif$signifRatio <= 1)
   meanOccByGenes <- mean(occByGenes_dt$dataset)
   meanSignifByGenes <- mean(nSignifByGenes_dt$adj.P.Val)
-  meanRatioSiginf <- mean(occ_signif$signifRatio)
+  meanRatioSignif <- mean(occ_signif$signifRatio)
   meanFC <- mean(go_inDT$logFC)
   median_tadRank <- median(go_inDT$tad_rank)
   median_geneRank <- median(go_inDT$gene_rank)
@@ -121,7 +124,7 @@ go_stat_dt <- foreach(curr_go = all_gos, .combine='rbind') %dopar% {
     meanFC=meanFC,
     meanOccByGenes=meanOccByGenes,
     meanSignifByGenes=meanSignifByGenes,
-    meanRatioSiginf=meanRatioSiginf,
+    meanRatioSignif=meanRatioSignif,
     go_genes=paste0(go_symbol, collapse=","),
     stringsAsFactors = FALSE
   )
@@ -169,6 +172,7 @@ for(mycol in allcols) {
     ggtitle(plotTit, subtitle=subTit)+
     geom_bar(stat="identity")+
     labs(x="", y =mycol)+
+	scale_y_continuous(breaks= scales::pretty_breaks(n = 8))+
     comm_theme
 
   outFile <- file.path(outFolder, paste0("agg_", mycol, "_", mycmp_lab, "_barplot.", plotType))
@@ -221,7 +225,7 @@ m_plot_dt2$go_id_lab <- factor(m_plot_dt2$go_id_lab, levels=unique(m_plot_dt2$go
 
 allvars <- unique(m_plot_dt2$variable)
 myvar = allvars[1]
-subTit <- "all values"
+subTit <- paste0(mycmp_lab)
 for(myvar in allvars) {
   sub_dt <- m_plot_dt2[m_plot_dt2$variable == myvar,]
   plotTit <- paste0(myvar, " by ranked GOs")
@@ -229,6 +233,7 @@ for(myvar in allvars) {
     ggtitle(plotTit, subtitle=subTit)+
     geom_boxplot()+
     labs(x="", y =myvar)+
+	scale_y_continuous(breaks= scales::pretty_breaks(n = 8))+
     comm_theme
 
   outFile <- file.path(outFolder, paste0("all_", myvar, "_", mycmp_lab, "_boxplot.", plotType))
@@ -270,7 +275,7 @@ all_go_genes_dt <- do.call(rbind, by(go_signif_dt, go_signif_dt$ID, function(x) 
 outFile <- file.path(outFolder, "all_go_genes_dt.Rdata")
 save(all_go_genes_dt, file=outFile, version=2)
 cat(paste0("... written: ", outFile, "\n"))
-load("LOOK_CONSERVEDREG_IMMUNEGO/all_go_genes_dt.Rdata")
+# load("LOOK_CONSERVEDREG_IMMUNEGO/all_go_genes_dt.Rdata")
 
 tmp_dt <- all_go_genes_dt[order(all_go_genes_dt$p.adjust_rank),]
 go_levels <- unique(as.character(tmp_dt$GO_id))
@@ -293,7 +298,7 @@ stopifnot(!is.na(m_plot_dt$GO_id_labs))
 # sub_dt <- m_plot_dt[m_plot_dt$variable == myvar,]
 
 var_labels <- c(
-  "nTRef_genes" = paste0("TCell (", length(Bref_entrez), ")"),
+  "nTRef_genes" = paste0("TCell (", length(Tref_entrez), ")"),
   "nBRef_genes"= paste0("BCell (", length(Bref_entrez), ")"),
   "nInfSig_genes"= paste0("Inf (", length(infSig_entrez), ")"),
   "nAllSig_genes"= paste0("all (", length(allSig_entrez), ")")
@@ -309,12 +314,13 @@ plotTit <- paste0("# of genes from signatures")
 bar_sig_p <- ggplot(m_plot_dt, aes(x=GO_id_labs, y=value, color = variable, fill=variable))+
   ggtitle(plotTit, subtitle=subTit)+
 geom_bar(stat="identity", position="dodge")+
-  labs(x="", y =mycol)+
+  labs(x="", y ="# genes", color="", fill="")+
   scale_color_manual(values=colvalues, labels = var_labels)+
   scale_fill_manual(values=colvalues, labels = var_labels)+
+	scale_y_continuous(breaks= scales::pretty_breaks(n = 8))+
   comm_theme
 
-outFile <- file.path(outFolder, paste0("agg_", mycol, "_", mycmp_lab, "_barplot.", plotType))
+outFile <- file.path(outFolder, paste0("agg_genesFromSign_", mycmp_lab, "_barplot.", plotType))
 ggsave(bar_sig_p, filename=outFile, height = myHeightGG, width=myWidthGG)
 cat(paste0("... written: ", outFile, "\n"))
 
