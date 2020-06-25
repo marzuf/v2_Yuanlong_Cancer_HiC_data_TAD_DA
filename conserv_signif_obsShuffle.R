@@ -121,7 +121,19 @@ legend("topleft",
 foo <- dev.off()
 cat(paste0("... written: ", outFile, "\n"))
 
+obs_cons_dt <- count_obsCons_dt
+saveFile <- file.path(outFolder, paste0("supp_fig4A_obs_cons_dt.Rdata"))
+save(obs_cons_dt, file=saveFile, version=2)
+cat(paste0("... written:" , saveFile, "\n"))
+
+permut_cons_dt <- all_perm_dt
+saveFile <- file.path(outFolder, paste0("supp_fig4A_permut_cons_dt.Rdata"))
+save(permut_cons_dt, file=saveFile, version=2)
+cat(paste0("... written:" , saveFile, "\n"))
+
+
 stop("-ok")
+
 
 nConsByPermut_dt <- aggregate(region ~ conserved + permut, FUN=function(x) length(unique(x)),data=all_perm_dt)
 colnames(nConsByPermut_dt)[colnames(nConsByPermut_dt) == "region"] <- "nRegions"
