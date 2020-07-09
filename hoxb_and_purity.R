@@ -1,8 +1,8 @@
 ########################################################################################################################################################################################
 startTime <- Sys.time()
-cat(paste0("> Rscript gimap_and_purity.R\n"))
+cat(paste0("> Rscript hoxb_and_purity.R\n"))
 
-script_name <- "gimap_and_purity.R"
+script_name <- "hoxb_and_purity.R"
 
 
 ####### !!!!!!!!!!!  FOR THE MOMENT I DO NOT RESTRICT 
@@ -17,8 +17,8 @@ suppressPackageStartupMessages(library(ggplot2, warn.conflicts = FALSE, quietly 
 
 source("../Yuanlong_Cancer_HiC_data_TAD_DA/subtype_cols.R")
 
-# Rscript gimap_and_purity.R
-# Rscript gimap_and_purity.R EPIC
+# Rscript hoxb_and_purity.R
+# Rscript hoxb_and_purity.R EPIC
 
 SSHFS <- FALSE
 setDir <- ifelse(SSHFS, "/media/electron", "")
@@ -51,9 +51,10 @@ if(length(args) == 1) {
 }
 
 
-gimap_dt <- get(load("../MANUSCRIPT_FIGURES/FIG_4/CONSERVED_REGIONS_VIZGG_V2/fig4C_conserved_region_130_genes_plot_dt.Rdata"))
-gimap_symbols <- as.character(gimap_dt$symbol)
-gimap_symbols <- gimap_symbols[grepl("GIMAP", gimap_symbols)]
+# hoxb_dt <- get(load("../MANUSCRIPT_FIGURES/FIG_4/CONSERVED_REGIONS_VIZGG_V2/fig4C_conserved_region_42_genes_plot_dt.Rdata"))
+# hoxb_symbols <- as.character(hoxb_dt$symbol)
+# hoxb_symbols <- hoxb_symbols[grepl("HOXB", hoxb_symbols)]
+hoxb_symbols <- paste0("HOXB",2:7)
 entrezDT_file <- paste0(setDir, "/mnt/ed4/marie/entrez2synonym/entrez/ENTREZ_POS/gff_entrez_position_GRCh37p13_nodup.txt")
 gff_dt <- read.delim(entrezDT_file, header = TRUE, stringsAsFactors = FALSE)
 gff_dt$entrezID <- as.character(gff_dt$entrezID)
@@ -61,8 +62,8 @@ stopifnot(!duplicated(gff_dt$symbol))
 stopifnot(!duplicated(gff_dt$entrezID))
 symb2entrez <- setNames(gff_dt$entrezID, gff_dt$symbol)
 entrez2symb <- setNames(gff_dt$symbol, gff_dt$entrezID)
-gimap_entrez <- symb2entrez[gimap_symbols]
-stopifnot(!is.na(gimap_entrez))
+hoxb_entrez <- symb2entrez[hoxb_symbols]
+stopifnot(!is.na(hoxb_entrez))
 
 
 
@@ -90,7 +91,7 @@ if(purity_ds == "") {
 }
 
 
-outFolder <- file.path("GIMAP_AND_PURITY", purity_ds)
+outFolder <- file.path("HOXB_AND_PURITY", purity_ds)
 dir.create(outFolder, recursive = TRUE)
 
 cat(paste0("!!! > purity metric: ", pm, "\n"))
@@ -110,7 +111,7 @@ cat(paste0(">>> purity metric\t=\t", pm, "\n"))
 
 if(buildTable){
   
-  all_fpkm_gimap_purity_dt <- foreach(ds = all_ds, .combine='rbind') %dopar% {
+  all_fpkm_hoxb_purity_dt <- foreach(ds = all_ds, .combine='rbind') %dopar% {
     
     cat(paste0("... start: ", ds, "\n"))
     
@@ -162,12 +163,12 @@ if(buildTable){
     geneList <- get(load(gene_file))
     stopifnot(names(geneList) %in% rownames(fpkm_dt))
     
-    # stopifnot(gimap_entrez %in% geneList) # not true for all if gimap not retained
+    # stopifnot(hoxb_entrez %in% geneList) # not true for all if gimap not retained
     
-    gimap_entrez_fpkm <- names(geneList)[geneList %in% gimap_entrez]
-    stopifnot(gimap_entrez_fpkm %in% rownames(fpkm_dt))
-    gimap_fpkm_dt <- fpkm_dt[gimap_entrez_fpkm,]
-    stopifnot(nrow(gimap_fpkm_dt) == length(gimap_entrez_fpkm))
+    hoxb_entrez_fpkm <- names(geneList)[geneList %in% hoxb_entrez]
+    stopifnot(hoxb_entrez_fpkm %in% rownames(fpkm_dt))
+    hoxb_fpkm_dt <- fpkm_dt[hoxb_entrez_fpkm,]
+    stopifnot(nrow(hoxb_fpkm_dt) == length(hoxb_entrez_fpkm))
     
     stopifnot(pur_samp1 %in% colnames(fpkm_dt)); stopifnot(pur_samp2 %in% colnames(fpkm_dt))
     stopifnot(pur2_samp1 %in% purity_dt$Sample.ID); stopifnot(pur2_samp2 %in% purity_dt$Sample.ID)
@@ -185,44 +186,44 @@ if(buildTable){
     names(purity_values) <- gsub("A$", "", names(purity_values))
     stopifnot(setequal(names(purity_values), all_samps))
 
-    stopifnot(all_samps %in% colnames(gimap_fpkm_dt))
+    stopifnot(all_samps %in% colnames(hoxb_fpkm_dt))
     
-    gimap_dt <- data.frame(t(gimap_fpkm_dt[,all_samps]), check.names=FALSE)
-    stopifnot(colnames(gimap_dt) %in% names(pipeline_geneList))
+    hoxb_dt <- data.frame(t(hoxb_fpkm_dt[,all_samps]), check.names=FALSE)
+    stopifnot(colnames(hoxb_dt) %in% names(pipeline_geneList))
     stopifnot(!duplicated(pipeline_geneList))
     # reback to gff dt entrezID -> needed to add column if missing gmaps
-    colnames(gimap_dt) <- pipeline_geneList[colnames(gimap_dt)]
-    stopifnot(colnames(gimap_dt) %in% pipeline_geneList)
+    colnames(hoxb_dt) <- pipeline_geneList[colnames(hoxb_dt)]
+    stopifnot(colnames(hoxb_dt) %in% pipeline_geneList)
     
     # if there are some GIMAPs that were not available for this dataset -> add NA
-    stopifnot(colnames(gimap_dt) %in% gimap_entrez)
-    missed_gimaps <- setdiff(gimap_entrez, colnames(gimap_dt))
-    for(mg in missed_gimaps) {
-      gimap_dt[mg] <- NA
+    stopifnot(colnames(hoxb_dt) %in% hoxb_entrez)
+    missed_hoxbs <- setdiff(hoxb_entrez, colnames(hoxb_dt))
+    for(mg in missed_hoxbs) {
+      hoxb_dt[mg] <- NA
     }
-    gimap_dt$sampID <- rownames(gimap_dt)
-    rownames(gimap_dt) <- NULL
+    hoxb_dt$sampID <- rownames(hoxb_dt)
+    rownames(hoxb_dt) <- NULL
     purity_dt <- data.frame(
       dataset=ds,
       sampID = names(purity_values),
       purity = purity_values,
       stringsAsFactors = FALSE
     )
-    purity_expr_dt <- merge(purity_dt, gimap_dt, by="sampID", all=TRUE)
+    purity_expr_dt <- merge(purity_dt, hoxb_dt, by="sampID", all=TRUE)
     
-    stopifnot(ncol(purity_expr_dt) == length(gimap_entrez) + 3)
+    stopifnot(ncol(purity_expr_dt) == length(hoxb_entrez) + 3)
     
-    purity_expr_dt <- purity_expr_dt[,c("dataset", "sampID", "purity", gimap_entrez)]
+    purity_expr_dt <- purity_expr_dt[,c("dataset", "sampID", "purity", hoxb_entrez)]
     purity_expr_dt
     
     
   }
-  outFile <- file.path(outFolder, "all_fpkm_gimap_purity_dt.Rdata")
-  save(all_fpkm_gimap_purity_dt, file=outFile, version=2)
+  outFile <- file.path(outFolder, "all_fpkm_hoxb_purity_dt.Rdata")
+  save(all_fpkm_hoxb_purity_dt, file=outFile, version=2)
   cat(paste0("... written: ", outFile, "\n"))
 } else {
-  outFile <- file.path(outFolder, "all_fpkm_gimap_purity_dt.Rdata")
-  all_fpkm_gimap_purity_dt <- get(load(outFile))
+  outFile <- file.path(outFolder, "all_fpkm_hoxb_purity_dt.Rdata")
+  all_fpkm_hoxb_purity_dt <- get(load(outFile))
 }
 
 my_ylab <- "RNA-seq TPM [log10]" 
@@ -230,16 +231,16 @@ my_xlab <- "sample purity"
 
 source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 
-ge = gimap_entrez[1]
+ge = hoxb_entrez[1]
 
 offset_log10 <- 0.001
 
                             # 
-                            # for(ge in gimap_entrez) {
+                            # for(ge in hoxb_entrez) {
                             #   gs <- entrez2symb[ge]
                             #   stopifnot(gs == names(ge))
                             #   myTit <- paste0(gs)
-                            #   tmp_dt <- all_fpkm_gimap_purity_dt[,c("dataset", ge, "purity")] 
+                            #   tmp_dt <- all_fpkm_hoxb_purity_dt[,c("dataset", ge, "purity")] 
                             #   tmp_dt <- na.omit(tmp_dt)
                             #   tmp_dt$dataset <- as.character(tmp_dt$dataset)
                             #   
@@ -247,8 +248,8 @@ offset_log10 <- 0.001
                             #   my_x <- log10(my_x + offset_log10)
                             #   my_y <- tmp_dt[,ge]
                             #   
-                            #   legTxt <- paste("# DS=",length(unique(tmp_dt$dataset)), "/",length(unique(all_fpkm_gimap_purity_dt$dataset)), 
-                            #                   "\n# values=", nrow(tmp_dt), "/", nrow(all_fpkm_gimap_purity_dt))  
+                            #   legTxt <- paste("# DS=",length(unique(tmp_dt$dataset)), "/",length(unique(all_fpkm_hoxb_purity_dt$dataset)), 
+                            #                   "\n# values=", nrow(tmp_dt), "/", nrow(all_fpkm_hoxb_purity_dt))  
                             #   
                             #   # outfile <- file.path(outFolder, paste0(gs, "_expr_vs_purity.", plotType))
                             #   # do.call(plotType, list(outfile, height=myWidth, width=myWidth))
@@ -271,11 +272,11 @@ offset_log10 <- 0.001
                             #   cat(paste0("... written: ", outfile, "\n"))
                             # }
 
-all_ds_corr_dt <- foreach(ge = gimap_entrez, .combine='rbind') %dopar% {
+all_ds_corr_dt <- foreach(ge = hoxb_entrez, .combine='rbind') %dopar% {
   gs <- entrez2symb[ge]
   stopifnot(gs == names(ge))
   myTit <- paste0(gs)
-  tmp_dt <- all_fpkm_gimap_purity_dt[,c("dataset", ge, "purity")] 
+  tmp_dt <- all_fpkm_hoxb_purity_dt[,c("dataset", ge, "purity")] 
   tmp_dt <- na.omit(tmp_dt)
   tmp_dt$dataset <- as.character(tmp_dt$dataset)
   
@@ -283,9 +284,9 @@ all_ds_corr_dt <- foreach(ge = gimap_entrez, .combine='rbind') %dopar% {
 
   my_y <- tmp_dt[,ge]
   my_y <- log10(my_y + offset_log10)
-
-  legTxt <- paste("# DS=",length(unique(tmp_dt$dataset)), "/",length(unique(all_fpkm_gimap_purity_dt$dataset)), 
-                  "\n# values=", nrow(tmp_dt), "/", nrow(all_fpkm_gimap_purity_dt))  
+  
+  legTxt <- paste("# DS=",length(unique(tmp_dt$dataset)), "/",length(unique(all_fpkm_hoxb_purity_dt$dataset)), 
+                  "\n# values=", nrow(tmp_dt), "/", nrow(all_fpkm_hoxb_purity_dt))  
   
   # outfile <- file.path(outFolder, paste0(gs, "_expr_vs_purity.", plotType))
   # do.call(plotType, list(outfile, height=myWidth, width=myWidth))
@@ -325,19 +326,19 @@ outFile <- file.path(outFolder, "all_ds_corr_dt.Rdata")
 save(all_ds_corr_dt, file=outFile, version=2)
 cat(paste0("... written: ", outFile, "\n"))
 
-stopifnot(colnames(all_fpkm_gimap_purity_dt) == c("dataset", "sampID", "purity", gimap_entrez))
-all_fpkm_gimap_purity_dt$meanExpr <- rowMeans( all_fpkm_gimap_purity_dt[,gimap_entrez], na.rm=TRUE)
+stopifnot(colnames(all_fpkm_hoxb_purity_dt) == c("dataset", "sampID", "purity", hoxb_entrez))
+all_fpkm_hoxb_purity_dt$meanExpr <- rowMeans( all_fpkm_hoxb_purity_dt[,hoxb_entrez], na.rm=TRUE)
 
-my_x <- all_fpkm_gimap_purity_dt[,"purity"]
-my_y <- all_fpkm_gimap_purity_dt[,"meanExpr"]
+my_x <- all_fpkm_hoxb_purity_dt[,"purity"]
+my_y <- all_fpkm_hoxb_purity_dt[,"meanExpr"]
 
 my_y <- log10(my_y+offset_log10)
 
-myTit <- paste0("all GIMAPs (meanExpr)")
+myTit <- paste0("all HOXB (meanExpr)")
 
 # outfile <- file.path(outFolder, paste0("allGIMAPs_meanExpr_vs_purity.", plotType))
 # do.call(plotType, list(outfile, height=myWidth, width=myWidth))
-outfile <- file.path(outFolder, paste0("allGIMAPs_meanExpr_vs_purity.", "png"))
+outfile <- file.path(outFolder, paste0("allHOXBs_meanExpr_vs_purity.", "png"))
 do.call("png", list(outfile, height=400, width=400))
 plot(x=my_x,
      y=my_y,
@@ -354,10 +355,10 @@ addCorr(my_x, my_y, bty="n", legPos = "topright", corMet=corMet)
 foo <- dev.off()
 cat(paste0("... written: ", outfile, "\n"))
 
-all_fpkm_gimap_purity_dt$dataset <- as.character(all_fpkm_gimap_purity_dt$dataset)
-ds=unique(all_fpkm_gimap_purity_dt$dataset)[1]
-all_ds_meanExpr_corr_dt <- foreach(ds=unique(all_fpkm_gimap_purity_dt$dataset), .combine = 'rbind') %dopar% {
-  ds_tmp_dt <- all_fpkm_gimap_purity_dt[all_fpkm_gimap_purity_dt$dataset == ds, c("purity", "meanExpr")]
+all_fpkm_hoxb_purity_dt$dataset <- as.character(all_fpkm_hoxb_purity_dt$dataset)
+ds=unique(all_fpkm_hoxb_purity_dt$dataset)[1]
+all_ds_meanExpr_corr_dt <- foreach(ds=unique(all_fpkm_hoxb_purity_dt$dataset), .combine = 'rbind') %dopar% {
+  ds_tmp_dt <- all_fpkm_hoxb_purity_dt[all_fpkm_hoxb_purity_dt$dataset == ds, c("purity", "meanExpr")]
   ds_tmp_dt <- na.omit(ds_tmp_dt)
   ds_x <- ds_tmp_dt[,"purity"]
   ds_y <- ds_tmp_dt[,"meanExpr"]
@@ -396,10 +397,10 @@ my_box_theme <- theme(
   legend.title = element_text(face="bold")
 ) 
 
-myTit <- paste0("Correlation GIMAP expression and sample purity")
-subTit <- paste0("by GIMAP and dataset - ", purity_plot_name, " - ", corMet,"'s corr.")
+myTit <- paste0("Correlation HOXB expression and sample purity")
+subTit <- paste0("by HOXB and dataset - ", purity_plot_name, " - ", corMet,"'s corr.")
 xlab <- ""
-ylab <- "Correlation between GIMAP expression and sample purity"
+ylab <- "Correlation between HOXB expression and sample purity"
 
 p_boxplot <- ggplot(data=plot_dt, aes(x=symbol, y=corrExprPurity))+
     geom_boxplot(notch = TRUE, outlier.shape=NA)+
@@ -410,7 +411,7 @@ p_boxplot <- ggplot(data=plot_dt, aes(x=symbol, y=corrExprPurity))+
                      breaks = scales::pretty_breaks(n = 20))+
   my_box_theme
 
-outFile <- file.path(outFolder, paste0("all_corr_expr_purity_GIMAPs_byDS_boxplot.", plotType))
+outFile <- file.path(outFolder, paste0("all_corr_expr_purity_HOXBs_byDS_boxplot.", plotType))
 ggsave(plot = p_boxplot, filename = outFile, height=myHeightGG, width = myWidthGG*1.2)
 cat(paste0("... written: ", outFile, "\n"))
 
@@ -428,13 +429,13 @@ p_boxplot <- ggplot(data=plot_dt, aes(x=symbol, y=corrExprPurity))+
                      breaks = scales::pretty_breaks(n = 20))+
   my_box_theme
 
-outFile <- file.path(outFolder, paste0("all_corr_expr_purity_GIMAPs_byDS_cmpCol_boxplot.", plotType))
+outFile <- file.path(outFolder, paste0("all_corr_expr_purity_HOXBs_byDS_cmpCol_boxplot.", plotType))
 ggsave(plot = p_boxplot, filename = outFile, height=myHeightGG, width = myWidthGG*1.2)
 cat(paste0("... written: ", outFile, "\n"))
 
 
-# load("GIMAP_AND_PURITY/all_ds_corr_dt.Rdata")
-# load("GIMAP_AND_PURITY/all_ds_meanExpr_corr_dt.Rdata")
+# load("hoxb_AND_PURITY/all_ds_corr_dt.Rdata")
+# load("hoxb_AND_PURITY/all_ds_meanExpr_corr_dt.Rdata")
 # #################################################################
 # ################################################################# # barplot all agg.
 # #################################################################

@@ -19,12 +19,13 @@ script1_name <- "1_runGeneDE"
 
 setDir <- "/media/electron"
 setDir <- ""
-buildTable <- FALSE
+buildTable <- TRUE
 
 corrMeth <- "pearson"
 
 plotType <- "svg"
-myWidth <- myHeight <- 8
+myWidth <- 8
+myHeight <- 9
 
 require(doMC)
 require(foreach)
@@ -177,7 +178,7 @@ stopifnot(!is.na(plot_dt$symbol2_hk))
 plot_dt$pair <- as.character(interaction(as.character(plot_dt$symbol1_hk), as.character(plot_dt$symbol2_hk)))
 stopifnot(!duplicated(plot_dt$pair)) # ! if correct, no duplicated
 
-plotTit <- paste0(hicds_oi, " - ", exprds_oi, " (upper left)")
+plotTit <- paste0(hicds_oi, "\n", exprds_oi, " (upper left)")
 subTit <- paste0(tad_oi, " (lower right: all other datasets)")
 legTit <- "Expression correlation"
 lowColor <- "blue"
@@ -186,8 +187,14 @@ highColor <- "red"
 text_bl <- paste0("mean selected\n", round(mean(oi_ds_dt$corr), 2))
 text_tr <- paste0("mean other\n", round(mean(agg_other_ds_dt$corr), 2))
 
+
+script4_name <- "4_runMeanTADCorr"
+meanCorr <- get(load(file.path(pipFolder, hicds_oi, exprds_oi, script4_name, "all_meanCorr_TAD.Rdata")))
+
 mean_oi <- round(mean(oi_ds_dt$corr), 2)
 mean_other <- round(mean(agg_other_ds_dt$corr), 2)
+
+stopifnot(as.numeric(meanCorr[tad_oi]) == mean(oi_ds_dt$corr))
 
 plot_dt$corr_rd <- round(plot_dt$corr, 2)
 plot_dt$corr_rd_lab <- ifelse(is.na(plot_dt$count), plot_dt$corr_rd, paste0(plot_dt$corr_rd, "\n(",plot_dt$count, ")" ))
@@ -211,17 +218,11 @@ hm_p <- ggplot(data = plot_dt, aes(x=symbol1_hk, y=symbol2_hk, fill=corr)) +
   guides(fill = guide_colorbar(barwidth = 10, barheight = 2,
                                title.position = "top", title.hjust = 0.5))
 
-
 hm_p_annot <- hm_p +  theme(
               legend.title = element_text(size=12, face="bold"),
               legend.position = c(1, 1),
               legend.justification = c(1,1), 
               legend.direction = "horizontal") + 
-  # annotate("text", 
-  #          x =1, y=1, 
-  #          label = paste("atop(bold(mean~selected)==", mean_oi, ",\u03BC~bold(mean~other)==", mean_other, ")", sep = ""),
-  #          # label = paste("\u2193"))
-  #         parse=TRUE)
 
 annotate("text", 
          x =1, y=c(1.2, 0.8), 
@@ -232,8 +233,8 @@ annotate("text",
 
 
 outFile <- file.path(outFolder, paste0(hicds_oi, "_", exprds_oi, "_", tad_oi, "_pairwiseCorr_cmpOtherDS.", plotType))
-ggsave(plot = hm_p_annot, filename = outFile, height=myHeight, width=myWidth)
-
+ggsave(plot = hm_p_annot, filename = outFile, height=myHeight*0.9, width=myWidth*1.5)
+cat(paste0("... written:" , outFile, "\n"))
 
 
 
