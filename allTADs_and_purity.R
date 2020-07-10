@@ -274,6 +274,52 @@ if(buildTable){
   save(all_ds_corrPurity_dt, file=outFile, version=2)
   }
       
+load("ALLTADS_AND_PURITY/all_ds_corrPurity_dt.Rdata")
+
+load("CREATE_FINAL_TABLE/all_result_dt.Rdata")
+
+# do the TADs that are signif. correspond to those that are well correlated with purity ?
+
+all_result_dt$regID <- file.path(all_result_dt$hicds, all_result_dt$exprds, all_result_dt$region)
+all_ds_corrPurity_dt$regID <- file.path(all_ds_corrPurity_dt$dataset, all_ds_corrPurity_dt$region)
+stopifnot(all_ds_corrPurity_dt$regID %in% all_result_dt$regID)
+
+all_ds_meanCorrPurity_dt <- aggregate(purityCorr~regID, data=all_ds_corrPurity_dt, FUN=mean)
+stopifnot(!duplicated(all_ds_meanCorrPurity_dt$regID))
+all_dt <- merge(all_ds_meanCorrPurity_dt, all_result_dt, by="regID", all.x=T, all.y=F)
+stopifnot(!duplicated(all_dt$regID))
+
+
+source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
+
+plotTit <- paste0("")
+
+my_x <- all_dt$purityCorr
+my_y <- log10(all_dt$adjPvalComb)
+
+do_plot <- function(my_x, my_y, ...) {
+  plot(x=my_x,
+     y=my_y,
+     cex.main=plotCex,
+     cex.lab=plotCex,
+     cex.tit=plotCex,
+     main=plotTit)
+  addCorr(my_x, my_y)
+  
+}
+
+
+my_x <- all_dt$purityCorr[all_dt$adjPvalComb <= 0.01]
+my_y <- -log10(all_dt$adjPvalComb[all_dt$adjPvalComb <= 0.01])
+do_plot(my_x,my_y)
+
+
+my_x <- all_dt$purityCorr[all_dt$purityCorr >= 0.6]
+my_y <- -log10(all_dt$adjPvalComb[all_dt$purityCorr <= 0.6])
+do_plot(my_x,my_y)
+
+
+
 #       
 #       
 #  
