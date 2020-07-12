@@ -39,13 +39,12 @@ v0_dt <- get(load("PIPELINE/OUTPUT_FOLDER/ENCSR489OCU_NCI-H460_40kb/TCGAluad_nor
 stopifnot(all.equal(vpip_dt, v0_dt))
 
 
-#### CHECK STEP 6
+#### CHECK STEP 6 # - ok
 # not testable for FULL100000 
 #
-vpip_dt <- get(load("../MANUSCRIPT_FIGURES/code/EXAMPLE/OUTPUT_FOLDER/ENCSR489OCU_NCI-H460_TCGAluad_norm_luad_FULL100000/5corr_runPermutationsCorr/sample_around_TADs_sameNbr.Rdata"))
-v0_dt <- get(load("PIPELINE/OUTPUT_FOLDER/ENCSR489OCU_NCI-H460_40kb/TCGAluad_norm_luad/5sameNbr_runPermutationsCorr/sample_around_TADs_sameNbr.Rdata"))
+vpip_dt <- get(load("../MANUSCRIPT_FIGURES/code/EXAMPLE/OUTPUT_FOLDER//ENCSR489OCU_NCI-H460_TCGAluad_norm_luad_COPIED100000/6_runPermutationsMeanLogFC/meanLogFC_permDT.RData"))
+v0_dt <- get(load("PIPELINE/OUTPUT_FOLDER/ENCSR489OCU_NCI-H460_40kb/TCGAluad_norm_luad/6_runPermutationsMeanLogFC/meanLogFC_permDT.Rdata"))
 stopifnot(all.equal(vpip_dt, v0_dt))
-
 
 #### CHECK STEP 7 # => ok
 vpip_dt <- get(load("../MANUSCRIPT_FIGURES/code/EXAMPLE/OUTPUT_FOLDER/ENCSR489OCU_NCI-H460_TCGAluad_norm_luad_FULL100000/7_runPermutationsMeanTADCorr/meanCorr_sample_around_TADs_sameNbr.Rdata"))
@@ -69,6 +68,13 @@ names(vpip_dt)[1:10] == names(v0_dt)[1:10]
 length(intersect(names(vpip_dt)[1:100], names(v0_dt)[1:100])) # -> 99
 
 
+vpip_dt <- get(load("../MANUSCRIPT_FIGURES/code/EXAMPLE/OUTPUT_FOLDER/ENCSR489OCU_NCI-H460_TCGAluad_norm_luad_COPIED100000/8_runEmpPvalMeanTADLogFC/emp_pval_meanLogFC.RData"))
+vpip_dt <- sort(vpip_dt)
+v0_dt <- get(load("PIPELINE/OUTPUT_FOLDER/ENCSR489OCU_NCI-H460_40kb/TCGAluad_norm_luad/9_runEmpPvalMeanTADLogFC/emp_pval_meanLogFC.Rdata"))
+v0_dt <- sort(v0_dt)
+stopifnot(all.equal(vpip_dt, v0_dt))
+
+
 #### CHECK STEP 9  # => ok
 vpip1_dt <- get(load("../MANUSCRIPT_FIGURES/code/EXAMPLE/OUTPUT_FOLDER/ENCSR489OCU_NCI-H460_TCGAluad_norm_luad_FULL100000/9_runEmpPvalMeanTADCorr/fromFile_emp_pval_meanCorr.Rdata"))
 vpip2_dt <- get(load("../MANUSCRIPT_FIGURES/code/EXAMPLE/OUTPUT_FOLDER/ENCSR489OCU_NCI-H460_TCGAluad_norm_luad_FULL100000/9_runEmpPvalMeanTADCorr/fromFolder_emp_pval_meanCorr.Rdata"))
@@ -77,7 +83,7 @@ v0_dt <- get(load("PIPELINE/OUTPUT_FOLDER/ENCSR489OCU_NCI-H460_40kb/TCGAluad_nor
 stopifnot(all.equal(vpip1_dt, v0_dt))
 
 
-#### CHECK STEP 10
+#### CHECK STEP 10 - ok
 vpip1_dt <- get(load("../MANUSCRIPT_FIGURES/code/EXAMPLE/OUTPUT_FOLDER/ENCSR489OCU_NCI-H460_TCGAluad_norm_luad_FULL100000/10_runEmpPvalCombined/fromFilePermCorr_emp_pval_combined.Rdata"))
 vpip1a_dt <- get(load("../MANUSCRIPT_FIGURES/code/EXAMPLE/OUTPUT_FOLDER/ENCSR489OCU_NCI-H460_TCGAluad_norm_luad_FULL100000/10_runEmpPvalCombined/fromFilePermCorr_adj_emp_pval_combined.Rdata"))
 vpip2_dt <- get(load("../MANUSCRIPT_FIGURES/code/EXAMPLE/OUTPUT_FOLDER/ENCSR489OCU_NCI-H460_TCGAluad_norm_luad_FULL100000/10_runEmpPvalCombined/fromFilePermCorr_emp_pval_combined.Rdata"))
@@ -101,34 +107,30 @@ v0_dt <-p.adjust(v0_dt, method="BH")
 vpip1_dt <- vpip1_dt[names(v0_dt)]
 cor(vpip1_dt, v0_dt) # 0.999 pearson, 0.999 spearman
 
+vpip1_dt <- get(load("../MANUSCRIPT_FIGURES/code/EXAMPLE/OUTPUT_FOLDER/ENCSR489OCU_NCI-H460_TCGAluad_norm_luad_COPIED100000/10_runEmpPvalCombined/fromFilePermCorr_emp_pval_combined.RData"))
+v0_dt <- get(load("PIPELINE/OUTPUT_FOLDER/ENCSR489OCU_NCI-H460_40kb/TCGAluad_norm_luad/11sameNbr_runEmpPvalCombined/emp_pval_combined.Rdata"))
+stopifnot(all.equal(vpip1_dt, v0_dt))
 
-
-
-
-
-
-
-vpip_dt <- get(load("../MANUSCRIPT_FIGURES/code/EXAMPLE/OUTPUT_FOLDER/ENCSR489OCU_NCI-H460_TCGAluad_norm_luad/4_runMeanTADCorr/all_meanCorr_TAD.Rdata"))
-v0_dt <- get(load("PIPELINE/OUTPUT_FOLDER/ENCSR489OCU_NCI-H460_40kb/TCGAluad_norm_luad/4_runMeanTADCorr/all_meanCorr_TAD.Rdata"))
-
-
-
-
-#### CHECK STEP 11
+#### CHECK STEP 11 - ok
 vpip_dt <- get(load("../MANUSCRIPT_FIGURES/code/EXAMPLE/OUTPUT_FOLDER/ENCSR489OCU_NCI-H460_TCGAluad_norm_luad/11_runFCC/all_FCC_TAD.Rdata"))
 v0_dt <- get(load("PIPELINE/OUTPUT_FOLDER/ENCSR489OCU_NCI-H460_40kb/TCGAluad_norm_luad/8cOnlyFCC_runAllDown/all_obs_prodSignedRatio.Rdata"))
 stopifnot(all.equal(vpip_dt, v0_dt))
 
-
-
-#### CHECK STEP 12
-vpip_dt <- get(load("../MANUSCRIPT_FIGURES/code/EXAMPLE/OUTPUT_FOLDER/ENCSR489OCU_NCI-H460_TCGAluad_norm_luad/11_runFCC/all_FCC_TAD.Rdata"))
-v0_dt <- get(load("PIPELINE/OUTPUT_FOLDER/ENCSR489OCU_NCI-H460_40kb/TCGAluad_norm_luad/8cOnlyFCC_runAllDown/all_obs_prodSignedRatio.Rdata"))
+#### CHECK STEP 12 - ok
+vpip_dt <- get(load("../MANUSCRIPT_FIGURES/code/EXAMPLE/OUTPUT_FOLDER/ENCSR489OCU_NCI-H460_TCGAluad_norm_luad/12_runPermutationsFCC/FCC_permDT.Rdata"))
+v0_dt <- get(load("PIPELINE/OUTPUT_FOLDER/ENCSR489OCU_NCI-H460_40kb/TCGAluad_norm_luad/8cOnlyFCC_runAllDown/prodSignedRatio_permDT.Rdata"))
+colnames(vpip_dt) <- NULL
+colnames(v0_dt) <- NULL
+vpip_dt <- data.frame(vpip_dt)
+v0_dt <- data.frame(v0_dt)
 stopifnot(all.equal(vpip_dt, v0_dt))
-
-
 
 #### CHECK STEP 13
-vpip_dt <- get(load("../MANUSCRIPT_FIGURES/code/EXAMPLE/OUTPUT_FOLDER/ENCSR489OCU_NCI-H460_TCGAluad_norm_luad/11_runFCC/all_FCC_TAD.Rdata"))
-v0_dt <- get(load("PIPELINE/OUTPUT_FOLDER/ENCSR489OCU_NCI-H460_40kb/TCGAluad_norm_luad/8cOnlyFCC_runAllDown/all_obs_prodSignedRatio.Rdata"))
+vpip_dt <- get(load("../MANUSCRIPT_FIGURES/code/EXAMPLE/OUTPUT_FOLDER/ENCSR489OCU_NCI-H460_TCGAluad_norm_luad_COPIED100000/13_runFCCcumSumAUC/fcc_auc_ratios.RData"))
+v0_dt <- get(load("../MANUSCRIPT_FIGURES/FIG_1/BARPLOT_WITH_FCC_FRACT/all_dt.Rdata"))
 stopifnot(all.equal(vpip_dt, v0_dt))
+stopifnot( v0_dt$fcc_auc[v0_dt$hicds == "ENCSR489OCU_NCI-H460_40kb" & v0_dt$exprds ==  "TCGAluad_norm_luad"] == 
+                        vpip_dt[["auc_obs"]]/vpip_dt[["auc_permutQt"]])
+
+
+

@@ -494,6 +494,20 @@ mtext(text=paste0("abs. high corr. thresh = ", highCorrThresh, " - ", purity_plo
 foo <- dev.off()
 cat(paste0("... written: ", outFile, "\n"))
 
+######################################################################################
+setDir <- "/media/electron"
+setDir <- ""
+entrezDT_file <- paste0(setDir, "/mnt/ed4/marie/entrez2synonym/entrez/ENTREZ_POS/gff_entrez_position_GRCh37p13_nodup.txt")
+gff_dt <- read.delim(entrezDT_file, header = TRUE, stringsAsFactors = FALSE)
+gff_dt$entrezID <- as.character(gff_dt$entrezID)
+entrez2symb <- setNames(gff_dt$symbol,gff_dt$entrezID)
+
+# meanCorr by gene
+
+mean_agg <- aggregate(purityCorr ~ entrezID, data=all_ds_corrPurity_dt, FUN=mean)
+mean_agg <- mean_agg[order(abs(mean_agg$purityCorr), decreasing=T),]
+mean_agg$symbol <- entrez2symb[mean_agg$entrezID]
+head(mean_agg)
 
 ######################################################################################
 ######################################################################################
