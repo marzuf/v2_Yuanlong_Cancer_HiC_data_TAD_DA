@@ -127,8 +127,7 @@ stopifnot(all.equal(vpip_dt, v0_dt))
 
 #### CHECK STEP 13
 vpip_dt <- get(load("../MANUSCRIPT_FIGURES/code/EXAMPLE/OUTPUT_FOLDER/ENCSR489OCU_NCI-H460_TCGAluad_norm_luad_COPIED100000/13_runFCCcumSumAUC/fcc_auc_ratios.RData"))
-v0_dt <- get(load("../MANUSCRIPT_FIGURES/FIG_1/BARPLOT_WITH_FCC_FRACT/all_dt.Rdata"))
-stopifnot(all.equal(vpip_dt, v0_dt))
+v0_dt <- get(load("../MANUSCRIPT_FIGURES/FIG_1/DOUBLE_BARPLOT_V2/fig1D_aucRatio_dt.Rdata"))
 stopifnot( v0_dt$fcc_auc[v0_dt$hicds == "ENCSR489OCU_NCI-H460_40kb" & v0_dt$exprds ==  "TCGAluad_norm_luad"] == 
                         vpip_dt[["auc_obs"]]/vpip_dt[["auc_permutQt"]])
 

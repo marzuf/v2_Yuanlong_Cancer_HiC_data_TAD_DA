@@ -72,7 +72,6 @@ highCorrThresh <- 0.6
 # to quickly retrieve tad-level stat.
 all_result_dt <- get(load("CREATE_FINAL_TABLE/all_result_dt.Rdata"))
 
-
 args <- commandArgs(trailingOnly = TRUE)
 if(length(args) == 1) {
   purity_ds <- args[1]  
@@ -508,6 +507,14 @@ mean_agg <- aggregate(purityCorr ~ entrezID, data=all_ds_corrPurity_dt, FUN=mean
 mean_agg <- mean_agg[order(abs(mean_agg$purityCorr), decreasing=T),]
 mean_agg$symbol <- entrez2symb[mean_agg$entrezID]
 head(mean_agg)
+
+
+onlysignif_dt <- all_dt[all_dt$adjPvalComb <= signifThresh,]
+onlysignif_dt$purityCorr_rd <- round(onlysignif_dt$purityCorr, 2)
+onlysignif_dt$adjPvalComb_log10_rd <- round(onlysignif_dt$adjPvalComb_log10, 2)
+onlysignif_dt <- onlysignif_dt[order(onlysignif_dt$purityCorr), c("regID", "region_genes", "purityCorr_rd","adjPvalComb_log10_rd")]
+rownames(onlysignif_dt) <- NULL
+head(onlysignif_dt,20)
 
 ######################################################################################
 ######################################################################################
