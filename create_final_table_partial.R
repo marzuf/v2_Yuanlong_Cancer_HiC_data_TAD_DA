@@ -77,6 +77,8 @@ buildTable <- TRUE
 
 if(length(args) == 0) {
   all_hicds <- list.files(pipOutFolder)
+  all_hicds <- all_hicds[!grepl("RANDOM", all_hicds) & !grepl("PERMUT", all_hicds)]
+  stopifnot(length(all_hicds) == 30)
   all_exprds <- sapply(all_hicds, function(x) list.files(file.path(pipOutFolder, x)))
 } else{
   all_hicds <- hicds
@@ -91,7 +93,7 @@ hicds = all_hicds[1]
 if(buildTable) {
   
   
-  all_result_dt <- foreach(hicds = all_hicds, .combine='rbind') %do% {
+  all_result_dt <- foreach(hicds = all_hicds, .combine='rbind') %dopar% {
     exprds = all_exprds[[paste0(hicds)]][1]
     hicds_dt <- foreach(exprds = all_exprds[[paste0(hicds)]], .combine='rbind') %do% {
       

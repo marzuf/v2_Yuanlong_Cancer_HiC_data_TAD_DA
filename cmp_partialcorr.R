@@ -1,3 +1,8 @@
+########################################################################################################################################################################################
+startTime <- Sys.time()
+cat(paste0("> Rscript allTADs_and_purity.R\n"))
+
+script_name <- "cmp_partialcorr.R"
 
 # Rscript cmp_partialcorr.R
 
@@ -17,7 +22,43 @@ all_ds <- unlist(sapply(names(all_exprds), function(x) file.path(x, all_exprds[[
 names(all_ds) <- NULL
 ds=all_ds[3]
 
-outFolder <- "CMP_PARTIALCORR"
+corMet <- "pearson"
+
+plotType <- "png"
+myHeight <- 400
+myWidth <- myHeight
+
+args <- commandArgs(trailingOnly = TRUE)
+if(length(args) == 1) {
+  purity_ds <- args[1]  
+  purity_plot_name <- "EPIC"
+} else{
+  purity_ds <- ""
+  purity_plot_name <- "aran"
+}
+
+transfExpr <- "log10"
+
+all_ds_corrPurity_dt <- get(load(file.path("ALLTADS_AND_PURITY", purity_ds, transfExpr, "all_ds_corrPurity_dt.Rdata")))
+
+
+do_plot <- function(my_x, my_y, ...) {
+  plot(x=my_x,
+       y=my_y,
+       pch=16,
+       cex=0.7,
+       cex.axis=1.2,
+       cex.main=1.2,
+       cex.lab=1.2,
+       ...)
+  addCorr(my_x, my_y, bty="n")
+}
+source("../Yuanlong_Cancer_HiC_data_TAD_DA/subtype_cols.R")
+source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
+
+all_cols[all_cols=="green"] <- "darkgreen"
+
+outFolder <- file.path("CMP_PARTIALCORR", purity_ds, transfExpr)
 dir.create(outFolder, recursive=T)
 
 script4_name <- "4_runMeanTADCorr"
@@ -92,11 +133,37 @@ save(all_full_partial_delta_dt, file=outFile, version=2)
 cat(paste0("... written: ", outFile, "\n"))
 
 
-load("CMP_PARTIALCORR/all_full_partial_delta_dt.Rdata")
-load("CMP_PARTIALCORR/all_full_partial_corr_dt.Rdata")
-load("ALLTADS_AND_PURITY/EPIC/log10/all_ds_corrPurity_dt.Rdata")
 
-all_dt <- merge(all_full_partial_delta_dt, all_ds_corrPurity_dt, by =c("dataset", "region"), all=TRUE)
-stopifnot(!is.na(all_dt))
+all_meanCorr_corrPurity_dt <- aggregate(purityCorr~dataset+region,data=all_ds_corrPurity_dt,FUN=mean)
+all_dt <- merge(all_full_partial_delta_dt, all_meanCorr_corrPurity_dt, by =c("dataset", "region"), all=TRUE)
+if(purity_ds == "EPIC") stopifnot(!is.na(all_dt))
+all_dt$dotCols <- all_cols[all_cmps[basename(as.character(all_dt$dataset))]]
 
+
+my_x <- all_dt[,c("purityCorr")]
+
+myx_lab <- paste0(transfExpr, " expr. and purity correlation (meanTAD)")
+
+all_vars <- c("absMeanCorr_full_partial_delta", "empPval_full_partial_delta")
+
+for(plot_var in all_vars) {
   
+  my_y <- all_dt[,c(plot_var)]
+  
+  outFile <- file.path(outFolder, paste0(plot_var, "_exprPurityCorr_meanTAD.", plotType))
+  do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+  do_plot(my_x= my_x,
+          my_y=my_y,
+          xlab=myx_lab,
+          main=paste0("meanTAD - ", plot_var, " vs. purity corr."),
+          ylab=paste0(plot_var),
+          col = all_dt$dotCols
+  )
+  mtext(side=3, text = paste0(corMet, "'s corr.", " - ", purity_plot_name, " data"))
+  legend("bottomleft",all_cols, legend=names(all_cols), bty="n", pch=16, col=all_cols)
+  foo <- dev.off()
+  cat(paste0("... written: ", outFile, "\n"))
+  
+  
+  
+}
