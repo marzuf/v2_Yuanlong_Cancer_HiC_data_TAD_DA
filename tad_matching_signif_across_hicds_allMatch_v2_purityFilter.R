@@ -13,28 +13,24 @@ SSHFS=F
 # Rscript tad_matching_signif_across_hicds_allMatch_v2_purityFilter.R subtypes
 # Rscript tad_matching_signif_across_hicds_allMatch_v2_purityFilter.R wt_vs_mut
 
-
 args <- commandArgs(trailingOnly = TRUE)
-if(length(args) == 1) {
-  purity_ds <- args[1]  
-} else{
-  purity_ds <- ""
-}
-
-if(purity_ds == "") {
-  purity_plot_name <- "aran"
-} else if(purity_ds == "EPIC") {
-  purity_plot_name <- "EPIC"
+if(length(args) == 0) {
+  data_cmpType <- ""
+  file_prefix <- ""
+} else if(length(args) == 1) {
+  data_cmpType <- args[1]  
+  stopifnot(data_cmpType %in% c("norm_vs_tumor", "subtypes", "wt_vs_mut"))
+  file_prefix <- paste0(data_cmpType, "_")
 } else {
-  stop("--invalid purity_ds\n")
+ stop("error\n") 
 }
 
 ### HARD-CODED - MAIN SETTINGS
 
 # purity_ds <- "EPIC"
 # purity_plot_name <- "EPIC"
-
-# purity_plot_name <- "aran"
+ purity_ds <- ""
+ purity_plot_name <- "aran"
 corMet <- "pearson"
 transfExpr <- "log10"
 signifThresh <- 0.01
@@ -194,7 +190,10 @@ cat(paste0("n allDS = ", length(all_datasets), "\n"))
 final_dt <- resultData
 final_dt[, paste0(signifcol)] <- final_dt[, paste0(signif_column)] <= signifThresh
 
-final_dt <- final_dt[final_dt$hicds %in% dirname(all_datasets) & final_dt$exprds %in% basename(all_datasets),]
+#final_dt <- final_dt[final_dt$hicds %in% dirname(all_datasets) & final_dt$exprds %in% basename(all_datasets),]
+#stopifnot(nrow(final_dt) > 0)
+# corrected 14.07.2020
+final_dt <- final_dt[file.path(final_dt$hicds, final_dt$exprds) %in% all_datasets,]
 stopifnot(nrow(final_dt) > 0)
 
 stopifnot(length(unique(paste0(final_dt$hicds, final_dt$exprds))) == length(all_datasets))
@@ -216,6 +215,7 @@ if(purity_ds == "EPIC"){
 final_dt$region_id <- file.path(final_dt$hicds, final_dt$exprds, final_dt$region)
 final_dt <- final_dt[! final_dt$region_id %in% signifTADs_to_discard,]  # !!! for aran, not all data -> important not the same as ...%in%..._to_keep !!!
 
+# remove the ones that I don't want but still have to select the signif ones
 signif_tads <- file.path(final_dt$hicds[final_dt[, paste0(signifcol)] ],
                          final_dt$exprds[final_dt[, paste0(signifcol)] ],
                          final_dt$region[final_dt[, paste0(signifcol)] ])
@@ -225,6 +225,7 @@ if(purity_ds == "EPIC"){
 }else if(purity_ds == "") {
   stopifnot(length(signif_tads) >= length(signifTADs_to_keep))
 }
+stopifnot(!signifTADs_to_discard %in% signif_tads)
 
 minOverlapBpRatio <- 0.8
 minIntersectGenes <- 3
@@ -233,7 +234,7 @@ gene_matching_fuse_threshold <- 0.8
 
 nRegionLolli <- 10
 
-# stop("--ok\n")
+#stop("--ok\n")
 
 txt <- paste0("> signif_column\t=\t", signif_column, "\n")
 cat(txt)

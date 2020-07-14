@@ -8,10 +8,10 @@ options(scipen=100)
 
 SSHFS=F
 
-# Rscript tad_matching_signif_across_hicds_allMatch_v2.R
-# Rscript tad_matching_signif_across_hicds_allMatch_v2.R norm_vs_tumor
-# Rscript tad_matching_signif_across_hicds_allMatch_v2.R subtypes
-# Rscript tad_matching_signif_across_hicds_allMatch_v2.R wt_vs_mut
+# Rscript tad_matching_purityTagged_across_hicds_allMatch_v2.R
+# Rscript tad_matching_purityTagged_across_hicds_allMatch_v2.R norm_vs_tumor
+# Rscript tad_matching_purityTagged_across_hicds_allMatch_v2.R subtypes
+# Rscript tad_matching_purityTagged_across_hicds_allMatch_v2.R wt_vs_mut
 
 args <- commandArgs(trailingOnly = TRUE)
 if(length(args) == 0) {
@@ -26,7 +26,18 @@ if(length(args) == 0) {
 }
 
 
-script_name <- "tad_matching_signif_across_hicds_allMatch_v2.R"
+### HARD-CODED - MAIN SETTINGS
+
+# purity_ds <- "EPIC"
+# purity_plot_name <- "EPIC"
+purity_ds <- ""
+purity_plot_name <- "aran"
+corMet <- "pearson"
+transfExpr <- "log10"
+signifThresh <- 0.01
+corrPurityQtThresh <- 0.05
+
+script_name <- "tad_matching_purityTagged_across_hicds_allMatch_v2.R"
 
 startTime <- Sys.time()
 
@@ -63,6 +74,21 @@ source("../Yuanlong_Cancer_HiC_data_TAD_DA/subtype_cols.R")
 
 script0_name <- "0_prepGeneData"
 
+
+purity_file <- file.path("ALLTADS_AND_PURITY", purity_ds, transfExpr, "all_ds_corrPurity_dt.Rdata")
+purityData <- get(load(purity_file))
+agg_purity <- aggregate(purityCorr~dataset+region, FUN=mean, data=purityData)
+
+result_file <- file.path("CREATE_FINAL_TABLE", "all_result_dt.Rdata")
+resultData <- get(load(result_file))
+resultData$dataset <- file.path(resultData$hicds, resultData$exprds)
+
+merge_dt <- merge(agg_purity, resultData, by=c("dataset", "region"))
+merge_dt$signif <- merge_dt$adjPvalComb <= signifThresh
+purityCorrThresh <- as.numeric(quantile(merge_dt$purityCorr[!merge_dt$signif], probs = corrPurityQtThresh ))
+merge_dt$region_id <- file.path(merge_dt$dataset, merge_dt$region)
+purityFlagged_TADs <- merge_dt$region_id[merge_dt$purityCorr <=  purityCorrThresh]
+
 setDir <- "/media/electron"
 setDir <- ""
 entrezDT_file <- paste0(setDir, "/mnt/ed4/marie/entrez2synonym/entrez/ENTREZ_POS/gff_entrez_position_GRCh37p13_nodup.txt")
@@ -82,15 +108,15 @@ stopifnot(dir.exists(file.path(mainFolder, all_hicds)))
 all_exprds <- lapply(all_hicds, function(x) list.files(file.path(pipFolder, x)))
 names(all_exprds) <- all_hicds
 
-outFolder <- file.path("TAD_MATCHING_SIGNIF_ACROSS_HICDS_ALLMATCH_v2", data_cmpType)
+outFolder <- file.path("TAD_MATCHING_PURITYTAGGED_ACROSS_HICDS_ALLMATCH_v2", data_cmpType, purity_plot_name, transfExpr)
 dir.create(outFolder, recursive = TRUE)
 
-logFile <- file.path(outFolder, "tad_matching_signif_across_hicds_logFile.txt")
+logFile <- file.path(outFolder, "tad_matching_purityTagged_across_hicds_logFile.txt")
 file.remove(logFile)
 
 all_datasets <- unlist(lapply(1:length(all_exprds), function(x) file.path(names(all_exprds)[x], all_exprds[[x]])))
 
-# to retrieve the colors of cmpType for plotting heatmap
+
 dataset_dt <- data.frame(dataset = all_datasets, hicds = dirname(all_datasets),exprds = basename(all_datasets),stringsAsFactors = FALSE)
 dataset_dt$cmpType <- all_cmps[paste0(dataset_dt$exprds)]
 dataset_dt$subtype_col <- all_cols[paste0(dataset_dt$cmpType)]
@@ -98,10 +124,8 @@ stopifnot(!is.na(dataset_dt$subtype_col))
 dataset_dt <- dataset_dt[order(dataset_dt$cmpType, dataset_dt$hicds, dataset_dt$exprds),]
 
 if(length(args)>0) {
-  
   stopifnot(data_cmpType %in% dataset_dt$cmpType)
   dataset_dt <- dataset_dt[dataset_dt$cmpType == data_cmpType,]
-  
   all_datasets <- all_datasets[basename(all_datasets) %in% dataset_dt$exprds & dirname(all_datasets) %in% dataset_dt$hicds]
   stopifnot(length(all_datasets) > 0)
   
@@ -112,36 +136,61 @@ if(length(args)>0) {
   
 }
 
+datasets_with_flagged_tads <- unique(dirname(purityFlagged_TADs))
+stopifnot(datasets_with_flagged_tads %in% all_datasets)
+all_datasets <- all_datasets[all_datasets %in% datasets_with_flagged_tads]
+all_hicds <- all_hicds[all_hicds %in% dirname(all_datasets)]
+all_exprds <- lapply(all_hicds, function(x) basename(datasets_with_flagged_tads)[dirname(datasets_with_flagged_tads) == x])
+names(all_exprds) <- all_hicds
+stopifnot(length(unlist(all_exprds)) == length(datasets_with_flagged_tads))
 
 dataset_dt$dataset_label <- gsub("/", "\n", dataset_dt$dataset)
 ds_label_levels <- dataset_dt$dataset_label
 ds_levels <- dataset_dt$dataset
-
 
 cat(paste0("n allDS = ", length(all_datasets), "\n"))
 
 # => best TAD matching
 # in # of genes
 # in bp
+final_dt <- resultData
+# final_dt[, paste0(signifcol)] <- final_dt[, paste0(signif_column)] <= signifThresh
 
-final_dt_file <- file.path("CREATE_FINAL_TABLE", "all_result_dt.Rdata")
-stopifnot(file.exists(final_dt_file))
-final_dt <- get(load(final_dt_file))
-
-signif_column <- "adjPvalComb"
-signifThresh <- 0.01
-signifcol <- paste0(signif_column, "_", signifThresh)
-
-final_dt[, paste0(signifcol)] <- final_dt[, paste0(signif_column)] <= signifThresh
-
-#final_dt <- final_dt[final_dt$hicds %in% dirname(all_datasets) & final_dt$exprds %in% basename(all_datasets),]
-#stopifnot(nrow(final_dt) > 0)
-# corrected 14.07.2020
+# final_dt <- final_dt[final_dt$hicds %in% dirname(all_datasets) & final_dt$exprds %in% basename(all_datasets),]
 final_dt <- final_dt[file.path(final_dt$hicds, final_dt$exprds) %in% all_datasets,]
 stopifnot(nrow(final_dt) > 0)
 
+cat(paste0(length(unique(paste0(final_dt$hicds, final_dt$exprds))), "==",length(all_datasets), "\n")) 
 stopifnot(length(unique(paste0(final_dt$hicds, final_dt$exprds))) == length(all_datasets))
 
+
+# flagged_tads <- file.path(final_dt$hicds[final_dt[, paste0(signifcol)] ],
+#                          final_dt$exprds[final_dt[, paste0(signifcol)] ],
+#                          final_dt$region[final_dt[, paste0(signifcol)] ])
+# 
+# if(purity_ds == "EPIC"){
+#   stopifnot(length(flagged_tads) == length(signifTADs_to_discard) + length(signifTADs_to_keep))  
+# }else if(purity_ds == "") {
+#   stopifnot(length(flagged_tads) >= length(signifTADs_to_discard) + length(signifTADs_to_keep))
+# }
+
+
+
+##### UPDATE HERE -> TO REMOVE THE TADS - 14.07.2020
+final_dt$region_id <- file.path(final_dt$hicds, final_dt$exprds, final_dt$region)
+final_dt <- final_dt[ final_dt$region_id %in% purityFlagged_TADs,]  # !!! for aran, not all data -> important not the same as ...%in%..._to_keep !!!
+
+flagged_tads <- file.path(final_dt$hicds,
+                         final_dt$exprds,
+                         final_dt$region)
+
+# if(purity_ds == "EPIC"){
+#   stopifnot(length(flagged_tads) == length(signifTADs_to_keep))
+# }else if(purity_ds == "") {
+#   stopifnot(length(flagged_tads) >= length(signifTADs_to_keep))
+# }
+stopifnot(length(flagged_tads) >= length(purityFlagged_TADs))
+stopifnot(setequal(flagged_tads,purityFlagged_TADs))
 minOverlapBpRatio <- 0.8
 minIntersectGenes <- 3
 gene_matching_fuse_threshold <- 0.8
@@ -149,9 +198,6 @@ gene_matching_fuse_threshold <- 0.8
 
 nRegionLolli <- 10
 
-txt <- paste0("> signif_column\t=\t", signif_column, "\n")
-cat(txt)
-cat(txt, file=logFile, append=T)
 txt <- paste0("> signifThresh\t=\t", signifThresh, "\n")
 cat(txt)
 cat(txt, file=logFile, append=T)
@@ -166,14 +212,9 @@ cat(txt)
 cat(txt, file=logFile, append=T)
 
 
-signif_tads <- file.path(final_dt$hicds[final_dt[, paste0(signifcol)] ],
-                         final_dt$exprds[final_dt[, paste0(signifcol)] ],
-                         final_dt$region[final_dt[, paste0(signifcol)] ])
-
-outFile <- file.path(outFolder, paste0(file_prefix, "signif_tads", signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, ".Rdata"))
-save(signif_tads, file=outFile, version=2)
+outFile <- file.path(outFolder, paste0(file_prefix, "flagged_tads_qt",corrPurityQtThresh , "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, ".Rdata"))
+save(flagged_tads, file=outFile, version=2)
 cat(paste0("... written: ", outFile, "\n"))
-
 
 ####################################################################################################################################### >>> prepare the data
 if(buildTable) {
@@ -200,7 +241,9 @@ if(buildTable) {
     exprds_list <- foreach(exprds = all_exprds[[paste0(hicds)]]) %do% {
       
       
-      signif_tads <- final_dt$region[final_dt$hicds == hicds & final_dt$exprds == exprds & final_dt[, paste0(signifcol)] ]
+      flagged_tads <- final_dt$region[final_dt$hicds == hicds & final_dt$exprds == exprds & final_dt$region_id %in% purityFlagged_TADs]
+      stopifnot(length(flagged_tads) == sum(final_dt$hicds == hicds & final_dt$exprds == exprds))
+      
       
       gene_file <- file.path(pipFolder, hicds, exprds, script0_name, "pipeline_geneList.Rdata")
       stopifnot(file.exists(gene_file))  
@@ -221,10 +264,10 @@ if(buildTable) {
       
       # take only the data from signif TADs
       stopifnot(setequal(ref_g2t_dt$entrezID, geneList))
-      signif_ref_g2t_dt <- ref_g2t_dt[ref_g2t_dt$region %in% signif_tads,]
+      signif_ref_g2t_dt <- ref_g2t_dt[ref_g2t_dt$region %in% flagged_tads,]
       signif_geneList <- geneList[geneList %in% as.character(signif_ref_g2t_dt$entrezID)]
       
-      signif_ref_tadpos_dt <- ref_tadpos_dt[ref_tadpos_dt$region %in% signif_tads,]
+      signif_ref_tadpos_dt <- ref_tadpos_dt[ref_tadpos_dt$region %in% flagged_tads,]
       
       stopifnot(setequal(signif_ref_g2t_dt$entrezID, signif_geneList))
       stopifnot(setequal(signif_ref_g2t_dt$region, signif_ref_tadpos_dt$region))
@@ -246,7 +289,7 @@ if(buildTable) {
   
   ref_dataset = all_datasets[1]
   # all_datasets=all_datasets[1:2]
-  all_signif_matching_dt <- foreach(ref_dataset = all_datasets, .combine='rbind') %dopar% {
+  all_purityTagged_matching_dt <- foreach(ref_dataset = all_datasets, .combine='rbind') %dopar% {
     
     stopifnot(ref_dataset %in% names(all_data_list))
     ref_geneList <- all_data_list[[paste0(ref_dataset)]][["dataset_geneList"]]
@@ -345,19 +388,19 @@ if(buildTable) {
     ref_dt
   } # end iterating over ref_datasets
   
-  outFile <- file.path(outFolder, paste0(file_prefix, "all_signif_matching_dt_", signifcol, ".Rdata"))
-  save(all_signif_matching_dt, file=outFile, version=2)  
+  outFile <- file.path(outFolder, paste0(file_prefix, "all_purityTagged_matching_dt.Rdata"))
+  save(all_purityTagged_matching_dt, file=outFile, version=2)  
   cat(paste0("... written: ", outFile, "\n"))
   
 } else {
-  outFile <- file.path(outFolder, paste0(file_prefix, "all_signif_matching_dt_", signifcol, ".Rdata"))
+  outFile <- file.path(outFolder, paste0(file_prefix, "all_purityTagged_matching_dt.Rdata"))
   cat("... load data\n")
-  all_signif_matching_dt <- get(load(outFile))
+  all_purityTagged_matching_dt <- get(load(outFile))
   outFile <- file.path(outFolder, "all_data_list.Rdata")
   all_data_list <- get(load(outFile))
 }
-all_signif_matching_dt$refID_full <- file.path(all_signif_matching_dt$ref_dataset, all_signif_matching_dt$refID)
-all_signif_matching_dt$queryID_full <- file.path(all_signif_matching_dt$query_dataset, all_signif_matching_dt$queryID)
+all_purityTagged_matching_dt$refID_full <- file.path(all_purityTagged_matching_dt$ref_dataset, all_purityTagged_matching_dt$refID)
+all_purityTagged_matching_dt$queryID_full <- file.path(all_purityTagged_matching_dt$query_dataset, all_purityTagged_matching_dt$queryID)
 
 
 #######################################################################################################
@@ -366,25 +409,25 @@ all_signif_matching_dt$queryID_full <- file.path(all_signif_matching_dt$query_da
 
 ### > Filter1: retain only matches with >= *minOverlapBpRatio* (80%) bp overlap
 
-txt <- paste0("> FILTER 1 - # of match\t=\t", nrow(all_signif_matching_dt), "\n")
+txt <- paste0("> FILTER 1 - # of match\t=\t", nrow(all_purityTagged_matching_dt), "\n")
 cat(txt)
 cat(txt, file=logFile, append=T)
-all_signif_matching_dt  <- all_signif_matching_dt[all_signif_matching_dt$overlapBpRatio >= minOverlapBpRatio,]
-txt <- paste0("> FILTER 1 - # of match with overlap bp >= ", minOverlapBpRatio, "\t=\t", nrow(all_signif_matching_dt), "\n")
+all_purityTagged_matching_dt  <- all_purityTagged_matching_dt[all_purityTagged_matching_dt$overlapBpRatio >= minOverlapBpRatio,]
+txt <- paste0("> FILTER 1 - # of match with overlap bp >= ", minOverlapBpRatio, "\t=\t", nrow(all_purityTagged_matching_dt), "\n")
 cat(txt)
 cat(txt, file=logFile, append=T)
 
-all_signif_tads_with_match <- unique(all_signif_matching_dt$refID_full)
-length(all_signif_tads_with_match) # 
-sum(final_dt[,paste0(signifcol)]) # 
+all_purityTagged_tads_with_match <- unique(all_purityTagged_matching_dt$refID_full)
+length(all_purityTagged_tads_with_match) # 
+# sum(final_dt[,paste0(signifcol)]) # 
 
-tad=all_signif_tads_with_match[1]
-set_of_tads <- foreach(tad = all_signif_tads_with_match) %dopar% {
-  # all_signif_matching_dt[all_signif_matching_dt$refID_full == tad,]
-  matching_tads <- all_signif_matching_dt$queryID_full[all_signif_matching_dt$refID_full == tad]
+tad=all_purityTagged_tads_with_match[1]
+set_of_tads <- foreach(tad = all_purityTagged_tads_with_match) %dopar% {
+  # all_purityTagged_matching_dt[all_purityTagged_matching_dt$refID_full == tad,]
+  matching_tads <- all_purityTagged_matching_dt$queryID_full[all_purityTagged_matching_dt$refID_full == tad]
   sort(c(tad, matching_tads))
 }
-names(set_of_tads) <- all_signif_tads_with_match
+names(set_of_tads) <- all_purityTagged_tads_with_match
 
 ### Remove duplicated sets
 
@@ -553,9 +596,9 @@ names(set_of_tads_intersect_genes) <- names(set_of_tads)
 stopifnot(lengths(set_of_tads) >= 2)
 
 # => for the GO analysis, save conserved regions
-conserved_signif_tads <- set_of_tads
-outFile <- file.path(outFolder, paste0(file_prefix, "conserved_signif_tads", signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, ".Rdata"))
-save(conserved_signif_tads, file=outFile, version=2)
+conserved_purityTagged_tads <- set_of_tads
+outFile <- file.path(outFolder, paste0(file_prefix, "conserved_purityTagged_tads_qt",corrPurityQtThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, ".Rdata"))
+save(conserved_purityTagged_tads, file=outFile, version=2)
 cat(paste0("... written: ", outFile, "\n"))
 
 # => final set of conserved regions here !
@@ -566,7 +609,7 @@ cat(paste0("... written: ", outFile, "\n"))
 
 all_tad_vect <- as.character(unlist(set_of_tads))
 tad_occurences <- setNames(as.numeric(table(all_tad_vect)), names(table(all_tad_vect)))
-outfile <- file.path(outFolder, paste0(file_prefix, "tad_occurences_in_conserved_signif_tads", signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, ".",plotType))
+outfile <- file.path(outFolder, paste0(file_prefix, "tad_occurences_in_conserved_purityTagged_tads_qt", corrPurityQtThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, ".",plotType))
 do.call(plotType, list(outfile, height=myHeight, width=myHeight*1.2))
 plot(density(tad_occurences), main=paste0(data_cmpType))
 mtext(side=3, text="TAD occurence")
@@ -586,7 +629,7 @@ cat(txt, file=logFile, append=T)
 #######################################################################################################################################
 ######################################################################################################################### PLOT - overview conservation (heatmap)
 #######################################################################################################################################                                       
-all_datasets <- unique(all_signif_matching_dt$ref_dataset)
+all_datasets <- unique(all_purityTagged_matching_dt$ref_dataset)
 
 
 # BINARY: 1 if the dataset has a TAD belonging to the conserved region
@@ -631,11 +674,11 @@ out_df <- data.frame(
 out_df$conserved_region <- factor(out_df$conserved_region, levels = region_levels)
 stopifnot(!is.na(out_df$conserved_region))
 out_df <- out_df[order(as.numeric(out_df$conserved_region)),]
-outFile <- file.path(outFolder, paste0(file_prefix, "conserved_regions_with_genes_signif_tads", signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, "_df.txt"))
+outFile <- file.path(outFolder, paste0(file_prefix, "conserved_regions_with_genes_purityTagged_tads_qt", corrPurityQtThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, "_df.txt"))
 write.table(out_df, append=F, quote=F, sep="\t", file = outFile, col.names=TRUE, row.names=FALSE)
 cat(paste0("... written: ", outFile, "\n"))
 
-outFile <- file.path(outFolder, paste0(file_prefix, "conserved_regions_with_genes_signif_tads", signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, ".Rdata"))
+outFile <- file.path(outFolder, paste0(file_prefix, "conserved_regions_with_genes_purityTagged_tads_", corrPurityQtThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, ".Rdata"))
 save(out_df, file = outFile, version=2)
 cat(paste0("... written: ", outFile, "\n"))
 
@@ -648,7 +691,7 @@ initmar <- par()$mar
 # modifMar <- c(0,-4.1,-4.1,15)
 modifMar <- c(0,0,0,0)
 
-outFile <- file.path(outFolder, paste0(file_prefix, "heatmap_conservedRegions_rowReorder_signif", signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, ".", plotType))
+outFile <- file.path(outFolder, paste0(file_prefix, "heatmap_conservedRegions_rowReorder_signif_", corrPurityQtThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, ".", plotType))
 do.call(plotType, list(outFile,  height=myHeightHeat, width=myWidthHeat))
 par(mar=(initmar+ modifMar))
 # dev.off()
@@ -683,12 +726,12 @@ my_heatmap.2(plot_matching_dt[,paste0(region_levels)], col=c("white", "black"),
 foo <- dev.off()
 cat(paste0("... written: ", outFile, "\n"))
 
-save(plot_matching_dt, file = file.path(outFolder, paste0("plot_matching_dt_signif_tads", signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, ".Rdata")), 
+save(plot_matching_dt, file = file.path(outFolder, paste0("plot_matching_dt_purityTagged_tads_qt",corrPurityQtThresh , "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, ".Rdata")), 
      version=2)
 
 par(mar = initmar)
 
-outFile <- file.path(outFolder, paste0(file_prefix,"heatmap_conservedRegions_noReorder_signif", signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, ".", plotType))
+outFile <- file.path(outFolder, paste0(file_prefix,"heatmap_conservedRegions_noReorder_signif_qt", corrPurityQtThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, ".", plotType))
 do.call(plotType, list(outFile,  height=myHeightHeat, width=myWidthHeat))
 par(mar=initmar+modifMar)
 
@@ -753,7 +796,7 @@ foo <- foreach(i_cr = 1:nRegionLolli) %dopar% {
   } # end-for iterating over TADs to plot
   save(plotList, file="plotList.Rdata")
 
-  outFile <- file.path(outFolder, paste0(file_prefix, "allCmps_conservedRegions", i_cr, "_signif", signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, "_lolli.", plotType))
+  outFile <- file.path(outFolder, paste0(file_prefix, "allCmps_conservedRegions", i_cr, "_signif_qt", corrPurityQtThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, "_lolli.", plotType))
 
   mytit <- paste0("Conserved region ", i_cr, " (all cmps) - ", nMatch_exprds, "/", nExprds, "(", nMatch, "/", nDS, ")")
   all_plots <- do.call(grid.arrange, c(plotList,  list(ncol=ifelse(nPlotted == 1, 1, 2), top=textGrob(mytit, gp=gpar(fontsize=20,font=2)))))
@@ -799,7 +842,7 @@ for(cmpType in unique(as.character(dataset_dt$cmpType))) {
 cmp_out_df <- out_df
 cmp_out_df$conserved_region <- factor(cmp_out_df$conserved_region, levels = cmp_region_levels)
 cmp_out_df <- cmp_out_df[order(as.numeric(cmp_out_df$conserved_region)),]
-outFile <- file.path(outFolder, paste0(file_prefix, "_", cmpType, "_conserved_regions_with_genes_signif_tads", signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, "_df.txt"))
+outFile <- file.path(outFolder, paste0(file_prefix, "_", cmpType, "_conserved_regions_with_genes_purityTagged_tads_qt", corrPurityQtThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, "_df.txt"))
 write.table(cmp_out_df, append=F, quote=F, sep="\t", file = outFile, col.names=TRUE, row.names=FALSE)
 cat(paste0("... written: ", outFile, "\n"))
 
@@ -845,7 +888,7 @@ cat(paste0("... written: ", outFile, "\n"))
     } # end-for iterating over TADs to plot
     save(plotList, file="plotList.Rdata")
     
-    outFile <- file.path(outFolder, paste0(file_prefix, cmpType, "_conservedRegions", i_cr, "_signif", signif_column, signifThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, "_lolli.", plotType))
+    outFile <- file.path(outFolder, paste0(file_prefix, cmpType, "_conservedRegions", i_cr, "_signif_qt", corrPurityQtThresh, "_minBpRatio", minOverlapBpRatio, "_minInterGenes", minIntersectGenes, "_lolli.", plotType))
     
     mytit <- paste0("Conserved region ", i_cr, " (", cmpType, ") - ", nMatch_exprds_cmp, "/", nExprds_cmp, " (", nMatch_exprds, "/", nExprds, "); ", nMatch_cmp, "/", nDS_cmp, " (", nMatch, "/", nDS, ")")
     all_plots <- do.call(grid.arrange, c(plotList,  list(ncol=ifelse(nPlotted == 1, 1, 2), top=textGrob(mytit, gp=gpar(fontsize=20,font=2)))))
