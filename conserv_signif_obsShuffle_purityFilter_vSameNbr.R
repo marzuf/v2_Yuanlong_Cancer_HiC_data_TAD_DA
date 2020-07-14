@@ -1,5 +1,5 @@
 
-# Rscript conserv_signif_obsShuffle.R
+# Rscript conserv_signif_obsShuffle_purityFilter_vSameNbr.R
 
 require(ggplot2) 
 require(ggsci)
@@ -18,21 +18,59 @@ myHeightGG <- 5
 myWidth <- 6
 myWidthGG <- 7
 
+
+args <- commandArgs(trailingOnly = TRUE)
+if(length(args) == 1) {
+  purity_ds <- args[1]  
+  purity_plot_name <- "EPIC"
+} else{
+  purity_ds <- ""
+  purity_plot_name <- "aran"
+}
+
+### HARD-CODED - MAIN SETTINGS
+corMet <- "pearson"
+transfExpr <- "log10"
+
 plotCex <- 1.4
 
 fontFamily <- "Hershey"
 
 mycols <- c("obs."="midnightblue","shuffle"="darkolivegreen")
 
-inFolder_obs <- "TAD_MATCHING_SIGNIF_ACROSS_HICDS_ALLMATCH_v2"
-inFolder_perm <- "TAD_MATCHING_SIGNIF_ACROSS_HICDS_ALLMATCH_v2_SHUFFLE"
 
-outFolder <- "CONSERV_SIGNIF_OBSSHUFFLE"
+outFolder <- file.path("CONSERV_SIGNIF_OBSSHUFFLE_PURITYFILTER_VSAMENBR", purity_ds, transfExpr)
 dir.create(outFolder, recursive = TRUE)
 
-obsCons_dt <- get(load(file.path(inFolder_obs, 
-                                 "plot_matching_dt_signif_tadsadjPvalComb0.01_minBpRatio0.8_minInterGenes3.Rdata")))
-m_obsCons_dt <- melt(t(obsCons_dt))
+mainFolder <- file.path(".")
+stopifnot(dir.exists(mainFolder))
+pipFolder <- file.path(mainFolder, "PIPELINE", "OUTPUT_FOLDER")
+stopifnot(dir.exists(pipFolder))
+all_hicds <- list.files(pipFolder)
+all_hicds <- all_hicds[!grepl("PERMUT", all_hicds) & !grepl("RANDOM", all_hicds)]
+stopifnot(dir.exists(file.path(mainFolder, all_hicds)))
+all_exprds <- lapply(all_hicds, function(x) list.files(file.path(pipFolder, x)))
+names(all_exprds) <- all_hicds
+all_datasets <- unlist(lapply(1:length(all_exprds), function(x) file.path(names(all_exprds)[x], all_exprds[[x]])))
+
+inFolder_perm <- file.path("TAD_MATCHING_SIGNIF_ACROSS_HICDS_ALLMATCH_v2_SHUFFLE_PURITYFILTER_VSAMENBR/", purity_plot_name, transfExpr)
+inFolder_obs <- file.path("TAD_MATCHING_SIGNIF_ACROSS_HICDS_ALLMATCH_v2_PURITYFILTER", purity_ds, transfExpr)
+                                                      #_PURITYFILTER/EPIC/log10/conserved_signif_tadsadjPvalComb0.01_minBpRatio0.8_minInterGenes3.Rdata"))
+# obsCons_dt <- get(load(file.path(inFolder_obs, 
+#                                  "plot_matching_dt_signif_tadsadjPvalComb0.01_minBpRatio0.8_minInterGenes3.Rdata")))
+
+
+obs_data <- get(load(file.path(inFolder_obs,
+                                  "conserved_signif_tadsadjPvalComb0.01_minBpRatio0.8_minInterGenes3.Rdata")))
+
+all_nCons <- lengths(obs_data)
+dsByReg_dt <- do.call(rbind, lapply(obs_data, function(x) as.numeric(all_datasets %in% unique(dirname(x)))))
+colnames(dsByReg_dt) <- all_datasets
+stopifnot(sum(dsByReg_dt) == sum(all_nCons))
+stopifnot(max(rowSums(dsByReg_dt)) == max(all_nCons))
+obsCons_dt <- dsByReg_dt
+
+m_obsCons_dt <- melt(obsCons_dt)
 colnames(m_obsCons_dt) <- c("region", "dataset", "conserved")
 stopifnot(grepl("region", m_obsCons_dt$region))
 count_obsCons_dt <- aggregate(conserved ~ region, data=m_obsCons_dt, FUN=sum)
@@ -49,17 +87,30 @@ count_obsCons_dt2$region_rank <- 1:nrow(count_obsCons_dt2)
 stopifnot(all.equal(count_obsCons_dt, count_obsCons_dt2, check.attributes=FALSE))
 
 all_perm_dt <- foreach(i_perm=1:nPermut, .combine='rbind') %dopar% {
-  cons_dt <- get(load(file.path(inFolder_perm,
-                                i_perm,
-                                "plot_matching_dt_signif_tadsadjPvalComb0.01_minBpRatio0.8_minInterGenes3.Rdata")))
-  m_cons_dt <- melt(t(cons_dt))
+  # cons_dt <- get(load(file.path(inFolder_perm,
+  #                               i_perm,
+  #                               "plot_matching_dt_signif_tadsadjPvalComb0.01_minBpRatio0.8_minInterGenes3.Rdata")))
+  perm_data <- get(load(file.path(inFolder_perm,
+                                  i_perm,
+                                 "conserved_signif_tadsadjPvalComb0.01_minBpRatio0.8_minInterGenes3.Rdata")))
+#  all_nCons <- lengths(perm_data)
+  #lapply(perm_data, function(x) duplicated(dirname(x)))
+  # !! corrected -> cannot be lengths(perm_data) because might be that several TADs of 1 dataset match a conserved region
+  all_nCons <- unlist(lapply(perm_data, function(x) length(unique(dirname(x)))))
+
+  dsByReg_dt <- do.call(rbind, lapply(perm_data, function(x) as.numeric(all_datasets %in% unique(dirname(x)))))
+  colnames(dsByReg_dt) <- all_datasets
+  stopifnot(sum(dsByReg_dt) == sum(all_nCons))
+  stopifnot(max(rowSums(dsByReg_dt)) == max(all_nCons))
+  cons_dt <- dsByReg_dt
+
+  m_cons_dt <- melt(cons_dt)
   colnames(m_cons_dt) <- c("region", "dataset", "conserved")
   stopifnot(grepl("region", m_cons_dt$region))
   count_cons_dt <- aggregate(conserved ~ region, data=m_cons_dt, FUN=sum)
   count_cons_dt <- count_cons_dt[order(count_cons_dt$conserved),]
   m_cons_dt2 <- m_cons_dt[m_cons_dt$conserved == 1,]
   colnames(m_cons_dt2) <- c("region", "dataset", "conserved")
-  stopifnot(grepl("region", m_cons_dt2$region))
   count_cons_dt2 <- aggregate(dataset ~ region, data=m_cons_dt2, FUN=function(x)length(unique(x)))
   colnames(count_cons_dt2)[colnames(count_cons_dt2) == "dataset"] <- "conserved"
   count_cons_dt2 <- count_cons_dt2[order(count_cons_dt2$conserved),]
@@ -77,7 +128,8 @@ all_perm_dt <- foreach(i_perm=1:nPermut, .combine='rbind') %dopar% {
   count_cons_dt$permut <- i_perm
   count_cons_dt
 }
-#stop("-ok")
+  
+
 outFile <- file.path(outFolder, "all_perm_dt.Rdata")
 save(all_perm_dt, file = outFile)
 
@@ -135,7 +187,7 @@ save(permut_cons_dt, file=saveFile, version=2)
 cat(paste0("... written:" , saveFile, "\n"))
 
 
-stop("-ok")
+# stop("-ok")
 
 
 nConsByPermut_dt <- aggregate(region ~ conserved + permut, FUN=function(x) length(unique(x)),data=all_perm_dt)

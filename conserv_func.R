@@ -104,6 +104,10 @@ get_conservedRegion <- function(
   logFile=NULL,
   verbose=TRUE
 ){
+
+  stopifnot(c("dataset", "region") %in% colnames(signif_dt))
+  stopifnot(c("dataset", "region", "chromo", "start", "end") %in% colnames(all_tad_pos_dt))
+  stopifnot(c("dataset", "region", "entrezID", "symbol", "chromo", "start", "end") %in% colnames(all_g2t_dt))
   
   if(!suppressPackageStartupMessages(require("foreach"))) stop("-- foreach package required\n")  
   if(!suppressPackageStartupMessages(require("doMC"))) stop("-- doMC package required\n")  

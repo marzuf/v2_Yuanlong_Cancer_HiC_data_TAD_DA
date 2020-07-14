@@ -1,6 +1,8 @@
 
 # Rscript check_matching_purityFilter_func.R
 
+# => ok done for epic et aran
+
 source("../MANUSCRIPT_FIGURES/COCODATA/R/conserv_func.R")
 source("../MANUSCRIPT_FIGURES/COCODATA/R/utils_func.R")
 

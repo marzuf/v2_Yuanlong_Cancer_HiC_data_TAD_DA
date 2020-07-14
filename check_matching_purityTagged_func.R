@@ -1,6 +1,6 @@
 
 # Rscript check_matching_purityTagged_func.R
-
+# -> ok
 
 source("conserv_func.R")
 source("../MANUSCRIPT_FIGURES/COCODATA/R/utils_func.R")
@@ -69,6 +69,13 @@ all_hicds <- all_hicds[!grepl("PERMUT", all_hicds) & !grepl("RANDOM", all_hicds)
 all_exprds <- lapply(all_hicds, function(x) list.files(file.path(pipFolder, x)))
 names(all_exprds) <- all_hicds
 
+setDir <- "/media/electron"
+setDir <- ""
+entrezDT_file <- paste0(setDir, "/mnt/ed4/marie/entrez2synonym/entrez/ENTREZ_POS/gff_entrez_position_GRCh37p13_nodup.txt")
+gff_dt <- read.delim(entrezDT_file, header = TRUE, stringsAsFactors = FALSE)
+gff_dt$entrezID <- as.character(gff_dt$entrezID)
+entrez2symb <- setNames(gff_dt$symbol,gff_dt$entrezID)
+
 script0_name <- "0_prepGeneData"
 
 # for testing, prep the coordinates of TADs
@@ -108,6 +115,9 @@ all_g2t_dt <- foreach(hicds = all_hicds, .combine='rbind') %dopar% {
   }
   exprds_dt
 }
+stopifnot(as.character(all_g2t_dt$entrezID) %in% names(entrez2symb))
+all_g2t_dt$symbol <- entrez2symb[as.character(all_g2t_dt$entrezID)]
+stopifnot(!is.na(all_g2t_dt$symbol))
 
 all_conserv_data <- get_conservedRegion(signif_dt = tagged_dt, 
                                         all_g2t_dt = all_g2t_dt, 
@@ -134,12 +144,26 @@ stop("ok\n")
 
 
 
+names(set_of_tads) <- paste0("conserved_region_", seq_along(set_of_tads))
+cr=names(set_of_tads)[1]
+set_of_tads_intersect_genes <- foreach(cr = names(set_of_tads)) %dopar% { # look at genes at the intersect to filter those with < minIntersectGenes at the intersect  
+  all_regions <- set_of_tads[[paste0(cr)]]
+  ds_genes <- sapply(all_regions, function(tad) {
+    dt <- all_g2t_dt[all_g2t_dt$dataset == paste0(dirname(tad)),]
+    stopifnot(basename(tad) %in% dt$region)
+    setNames(as.character(dt$symbol[dt$region == basename(tad)]), as.character(dt$entrezID[dt$region == basename(tad)]))
+  })
+  Reduce(intersect, ds_genes)
+}
+
+
+
+save(set_of_tads_intersect_genes, file="set_of_tads_intersect_genes.Rdata", version=2)
 
 
 
 
-
-
+names(set_of_tads) <- paste0("conserved_region_", seq_along(set_of_tads))
 
 
 

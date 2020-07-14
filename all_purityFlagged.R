@@ -142,6 +142,15 @@ outFile <- file.path(outFolder, "nFlagged_genes.txt")
 write.table(nFlagged_genes_dt, file=outFile, col.names=T, row.names=F, sep="\t", quote=F, append=F)
 cat(paste0("... written: ", outFile, "\n"))
 
+nDS <- length(unique(dirname(flagged_genes_dt$conserved_region)))
+
+outFile <- file.path(outFolder, "nFlagged_genes_density.png")
+png(outFile, height=400, width=600)
+plot(density(nFlagged_genes_dt$nFlagged), main="# DS in which a gene found in a purity-flagged TADs", xlab="# datasets")
+mtext(side=3, text = paste0("# tot DS = ", nDS))
+foo <- dev.off()
+
+cat(paste0("... written: ", outFile, "\n"))
 
 
 
