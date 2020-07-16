@@ -39,7 +39,7 @@ SSHFS <- FALSE
 setDir <- ifelse(SSHFS, "/media/electron", "")
 registerDoMC(ifelse(SSHFS, 2, 80))
 
-buildTable <- F
+buildTable <- T
 
 fontFamily <- "Hershey"
 
@@ -87,8 +87,10 @@ if(purity_ds == "") {
   purity_file <- file.path("tcga_purity_aran2015.csv")
   purity_dt <- read.delim(purity_file, header=TRUE, sep="\t", stringsAsFactors = FALSE)
   purity_metrics <- c("ESTIMATE", "ABSOLUTE", "LUMP", "IHC", "CPE")
-  pm <- purity_metrics[1]
-  purity_plot_name <- "aran"
+#  pm <- purity_metrics[1]
+#  purity_plot_name <- "aran"
+  pm <- "CPE"
+  purity_plot_name <- "aran - CPE"
   # all the ranks are between 1 and 0
 } else if(purity_ds == "EPIC") {
   file_suffix <- "_EPIC"
@@ -106,7 +108,7 @@ if(purity_ds == "") {
 
 
 
-outFolder <- file.path("ALLTADS_AND_PURITY", purity_ds, transfExpr)
+outFolder <- file.path("ALLTADS_AND_PURITY", purity_ds, pm, transfExpr)
 dir.create(outFolder, recursive = TRUE)
 
 cat(paste0("!!! > purity metric: ", pm, "\n"))

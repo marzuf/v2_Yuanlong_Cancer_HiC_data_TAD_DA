@@ -31,6 +31,8 @@ if(purity_ds == "") {
   stop("--invalid purity_ds\n")
 }
 
+purity_ds <- "CPE"
+purity_plot_name <- "Aran - CPE"
 
 ### HARD-CODED - MAIN SETTINGS
 

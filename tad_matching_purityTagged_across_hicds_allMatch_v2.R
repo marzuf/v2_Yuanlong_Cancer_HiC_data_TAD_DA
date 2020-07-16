@@ -32,6 +32,8 @@ if(length(args) == 0) {
 # purity_plot_name <- "EPIC"
 purity_ds <- ""
 purity_plot_name <- "aran"
+  purity_ds <- "CPE"
+  purity_plot_name <- "Aran - CPE"
 corMet <- "pearson"
 transfExpr <- "log10"
 signifThresh <- 0.01

@@ -27,7 +27,8 @@ if(length(args) == 1) {
   purity_ds <- ""
   purity_plot_name <- "aran"
 }
-
+  purity_ds <- "CPE"
+  purity_plot_name <- "Aran - CPE"
 ### HARD-CODED - MAIN SETTINGS
 corMet <- "pearson"
 transfExpr <- "log10"

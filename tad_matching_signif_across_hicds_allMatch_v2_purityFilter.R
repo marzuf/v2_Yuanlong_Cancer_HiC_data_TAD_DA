@@ -27,10 +27,14 @@ if(length(args) == 0) {
 
 ### HARD-CODED - MAIN SETTINGS
 
-# purity_ds <- "EPIC"
-# purity_plot_name <- "EPIC"
+ purity_ds <- "EPIC"
+ purity_plot_name <- "EPIC"
  purity_ds <- ""
  purity_plot_name <- "aran"
+
+ purity_ds <- "CPE"
+ purity_plot_name <- "aran - CPE"
+
 corMet <- "pearson"
 transfExpr <- "log10"
 signifThresh <- 0.01
@@ -116,7 +120,7 @@ plot_multiDens(split(merge_dt$purityCorr, merge_dt$signif_lab),
                plotTit = plotTit, my_xlab = myx_lab)
 lines(density(merge_dt$purityCorr), col="green")
 abline(v=purityCorrThresh, col="blue")
-legend("topleft", lty=1, lwd=2, col=c("green", "blue"), bty="n", legend=c("all", paste0(corrPurityQtThresh, "-qt all TADs\n(=", round(purityCorrThresh, 2), ")")))
+legend("topleft", lty=1, lwd=2, col=c("green", "blue"), bty="n", legend=c("all", paste0(corrPurityQtThresh, "-qt non-signif. TADs\n(=", round(purityCorrThresh, 2), ")")))
 mtext(side=3, text = subTit)
 foo <- dev.off()
 cat(paste0("... written: ", outFile, "\n"))
@@ -140,10 +144,12 @@ plot_multiDens(
        signifDisc=merge_dt$purityCorr[merge_dt$region_id %in% signifTADs_to_discard]),
                plotTit = plotTit, my_xlab = myx_lab)
 abline(v=purityCorrThresh, col="blue")
-legend("topleft", lty=1, lwd=2, col=c("blue"), bty="n", legend=c(paste0( corrPurityQtThresh, "-qt all TADs\n(=", round(purityCorrThresh, 2), ")")))
+legend("topleft", lty=1, lwd=2, col=c("blue"), bty="n", legend=c(paste0( corrPurityQtThresh, "-qt non-signif. TADs\n(=", round(purityCorrThresh, 2), ")")))
 mtext(side=3, text = subTit)
 foo <- dev.off()
 cat(paste0("... written: ", outFile, "\n"))
+
+#stop("-ok\n")
 
 mainFolder <- file.path(".")
 stopifnot(dir.exists(mainFolder))
