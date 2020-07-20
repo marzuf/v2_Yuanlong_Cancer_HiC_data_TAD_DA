@@ -18,6 +18,9 @@ purity_ds <- ""
 purity_plot_name <- "aran"
 transfExpr <- "log10"
 
+purity_ds <- "CPE"
+purity_plot_name <- "Aran - CPE"
+transfExpr <- "log10"
 
 startTime <- Sys.time()
 

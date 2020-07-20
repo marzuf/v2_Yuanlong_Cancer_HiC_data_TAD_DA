@@ -61,7 +61,7 @@ purity_plot_name <- "EPIC"
 # purity_ds <- ""
 # purity_plot_name <- "aran"
 purity_ds <- "CPE"
-purity_plot_name <- "Aran -CPE"
+purity_plot_name <- "Aran - CPE"
 corMet <- "pearson"
 transfExpr <- "log10"
 corrPurityQtThresh <- 0.05

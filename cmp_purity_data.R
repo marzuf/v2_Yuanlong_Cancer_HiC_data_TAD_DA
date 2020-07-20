@@ -31,11 +31,14 @@ my_x <- merge_dt$purityCorrEST
 my_y <- merge_dt$purityCorrCPE
 
 outFile <- file.path(outFolder, "aranEST_aranCPE_geneLevel.png")
-png(outFile, width=400, height=600)
+png(outFile, width=400, height=400)
 plot(x=my_x,
      y=my_y, 
      pch=16,
      cex=0.7,
+cex.main=1.2,
+cex.lab=1.2,
+cex.axis=1.2,
      xlab="Aran - ESTIMATES",
      ylab="Aran - CPE",
      main="Comparison purity data"
@@ -50,11 +53,14 @@ my_y <- merge_dt$purityCorrEPIC
 
 
 outFile <- file.path(outFolder, "aranEST_EPIC_geneLevel.png")
-png(outFile, width=400, height=600)
+png(outFile, width=400, height=400)
 plot(x=my_x,
      y=my_y, 
      pch=16,
      cex=0.7,
+cex.main=1.2,
+cex.lab=1.2,
+cex.axis=1.2,
      xlab="Aran - ESTIMATES",
      ylab="EPIC",
      main="Comparison purity data"
@@ -68,11 +74,14 @@ my_x <- merge_dt$purityCorrCPE
 my_y <- merge_dt$purityCorrEPIC
 
 outFile <- file.path(outFolder, "aranCPE_EPIC_geneLevel.png")
-png(outFile, width=400, height=600)
+png(outFile, width=400, height=400)
 plot(x=my_x,
      y=my_y,
      pch=16,
      cex=0.7,
+cex.main=1.2,
+cex.lab=1.2,
+cex.axis=1.2,
      xlab="Aran - CPE",
      ylab="EPIC",
      main="Comparison purity data"
@@ -89,16 +98,19 @@ my_x <- agg_merge_dt$purityCorrEST
 my_y <- agg_merge_dt$purityCorrCPE
 
 outFile <- file.path(outFolder, "aranEST_aranCPE_tadLevel.png")
-png(outFile, width=400, height=600)
+png(outFile, width=400, height=400)
 plot(x=my_x,
      y=my_y,
      pch=16,
      cex=0.7,
+cex.main=1.2,
+cex.lab=1.2,
+cex.axis=1.2,
      xlab="Aran - ESTIMATES",
      ylab="Aran - CPE",
      main="Comparison purity data"
 )
-mtext(side=3, text="gene level")
+mtext(side=3, text="TAD level")
 addCorr(x=my_x,y=my_y,legPos="topleft",bty="n")
 curve(1*x, add=T,col="grey")
 foo <- dev.off()
@@ -107,16 +119,19 @@ my_x <- agg_merge_dt$purityCorrEST
 my_y <- agg_merge_dt$purityCorrEPIC
 
 outFile <- file.path(outFolder, "aranEST_EPIC_tadLevel.png")
-png(outFile, width=400, height=600)
+png(outFile, width=400, height=400)
 plot(x=my_x,
      y=my_y, 
      pch=16,
      cex=0.7,
+cex.main=1.2,
+cex.lab=1.2,
+cex.axis=1.2,
      xlab="Aran - ESTIMATES",
      ylab="EPIC",
      main="Comparison purity data"
 )
-mtext(side=3, text="gene level")
+mtext(side=3, text="TAD level")
 addCorr(x=my_x,y=my_y,legPos="topleft",bty="n")
 curve(1*x, add=T,col="grey")
 foo <- dev.off()
@@ -126,16 +141,19 @@ my_y <- agg_merge_dt$purityCorrEPIC
 
 
 outFile <- file.path(outFolder, "aranCPE_EPIC_tadLevel.png")
-png(outFile, width=400, height=600)
+png(outFile, width=400, height=400)
 plot(x=my_x,
      y=my_y,
      pch=16,
      cex=0.7,
+cex.main=1.2,
+cex.lab=1.2,
+cex.axis=1.2,
      xlab="Aran - CPE",
      ylab="EPIC",
      main="Comparison purity data"
 )
-mtext(side=3, text="gene level")
+mtext(side=3, text="TAD level")
 addCorr(x=my_x,y=my_y,legPos="topleft",bty="n")
 curve(1*x, add=T,col="grey")
 foo <- dev.off()

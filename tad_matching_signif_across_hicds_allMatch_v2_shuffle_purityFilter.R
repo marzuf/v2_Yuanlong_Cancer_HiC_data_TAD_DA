@@ -56,10 +56,12 @@ myWidth <- myHeight
 axisCex <- 1.4
 
 ### HARD-CODED - MAIN SETTINGS
-purity_ds <- "EPIC"
-purity_plot_name <- "EPIC"
+#purity_ds <- "EPIC"
+#purity_plot_name <- "EPIC"
 # purity_ds <- ""
 # purity_plot_name <- "aran"
+ purity_ds <- "CPE"
+ purity_plot_name <- "Aran - CPE"
 corMet <- "pearson"
 transfExpr <- "log10"
 corrPurityQtThresh <- 0.05
@@ -206,9 +208,9 @@ true_signif_tads <- file.path(final_dt$hicds[final_dt[, paste0(signifcol)] ],
 
 ####################################################################################################################################### >>> prepare the data
   
-  # foo_permut <- foreach(i_perm=1:nPermut) %dopar% {
+ foo_permut <- foreach(i_perm=1:nPermut) %dopar% {
     
-    foo_permut <- foreach(i_perm=c(588, 671)) %dopar% {
+#    foo_permut <- foreach(i_perm=c(588, 671)) %dopar% {
     
     dir.create(file.path(outFolder,i_perm), recursive=TRUE)
     

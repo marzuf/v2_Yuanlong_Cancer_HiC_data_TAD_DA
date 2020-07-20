@@ -31,6 +31,9 @@ if(purity_ds == "") {
 }
 
 
+
+purity_ds <- "CPE"
+  purity_plot_name <- "Aran - CPE"
 ### HARD-CODED - MAIN SETTINGS
 
 corMet <- "pearson"
