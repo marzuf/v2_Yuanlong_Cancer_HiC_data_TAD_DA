@@ -17,8 +17,8 @@ suppressPackageStartupMessages(library(ggplot2, warn.conflicts = FALSE, quietly 
 
 
 
-# Rscript purity_available_samples.R EPIC
-# Rscript purity_available_samples.R 
+
+# Rscript purity_available_samples_pkg.R 
 
 SSHFS <- FALSE
 setDir <- ifelse(SSHFS, "/media/electron", "")
@@ -71,14 +71,18 @@ if(purity_ds == "") {
 # pm <- "CPE"
 # purity_plot_name <- "aran - CPE"
 
+library(TCGAbiolinks)
+purity_dt <- Tumor.purity
 purity_dt <- purity_dt[,c("Sample.ID", paste0(pm))]
 purity_dt <- na.omit(purity_dt)
-
+purity_dt$Sample.ID <- sapply(purity_dt$Sample.ID, function(x) substr(x, 1, 15))
+agg_purity_dt <- aggregate(.~Sample.ID, data=purity_dt, FUN=mean)
+purity_dt <- agg_purity_dt
 
 stopifnot(!duplicated(purity_dt$Sample.ID))
 purity_values <- setNames(purity_dt[,paste0(pm)], purity_dt$Sample.ID)
 
-outFolder <- file.path("PURITY_AVAILABLE_SAMPLES", purity_ds, pm)
+outFolder <- file.path("PURITY_AVAILABLE_SAMPLES_PKG", purity_ds, pm)
 dir.create(outFolder, recursive = TRUE)
 
 cat(paste0("!!! > purity metric: ", pm, "\n"))
