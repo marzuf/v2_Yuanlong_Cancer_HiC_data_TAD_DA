@@ -91,7 +91,7 @@ all_result_dt <- foreach(hicds = all_hicds, .combine='rbind') %dopar% {
     stopifnot(maxRatioRegByReg_dt$init_region[maxRatioRegByReg_dt$region %in% initRegByReg_dt$region[initRegByReg_dt$init_region == 1]] == 1)
     # plot(density(maxRatioRegByReg_dt$init_region))
     
-    # CHANGE HERE -> RETAINS ONLY TADS THAT HAVE NO MORE THAN 50% OF THE GENES IN SAME TAD
+    # CHANGE HERE -> RETAINS ONLY TADS THAT HAVE NO MORE THAN *ratioSameTAD_thresh* OF THE GENES IN SAME TAD
     #keepTADs <- initRegByReg_dt$region[initRegByReg_dt$init_region > 1]
     # stopifnot(length(keepTADs) == sum(initRegByReg_dt$init_region == 2) + sum(initRegByReg_dt$init_region == 3))
     keepTADs <- maxRatioRegByReg_dt$region[maxRatioRegByReg_dt$init_region <= ratioSameTAD_thresh]
