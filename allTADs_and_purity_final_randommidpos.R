@@ -1,26 +1,28 @@
 ########################################################################################################################################################################################
 startTime <- Sys.time()
-cat(paste0("> Rscript allTADs_and_purity_final.R\n"))
+cat(paste0("> Rscript allTADs_and_purity_final_randommidpos.R\n"))
 
-script_name <- "allTADs_and_purity_final.R"
+script_name <- "allTADs_and_purity_final_randommidpos.R"
 
 # _final -> discussion with Giovanni 04.08.2020 -> take Aran CPE data
 # corrected compared to some of the previous versions -> if only non-"A" vial, take the "A" vial
 # if multiple vials -> take "A" vials
 
+# _randommidpos -> do this for the random datasets
+
 
 purity_file <- file.path("tcga_purity_aran2015.csv")
 purity_dt <- read.delim(purity_file, header=TRUE, sep="\t", stringsAsFactors = FALSE)
 purity_metrics <- c("ESTIMATE", "ABSOLUTE", "LUMP", "IHC", "CPE")
-dt0 <- na.omit(purity_dt[,c("Sample.ID", "CPE")])
-require(TCGAbiolinks)
-dt1 <- na.omit(Tumor.purity[,c("Sample.ID", "CPE")])
-dt1$CPE <- as.numeric(as.character(gsub(",", ".", as.character(dt1$CPE))))
-dt1 <- na.omit(dt1)
-dt0 <- dt0[order(dt0$Sample.ID),]
-dt1 <- dt1[order(dt1$Sample.ID),]
-dt1$Sample.ID <- as.character(dt1$Sample.ID)
-stopifnot(all.equal(dt0, dt1))
+#dt0 <- na.omit(purity_dt[,c("Sample.ID", "CPE")])
+#require(TCGAbiolinks)
+#dt1 <- na.omit(Tumor.purity[,c("Sample.ID", "CPE")])
+#dt1$CPE <- as.numeric(as.character(gsub(",", ".", as.character(dt1$CPE))))
+#dt1 <- na.omit(dt1)
+#dt0 <- dt0[order(dt0$Sample.ID),]
+#dt1 <- dt1[order(dt1$Sample.ID),]
+#dt1$Sample.ID <- as.character(dt1$Sample.ID)
+#stopifnot(all.equal(dt0, dt1))
 # TRUE
 
 
@@ -46,7 +48,7 @@ do_plot <- function(my_x, my_y, ...) {
   addCorr(my_x, my_y, bty="n")
 }
 
-# Rscript allTADs_and_purity_final_tmp.R
+# Rscript allTADs_and_purity_final_randommidpos.R
 
 SSHFS <- FALSE
 setDir <- ifelse(SSHFS, "/media/electron", "")
@@ -83,14 +85,8 @@ signifThresh <- 0.01
 highCorrThresh <- 0.6
 
 # to quickly retrieve tad-level stat.
-all_result_dt <- get(load("CREATE_FINAL_TABLE/all_result_dt.Rdata"))
+all_result_dt <- get(load("CREATE_FINAL_TABLE_RANDOM/all_result_dt.Rdata"))
 
-args <- commandArgs(trailingOnly = TRUE)
-if(length(args) == 1) {
-  purity_ds <- args[1]  
-} else{
-  purity_ds <- ""
-}
 
 script0_name <- "0_prepGeneData"
 
@@ -122,13 +118,14 @@ stopifnot(any(grepl("A$", purity_dt$Sample.ID_withVial)))
 stopifnot(!duplicated(purity_dt$Sample.ID))
 purity_dt$Sample.ID_withVial <- NULL
 
-outFolder <- file.path("ALLTADS_AND_PURITY_FINAL_TMP", purity_ds, pm, transfExpr)
+outFolder <- file.path("ALLTADS_AND_PURITY_FINAL_RANDOMMIDPOS", purity_ds, pm, transfExpr)
 dir.create(outFolder, recursive = TRUE)
 
 cat(paste0("!!! > purity metric: ", pm, "\n"))
 
 all_hicds <- list.files(pipFolder)
-all_hicds <- all_hicds[!grepl("RANDOM", all_hicds) & !grepl("PERMUT", all_hicds)]
+#all_hicds <- all_hicds[!grepl("RANDOM", all_hicds) & !grepl("PERMUT", all_hicds)]  # > change here to keep ONLY the random datasets !
+all_hicds <- all_hicds[grepl("RANDOMMIDPOS", all_hicds)]
 all_exprds <- lapply(all_hicds, function(x) list.files(file.path(pipFolder, x)))
 names(all_exprds) <- all_hicds
 all_ds <- unlist(sapply(names(all_exprds), function(x) file.path(x, all_exprds[[paste0(x)]])))
@@ -188,7 +185,7 @@ if(buildTable){
     g2t_dt <- g2t_dt[grepl("_TAD", g2t_dt$region),]
     
     geneList <- get(load(file.path(pipFolder, hicds, exprds, script0_name, "pipeline_geneList.Rdata")))
-	pipeline_geneList <- geneList
+    pipeline_geneList <- geneList
     stopifnot(geneList %in% g2t_dt$entrezID)
     g2t_dt <- g2t_dt[g2t_dt$entrezID %in% geneList,]
     g2t_dt$region <- as.character(g2t_dt$region)
