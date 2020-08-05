@@ -98,6 +98,22 @@ outFile <- file.path(outFolder, "all_dt_signif_flagged.txt")
 write.table(all_dt, file=outFile, col.names=T, row.names=F, sep="\t", quote=F, append=F)
 cat(paste0("... written: ", outFile, "\n"))
 
+
+all_patts <- c("RANDOMMIDPOS", "RANDOMMIDPOSDISC", "RANDOMMIDPOSSTRICT")
+
+for(pat in all_patts) {
+
+tmp_dt <- all_dt[grepl(paste0(pat,"_40kb" ), all_dt$dataset),]
+stopifnot(nrow(tmp_dt) > 0)
+outFile <- file.path(outFolder, paste0(pat, "_all_dt_signif_flagged.txt"))
+write.table(tmp_dt, file=outFile, col.names=T, row.names=F, sep="\t", quote=F, append=F)
+cat(paste0("... written: ", outFile, "\n"))
+ 
+
+}
+
+
+
 resultData$regID <- file.path(resultData$hicds, resultData$exprds, resultData$region)
 flagged_signif_dt <- resultData[resultData$regID %in% merge_dt$regID[merge_dt$signifFlagged],c("regID", "region_genes")]
 flagged_signif_dt <- flagged_signif_dt[order(flagged_signif_dt$regID),]
