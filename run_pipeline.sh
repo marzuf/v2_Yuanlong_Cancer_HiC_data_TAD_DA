@@ -200,36 +200,12 @@ step2=1    # run the pipeline
 
 # ./run_pipeline.sh GSE105381_HepG2_RANDOMSUB3_40kb TCGAlihc_wt_mutCTNNB1 #  run ok
 
-#TAD_DE_pipSteps=( "0cleanInputTCGAminCount" "1cleanInputTCGAminCount")
-TAD_DE_pipSteps=("3" "4" "5fastSavePermut" "6fastSave" "5sameNbr" "9" "7sameNbr" "10sameNbr" "11sameNbr" )
+#TAD_DE_pipSteps=( "0cleanInputTCGAminCount" )
+# "1cleanInputTCGAminCount")
+#TAD_DE_pipSteps=("3" "4" "5fastSavePermut" "6fastSave" "5sameNbr" "9" "7sameNbr" "10sameNbr" "11sameNbr" )
 #TAD_DE_pipSteps=( "5fastSavePermut" "6fastSave" "5sameNbr" "9" "7sameNbr" "10sameNbr" "11sameNbr" )
 #TAD_DE_pipSteps=("3" "4" "9" "7sameNbr" "10sameNbr" "11sameNbr" )
 #TAD_DE_pipSteps=( "6fastSave" "5sameNbr" "9" "7sameNbr" "10sameNbr" "11sameNbr" )
-
-# ./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_RANDOMSUB20-2_40kb TCGAskcm_lowInf_highInf  # run electron - ok
-# ./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_RANDOMSUB20-3_40kb TCGAskcm_lowInf_highInf  # run ok 
-# ./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_RANDOMSUB20-4_40kb TCGAskcm_lowInf_highInf  # run electron - ok
-# ./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_RANDOMSUB20-5_40kb TCGAskcm_lowInf_highInf  # run electron - ok
-
-
-# ./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_RANDOMSUB60-2_40kb TCGAskcm_lowInf_highInf  # run ok
-# ./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_RANDOMSUB60-3_40kb TCGAskcm_lowInf_highInf  # run POS-fri
-# ./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_RANDOMSUB60-4_40kb TCGAskcm_lowInf_highInf  # run POS -fri
-# ./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_RANDOMSUB60-5_40kb TCGAskcm_lowInf_highInf  # run POS -fri
-
-# ./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_RANDOMSUB80-2_40kb TCGAskcm_lowInf_highInf  # run POS fri
-# ./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_RANDOMSUB80-3_40kb TCGAskcm_lowInf_highInf  # run ok
-# ./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_RANDOMSUB80-4_40kb TCGAskcm_lowInf_highInf  # run ok
-# ./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_RANDOMSUB80-5_40kb TCGAskcm_lowInf_highInf  # run POS
-
-# ./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_RANDOMSUB100-2_40kb TCGAskcm_lowInf_highInf  # run ok
-# ./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_RANDOMSUB100-3_40kb TCGAskcm_lowInf_highInf  # run ok
-# ./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_RANDOMSUB100-4_40kb TCGAskcm_lowInf_highInf  # run ok
-# ./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_RANDOMSUB100-5_40kb TCGAskcm_lowInf_highInf  # run ok
-
-
-
-
 
 #TAD_DE_pipSteps=( "0cleanInputTCGAminCountCheckRm" )
 # ./run_pipeline.sh ENCSR489OCU_NCI-H460_40kb TCGAluad_norm_luad
@@ -237,6 +213,8 @@ TAD_DE_pipSteps=("3" "4" "5fastSavePermut" "6fastSave" "5sameNbr" "9" "7sameNbr"
 #TAD_DE_pipSteps=( "3var" "3max" )
 
 #TAD_DE_pipSteps=( "3divmax" )
+
+TAD_DE_pipSteps=( "5fastSavePermut" )
 
 runDir="/mnt/etemp/marie/v2_Yuanlong_Cancer_HiC_data_TAD_DA"
 

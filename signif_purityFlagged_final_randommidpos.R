@@ -90,7 +90,13 @@ stopifnot(sum(aggSignifFlagged_merge_dt$nSignifAndFlagged) ==sum(merge_dt$signif
 all_dt <- merge(merge(aggSignif_merge_dt, aggFlagged_merge_dt, by="dataset", all=TRUE ),aggSignifFlagged_merge_dt,by="dataset", all=TRUE)
 all_dt$ratioSignifFlagged <- all_dt$nSignifAndFlagged/all_dt$nSignif
 stopifnot(na.omit(all_dt)$ratioSignifFlagged >= 0 & na.omit(all_dt)$ratioSignifFlagged <= 1)
-all_dt <- all_dt[order(all_dt$ratioSignifFlagged, decreasing = TRUE),]          
+all_dt <- all_dt[order(all_dt$ratioSignifFlagged, decreasing = TRUE),]      
+
+
+outFile <- file.path(outFolder, "all_dt.Rdata")
+save(all_dt, file=outFile, version=2)
+cat(paste0("... written: ", outFile, "\n"))
+    
 
 all_dt$ratioSignifFlagged <- round(all_dt$ratioSignifFlagged,4)
 

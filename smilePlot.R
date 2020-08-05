@@ -57,6 +57,11 @@ setDir <-""
 
 all_missing_data <- foreach(hicds = all_hicds) %dopar% {
   missing_data <- foreach(exprds = all_exprds[[paste0(hicds)]]) %do% {
+
+
+    outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_smilePlot.", plotType))
+if(file.exists(outFile)) return(NULL)
+
     pipOutFold <- file.path(pipFolder, hicds, exprds)
     
     setDir <- ""

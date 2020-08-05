@@ -87,7 +87,12 @@ stopifnot(sum(aggFlagged_merge_dt$nPurityFlagged) ==sum(merge_dt$purityFlagged))
 all_dt <- merge(aggTot_merge_dt, aggFlagged_merge_dt, by="dataset", all=TRUE )
 all_dt$ratioFlagged <- all_dt$nPurityFlagged/all_dt$nTot
 stopifnot(all_dt$ratioFlagged >= 0 & all_dt$ratioFlagged <= 1)
-all_dt <- all_dt[order(all_dt$ratioFlagged, decreasing = TRUE),]          
+all_dt <- all_dt[order(all_dt$ratioFlagged, decreasing = TRUE),]  
+
+outFile <- file.path(outFolder, "all_dt.Rdata")
+save(all_dt, file=outFile, version=2)
+cat(paste0("... written: ", outFile, "\n"))
+        
 
 all_dt$ratioFlagged <- round(all_dt$ratioFlagged,4)
 

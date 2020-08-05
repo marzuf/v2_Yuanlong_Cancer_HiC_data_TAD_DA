@@ -91,6 +91,11 @@ all_dt$ratioFlagged <- all_dt$nPurityFlagged/all_dt$nTot
 stopifnot(all_dt$ratioFlagged >= 0 & all_dt$ratioFlagged <= 1)
 all_dt <- all_dt[order(all_dt$ratioFlagged, decreasing = TRUE),]          
 
+outFile <- file.path(outFolder, "all_dt.Rdata")
+save(all_dt, file=outFile, version=2)
+cat(paste0("... written: ", outFile, "\n"))
+
+
 all_dt$ratioFlagged <- round(all_dt$ratioFlagged,4)
 
 outFile <- file.path(outFolder, "all_dt_signif_flagged.txt")
