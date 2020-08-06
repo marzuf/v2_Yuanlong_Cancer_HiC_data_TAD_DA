@@ -3,6 +3,8 @@
 source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 source("../Yuanlong_Cancer_HiC_data_TAD_DA/subtype_cols.R")
 
+plotCex <- 1.2
+
 outFolder <- file.path("CMP_OBS_RANDOM_SIGNIF_AND_FLAGGED")
 dir.create(outFolder, recursive = TRUE)
 
@@ -24,12 +26,12 @@ stopifnot(setequal(signif_rd_dt$dataset, signif_rd_dt$dataset))
 signif_rd_dt$dataset_init <- NULL
 signif_dt <- merge(signif_obs_dt, signif_rd_dt, by=c("dataset"), suffixes=c("_obs", "_rd"))
 
+all_dt <- nall_dt # because 2nd get(load overwrite the all_dt
 all_dt$cmpTypeCol <- all_cols[all_cmps[basename(all_dt$dataset)]]
 stopifnot(!is.na(all_dt$cmpTypeCol))
 signif_dt$cmpTypeCol <- all_cols[all_cmps[basename(signif_dt$dataset)]]
 stopifnot(!is.na(signif_dt$cmpTypeCol))
 
-all_dt <- nall_dt # because 2nd get(load overwrite the all_dt
 
 rd_types <- c("RANDOMMIDPOS", "RANDOMMIDPOSDISC", "RANDOMMIDPOSSTRICT")
 rd=rd_types[1]
@@ -50,7 +52,10 @@ for(rd in rd_types) {
     cex=0.7, 
     col=curr_dt$cmpTypeCol,
     xlab="observed",
-    ylab=rd
+    ylab=rd,
+    cex.axis=plotCex,
+    cex.lab=plotCex,
+    cex.main=plotCex
   )
   curve(1*x, col="darkgrey", add=TRUE)
   addCorr(
@@ -84,7 +89,10 @@ for(rd in rd_types) {
     cex=0.7, 
     col=curr_dt$cmpTypeCol,
     xlab="observed",
-    ylab=rd
+    ylab=rd,
+    cex.axis=plotCex,
+    cex.lab=plotCex,
+    cex.main=plotCex
   )
   curve(1*x, col="darkgrey", add=TRUE)
   addCorr(

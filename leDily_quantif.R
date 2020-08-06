@@ -76,7 +76,7 @@ all_stats_dt <- do.call(rbind, by(all_merged_dt, all_merged_dt$dataset, function
   # % of signif. DE genes in DA
   signifDE_and_DA <- mean(x$geneDElab != "notDE_gene" & x$tadDAlab != "notDA_TAD")
   # % of of all genes in activated and repressed
-  all_and_DA <- mean(x$activationLab != "notDA_TAD")
+  all_and_DA <- mean(x$tadDAlab != "notDA_TAD")
   
   # B)
   # % of signif up/down DE genes in activated/repressed TADs
@@ -87,7 +87,7 @@ all_stats_dt <- do.call(rbind, by(all_merged_dt, all_merged_dt$dataset, function
   
   # % of signif in nonresp TADs
   signifDE_and_notResp <- mean(x$geneDElab != "notDE_gene" & x$activationLab == "nonresp_TAD")
-  signifDE_and_notDA <- mean(x$geneDElab != "notDE_gene" & x$activationLab == "notDA_TAD")
+  signifDE_and_notDA <- mean(x$geneDElab != "notDE_gene" & x$tadDAlab == "notDA_TAD")
   
   # C)
   # % of TADs with ratioDown >= 75% and <= 25% ("concordant_TAD")
@@ -96,6 +96,7 @@ all_stats_dt <- do.call(rbind, by(all_merged_dt, all_merged_dt$dataset, function
   x_t <- unique(x_t)
   concordantTAD <- mean(x_t$concordanceLab == "concordant_TAD")
   signifDE_and_concord <- mean(x$geneDElab != "notDE_gene" & x$concordanceLab == "concordant_TAD")
+  all_and_concord <- mean(x$concordanceLab == "concordant_TAD")
   
   data.frame(
     dataset = ds,
@@ -111,6 +112,7 @@ all_stats_dt <- do.call(rbind, by(all_merged_dt, all_merged_dt$dataset, function
     signifDE_and_notDA=signifDE_and_notDA,
     concordantTAD=concordantTAD,
     signifDE_and_concord=signifDE_and_concord,
+    all_and_concord=all_and_concord,
     stringsAsFactors=FALSE
   )
   
@@ -119,15 +121,83 @@ all_stats_dt <- do.call(rbind, by(all_merged_dt, all_merged_dt$dataset, function
   
 }))
 
-
+rownames(all_stats_dt) <- NULL
 
 outFile <- file.path(outFolder, "all_stats_dt.Rdata")
 save(all_stats_dt, file=outFile,version=2)
 cat(paste0("... written: ", outFile,"\n"))
 
 
+source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 
+outFile <- file.path(outFolder, "signifDE_and_resp_AND_all_and_resp.png")
+png(outFile, height=350, width=550)
+plot_multiDens(
+  list(
+    signifDE_and_resp = all_stats_dt$signifDE_and_resp,
+    all_and_resp = all_stats_dt$all_and_resp
+  ), legPos = "topleft", my_xlab="ratio of genes"
+)
+foo <- dev.off()
 
+outFile <- file.path(outFolder, "signifDE_and_DA_AND_all_and_DA.png")
+png(outFile, height=350, width=550)
+plot_multiDens(
+  list(
+    signifDE_and_DA = all_stats_dt$signifDE_and_DA,
+    all_and_DA = all_stats_dt$all_and_DA
+  ), legPos = "topright", my_xlab="ratio of genes"
+)
+foo <- dev.off()
+
+outFile <- file.path(outFolder, "upDE_and_activated_AND_upDE_and_upDA.png")
+png(outFile, height=350, width=550)
+plot_multiDens(
+  list(
+    upDE_and_activated = all_stats_dt$upDE_and_activated,
+    upDE_and_upDA = all_stats_dt$upDE_and_upDA
+  ), legPos = "topright", my_xlab="ratio of genes"
+)
+foo <- dev.off()
+
+outFile <- file.path(outFolder, "downDE_and_repressed_AND_downDE_and_downDA.png")
+png(outFile, height=350, width=550)
+plot_multiDens(
+  list(
+    downDE_and_repressed = all_stats_dt$downDE_and_repressed,
+    downDE_and_downDA = all_stats_dt$downDE_and_downDA
+  ), legPos = "topright", my_xlab="ratio of genes"
+)
+foo <- dev.off()
+
+outFile <- file.path(outFolder, "signifDE_and_notResp_AND_signifDE_and_notDA.png")
+png(outFile, height=350, width=550)
+plot_multiDens(
+  list(
+    signifDE_and_notResp = all_stats_dt$signifDE_and_notResp,
+    signifDE_and_notDA = all_stats_dt$signifDE_and_notDA
+  ), legPos = "topright", my_xlab="ratio of genes"
+)
+foo <- dev.off()
+
+outFile <- file.path(outFolder, "signifDE_and_concord_AND_all_and_concord.png")
+png(outFile, height=350, width=550)
+plot_multiDens(
+  list(
+    signifDE_and_concord = all_stats_dt$signifDE_and_concord,
+    all_and_concord = all_stats_dt$all_and_concord
+  ), legPos = "topleft", my_xlab="ratio of genes"
+)
+foo <- dev.off()
+
+outFile <- file.path(outFolder, "concordantTAD.png")
+png(outFile, height=350, width=550)
+plot_multiDens(
+  list(
+    concordantTAD = all_stats_dt$concordantTAD
+  ), legPos = "topright", my_xlab="ratio of TADs"
+)
+foo <- dev.off()
 
 
 # 
