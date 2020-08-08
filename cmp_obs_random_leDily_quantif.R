@@ -17,7 +17,7 @@ for(rd in rd_types) {
   rd_dt$dataset <- gsub(paste0(rd, "_40kb"), "40kb", rd_dt$dataset)
   stopifnot(setequal(rd_dt$dataset, obs_dt$dataset))
   all_dt <- merge(obs_dt, rd_dt, by="dataset", suffixes=c("_obs", "_rd"),all=TRUE)
-  stopifnot(!is.na(all_dt))
+  # stopifnot(!is.na(all_dt))s
   stopifnot(setequal(colnames(obs_dt), colnames(rd_dt)))
   all_vars <- colnames(obs_dt)
   all_vars <- all_vars[all_vars!="dataset"]
