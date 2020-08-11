@@ -2,10 +2,10 @@ options(scipen=100)
 
 SSHFS=F
 
-# Rscript signif_purityFlagged_final_randommidpos.R 
+# Rscript signif_purityFlagged_final_permutg2t.R 
 
 
-# _final:  discussion 04.08.2020 Giovanni - keep aran CPE data, first vial only > version for the RANDOM datasets
+# _final:  discussion 04.08.2020 Giovanni - keep aran CPE data, first vial only
 
 purity_ds <- "aran"
 pm <- "CPE"
@@ -58,16 +58,16 @@ myWidthGG <- 12
 myHeightGG <- 12
 
 
-outFolder <- file.path("SIGNIF_PURITYFLAGGED_FINAL_RANDOMMIDPOS", purity_ds, pm, transfExpr)
+outFolder <- file.path("SIGNIF_PURITYFLAGGED_FINAL_PERMUT", purity_ds, pm, transfExpr)
 dir.create(outFolder, recursive = TRUE)
 
-purity_file <- file.path("ALLTADS_AND_PURITY_FINAL_RANDOMMIDPOS", purity_ds, pm, transfExpr, "all_ds_corrPurity_dt.Rdata")  # here _final INPUT
+purity_file <- file.path("ALLTADS_AND_PURITY_FINAL_PERMUT", purity_ds, pm, transfExpr, "all_ds_corrPurity_dt.Rdata")  # here _final INPUT
 purityData <- get(load(purity_file))
 agg_purity <- aggregate(purityCorr~dataset+region, FUN=mean, data=purityData)
 
 agg_purity$regID <- file.path(agg_purity$dataset, agg_purity$region)
 
-result_file <- file.path("CREATE_FINAL_TABLE_RANDOM", "all_result_dt.Rdata")
+result_file <- file.path("CREATE_FINAL_TABLE_PERMUT", "all_result_dt.Rdata")
 resultData <- get(load(result_file))
 resultData$dataset <- file.path(resultData$hicds, resultData$exprds)
 
@@ -81,12 +81,9 @@ aggSignif_merge_dt <- aggregate(signif~dataset, FUN=sum, data=merge_dt)
 colnames(aggSignif_merge_dt)[2] <- "nSignif"
 stopifnot(sum(aggSignif_merge_dt$nSignif) ==sum(merge_dt$signif))
 
-
 aggTot_merge_dt <- aggregate(signif~dataset, FUN=length, data=merge_dt)
 colnames(aggTot_merge_dt)[2] <- "nTot"
 stopifnot(sum(aggTot_merge_dt$nTot) ==length(merge_dt$signif))
-
-
 
 aggFlagged_merge_dt <- aggregate(purityFlagged~dataset, FUN=sum, data=merge_dt)
 colnames(aggFlagged_merge_dt)[2] <- "nPurityFlagged"
@@ -95,39 +92,24 @@ aggSignifFlagged_merge_dt <- aggregate(signifFlagged~dataset, FUN=sum, data=merg
 colnames(aggSignifFlagged_merge_dt)[2] <- "nSignifAndFlagged"
 stopifnot(sum(aggSignifFlagged_merge_dt$nSignifAndFlagged) ==sum(merge_dt$signif & merge_dt$purityFlagged ))
 
+# all_dt <- merge(merge(aggSignif_merge_dt, aggFlagged_merge_dt, by="dataset", all=TRUE ),aggSignifFlagged_merge_dt,by="dataset", all=TRUE)
 all_dt <- merge(merge(merge(aggSignif_merge_dt, aggFlagged_merge_dt, by="dataset", all=TRUE ),aggSignifFlagged_merge_dt,by="dataset", all=TRUE), aggTot_merge_dt, by="dataset", all=TRUE)
 all_dt$ratioSignif <- all_dt$nSignif/all_dt$nTot
 all_dt$ratioSignifFlagged <- all_dt$nSignifAndFlagged/all_dt$nSignif
 stopifnot(na.omit(all_dt)$ratioSignifFlagged >= 0 & na.omit(all_dt)$ratioSignifFlagged <= 1)
-all_dt <- all_dt[order(all_dt$ratioSignifFlagged, decreasing = TRUE),]      
-
+all_dt <- all_dt[order(all_dt$ratioSignifFlagged, decreasing = TRUE),]          
 
 outFile <- file.path(outFolder, "all_dt.Rdata")
 save(all_dt, file=outFile, version=2)
 cat(paste0("... written: ", outFile, "\n"))
-    
+
+
 
 all_dt$ratioSignifFlagged <- round(all_dt$ratioSignifFlagged,4)
 
 outFile <- file.path(outFolder, "all_dt_signif_flagged.txt")
 write.table(all_dt, file=outFile, col.names=T, row.names=F, sep="\t", quote=F, append=F)
 cat(paste0("... written: ", outFile, "\n"))
-
-
-all_patts <- c("RANDOMMIDPOS", "RANDOMMIDPOSDISC", "RANDOMMIDPOSSTRICT")
-
-for(pat in all_patts) {
-
-tmp_dt <- all_dt[grepl(paste0(pat,"_40kb" ), all_dt$dataset),]
-stopifnot(nrow(tmp_dt) > 0)
-outFile <- file.path(outFolder, paste0(pat, "_all_dt_signif_flagged.txt"))
-write.table(tmp_dt, file=outFile, col.names=T, row.names=F, sep="\t", quote=F, append=F)
-cat(paste0("... written: ", outFile, "\n"))
- 
-
-}
-
-
 
 resultData$regID <- file.path(resultData$hicds, resultData$exprds, resultData$region)
 flagged_signif_dt <- resultData[resultData$regID %in% merge_dt$regID[merge_dt$signifFlagged],c("regID", "region_genes")]

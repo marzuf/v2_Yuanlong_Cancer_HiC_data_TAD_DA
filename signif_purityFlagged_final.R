@@ -80,6 +80,11 @@ merge_dt$signifFlagged <- merge_dt$signif & merge_dt$purityFlagged
 aggSignif_merge_dt <- aggregate(signif~dataset, FUN=sum, data=merge_dt)
 colnames(aggSignif_merge_dt)[2] <- "nSignif"
 stopifnot(sum(aggSignif_merge_dt$nSignif) ==sum(merge_dt$signif))
+
+aggTot_merge_dt <- aggregate(signif~dataset, FUN=length, data=merge_dt)
+colnames(aggTot_merge_dt)[2] <- "nTot"
+stopifnot(sum(aggTot_merge_dt$nTot) ==length(merge_dt$signif))
+
 aggFlagged_merge_dt <- aggregate(purityFlagged~dataset, FUN=sum, data=merge_dt)
 colnames(aggFlagged_merge_dt)[2] <- "nPurityFlagged"
 stopifnot(sum(aggFlagged_merge_dt$nPurityFlagged) ==sum(merge_dt$purityFlagged))
@@ -87,7 +92,9 @@ aggSignifFlagged_merge_dt <- aggregate(signifFlagged~dataset, FUN=sum, data=merg
 colnames(aggSignifFlagged_merge_dt)[2] <- "nSignifAndFlagged"
 stopifnot(sum(aggSignifFlagged_merge_dt$nSignifAndFlagged) ==sum(merge_dt$signif & merge_dt$purityFlagged ))
 
-all_dt <- merge(merge(aggSignif_merge_dt, aggFlagged_merge_dt, by="dataset", all=TRUE ),aggSignifFlagged_merge_dt,by="dataset", all=TRUE)
+# all_dt <- merge(merge(aggSignif_merge_dt, aggFlagged_merge_dt, by="dataset", all=TRUE ),aggSignifFlagged_merge_dt,by="dataset", all=TRUE)
+all_dt <- merge(merge(merge(aggSignif_merge_dt, aggFlagged_merge_dt, by="dataset", all=TRUE ),aggSignifFlagged_merge_dt,by="dataset", all=TRUE), aggTot_merge_dt, by="dataset", all=TRUE)
+all_dt$ratioSignif <- all_dt$nSignif/all_dt$nTot
 all_dt$ratioSignifFlagged <- all_dt$nSignifAndFlagged/all_dt$nSignif
 stopifnot(all_dt$ratioSignifFlagged >= 0 & all_dt$ratioSignifFlagged <= 1)
 all_dt <- all_dt[order(all_dt$ratioSignifFlagged, decreasing = TRUE),]          
