@@ -4,7 +4,10 @@
 
 # all_files=( $( ls PIPELINE/OUTPUT_FOLDER/*RANDOMMIDPOS_*/*/5_*/*data ) ) # >>> DONE to pd2
 #all_files=( $( ls PIPELINE/OUTPUT_FOLDER/*RANDOMMIDPOSDISC_*/*/5_*/*data ) ) # >>> DONE to pd2 and pd4
-all_files=( $( ls PIPELINE/OUTPUT_FOLDER/*RANDOMMIDPOSSTRICT_*/*/5_*/*data ) ) # >>> launched to pd4
+#all_files=( $( ls PIPELINE/OUTPUT_FOLDER/*RANDOMMIDPOSSTRICT_*/*/5_*/*data ) ) # >>> DONEto pd4
+#all_files=( $( ls PIPELINE/OUTPUT_FOLDER/*RANDOMMIDPOS_*/*/6_*/*data ) ) # >>> DONE to pd4
+#all_files=( $( ls PIPELINE/OUTPUT_FOLDER/*RANDOMMIDPOSDISC_*/*/6_*/*data ) ) # >>> launched to pd4
+all_files=( $( ls PIPELINE/OUTPUT_FOLDER/*RANDOMMIDPOSSTRICT_*/*/6_*/*data ) ) # >>> launched to pd4
 
 mv_folder="/mnt/pd4/marie/"  # first pd2, then full so pd4
 

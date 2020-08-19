@@ -10,10 +10,9 @@
 #[4] "LG2_40kb-TCGAlusc_norm_lusc"         
 
 
-# ./run_pipeline_8.sh GSE105318_DLD1_40kb TCGAcoad_msi_mss # run pos   -ok
-# ./run_pipeline_8.sh HMEC_40kb TCGAbrca_lum_bas # run el ok  
-# ./run_pipeline_8.sh LG1_40kb TCGAluad_norm_luad # run el   
-# ./run_pipeline_8.sh LG2_40kb TCGAlusc_norm_lusc # run el   ok
+# ./run_pipeline_6.sh K562_PERMUTG2T_40kb TCGAlaml_wt_mutFLT3 #9.8 run el
+
+
 start_time=$(date -R)    
 #set -e
 
@@ -36,7 +35,7 @@ step2=1    # run the pipeline
 # NB: 1cleanInput is same as 1cleanInputTCGAminCount, except added change rowToKeep based on minCount
 
 
-TAD_DE_pipSteps=( "6fastSave" )
+TAD_DE_pipSteps=( "5fastSavePermut" "6fastSave" )
 
 runDir="/mnt/etemp/marie/v2_Yuanlong_Cancer_HiC_data_TAD_DA"
 

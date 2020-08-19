@@ -39,9 +39,16 @@ require(reshape2)
 # require(gplots)
 registerDoMC(4)
 
+setDir <- ""
+plotCex <- 1.2
+
 source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 # source("plot_lolliTAD_funct.R")
 # source("my_heatmap.2.R")
+source("../Yuanlong_Cancer_HiC_data_TAD_DA/subtype_cols.R")
+# source("../MANUSCRIPT_FIGURES//settings.R")
+# source("../MANUSCRIPT_FIGURES/full_dataset_names.R")
+
 
 buildTable <- TRUE
 
@@ -69,11 +76,43 @@ obs_dt$nSignif_notFlagged <- obs_dt$nSignif - obs_dt$nSignifAndFlagged
 
 obs_dt$ratioSignif_notFlagged <- 1 - obs_dt$ratioSignifFlagged
 
+obs_dt$dotcols <- all_cols[all_cmps[basename(obs_dt$dataset)]]
+obs_dt$dotpch <- ifelse(grepl("TCGAskcm_lowInf_highInf", obs_dt$dataset), 8, 16)
+
+my_x <- obs_dt$ratioSignif
+my_y <- obs_dt$ratioSignifFlagged
+
+outfile <- file.path(outFolder, "ratioSignifFlagged_ratioSignif_withSkcm.svg")
+svg(outfile, height=7,width=7)
+plot(
+  x= my_x,
+  y= my_y,
+  cex.main=plotCex,
+  cex.lab=plotCex,
+  cex.axis=plotCex,
+  main="",
+  xlab="ratioSignif",
+  ylab="ratioSignifFlagged",
+  pch=obs_dt$dotpch,
+  col=obs_dt$dotcols
+)
+text(y=my_y[grepl("TCGAskcm_lowInf_highInf", obs_dt$dataset)],
+     x=my_x[grepl("TCGAskcm_lowInf_highInf", obs_dt$dataset)],
+     labels=gsub("/", "\n", obs_dt$dataset[grepl("TCGAskcm_lowInf_highInf", obs_dt$dataset)]), cex=0.6
+     )
+addCorr(x=my_x, y=my_y, bty="n")
+abline(lm(my_y~my_x), lty=2, col="darkgrey")
+legend("topleft", col=all_cols, legend=names(all_cols), bty="n", pch=16, cex=0.8)
+
+foo <- dev.off()
+
+stop("-ok\n")
+
+
 random_dt$ratioFlagged <- random_dt$nPurityFlagged/random_dt$nTot
 random_dt$nSignif_notFlagged <- random_dt$nSignif - random_dt$nSignifAndFlagged
 
 random_dt$ratioSignif_notFlagged <- 1 - random_dt$ratioSignifFlagged
-
 
 all_patts <- c("RANDOMMIDPOS", "RANDOMMIDPOSDISC", "RANDOMMIDPOSSTRICT", "PERMUTG2T")
 pat=all_patts[1]
@@ -111,6 +150,7 @@ for(plotVar in all_plotVars){
     
     plot_dt <- merge(tmp_dt, obs_dt, by="dataset", suffixes=c("_rd", "_obs"), all=TRUE)
     # stopifnot(!is.na(plot_dt))  # not TRUE because I have some division by 0
+    
     
     colnames(plot_dt)[colnames(plot_dt) == paste0(plotVar, "_obs")] <- "observed"
     colnames(plot_dt)[colnames(plot_dt) == paste0(plotVar, "_rd")] <- paste0(pat)
@@ -150,6 +190,92 @@ for(plotVar in all_plotVars){
   ggsave(x, file=outFile, height=myHeight*2.5, width=myWidth*2.5)
   cat(paste0("... written: ", outFile, "\n"))
 }
+
+
+for(pat in all_patts) {
+  
+  tmp_dt <- random_dt[grepl(paste0(pat,"_40kb" ), random_dt$dataset),]
+  stopifnot(nrow(tmp_dt) > 0)
+  
+  tmp_dt$dataset <- gsub("_RANDOM.+_40kb|_PERMUT.+_40kb", "_40kb", tmp_dt$dataset)
+  stopifnot(setequal(tmp_dt$dataset, obs_dt$dataset))
+  
+  plot_dt <- merge(tmp_dt, obs_dt, by="dataset", suffixes=c("_rd", "_obs"), all=TRUE)
+  # stopifnot(!is.na(plot_dt))  # not TRUE because I have some division by 0
+  
+  plot_dt$dotcols <- all_cols[all_cmps[basename(as.character(plot_dt$dataset))]]
+  
+  my_x <- plot_dt$nSignif_rd/plot_dt$nSignif_obs
+  my_y <- plot_dt$nSignifAndFlagged_rd/plot_dt$nSignifAndFlagged_obs
+  
+  my_xlab <- "nSignif_rd/nSignif_obs"
+  my_ylab <- "nSignifAndFlagged_rd/nSignifAndFlagged_obs"
+  
+  outFile <- file.path(outFolder, paste0("nSignif_rd_obs_vs_nSignifAndFlagged_rd_obs_", pat, ".", plotType))
+  do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+  par(bty="L")
+  plot(x=my_x,
+       y=my_y,
+       main=paste0(pat, "/ observed"),
+       pch=16,
+       col=plot_dt$dotcols,
+       xlab=my_xlab,
+       ylab=my_ylab)
+  curve(1*x, add=T, col="darkgrey")
+  # addCorr(x=my_x,y=my_y,bty="n", legPos="topleft")
+  legend("bottomright", legend=names(all_cols), col=all_cols, bty="n")
+  foo <- dev.off()
+  cat(paste0("... written: ", outFile, "\n"))
+  
+  my_x <- plot_dt$ratioSignif_rd/plot_dt$ratioSignif_obs
+  my_y <- plot_dt$ratioSignifFlagged_rd/plot_dt$ratioSignifFlagged_obs
+  
+  my_xlab <- "ratioSignif_rd/ratioSignif_obs"
+  my_ylab <- "ratioSignifFlagged_rd/nSignifAndFlagged_obs"
+  
+  outFile <- file.path(outFolder, paste0("ratioSignif_rd_obs_vs_ratioSignifFlagged_rd_obs_", pat, ".", plotType))
+  do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+  par(bty="L")
+  plot(x=my_x,
+       y=my_y,
+       main=paste0(pat, "/ observed"),
+       pch=16,
+       col=plot_dt$dotcols,
+       xlab=my_xlab,
+       ylab=my_ylab)
+  curve(1*x, add=T, col="darkgrey")
+  # addCorr(x=my_x,y=my_y,bty="n", legPos="topleft")
+  legend("bottomright", legend=names(all_cols), col=all_cols, bty="n")
+  foo <- dev.off()
+  cat(paste0("... written: ", outFile, "\n"))
+  
+  
+  
+  
+  
+}
+
+
+
+
+stop("-ok")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ### output final table
