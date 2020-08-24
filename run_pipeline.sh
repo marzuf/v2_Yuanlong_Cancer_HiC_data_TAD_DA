@@ -217,7 +217,7 @@ step2=1    # run the pipeline
 #TAD_DE_pipSteps=( "8cOnlyRatioDownFastSave" "19onlyFC" "19sameNbr" )
 
 #TAD_DE_pipSteps=( "5pf" "19onlyFC" "19sameNbr" )
-TAD_DE_pipSteps=( "5fastSavePermutPF" )
+TAD_DE_pipSteps=( "5fastSavePermutPFrandom" )
 
 runDir="/mnt/etemp/marie/v2_Yuanlong_Cancer_HiC_data_TAD_DA"
 

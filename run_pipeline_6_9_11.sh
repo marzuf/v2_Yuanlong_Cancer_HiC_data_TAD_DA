@@ -6,8 +6,11 @@
 
 # LIVER
 
-# ./run_pipeline_6.sh GSE105381_HepG2_40kb TCGAlihc_norm_lihc # ok
-
+# ./run_pipeline_6_9_11.sh ENCSR079VIJ_G401_40kb TCGAkich_norm_kich # run pos
+# ./run_pipeline_6_9_11.sh ENCSR312KHQ_SK-MEL-5_40kb TCGAskcm_lowInf_highInf # run pos
+# ./run_pipeline_6_9_11.sh ENCSR401TBQ_Caki2_40kb TCGAkich_norm_kich # run el
+# ./run_pipeline_6_9_11.sh ENCSR489OCU_NCI-H460_40kb TCGAluad_mutKRAS_mutEGFR # run pos
+# ./run_pipeline_6_9_11.sh GSE99051_786_O_40kb TCGAkich_norm_kich # run el
 
 #PIPELINE/OUTPUT_FOLDER/GSE105381_HepG2_40kb/TCGAlihc_norm_lihc/5pF_runPermutationsMedian/permutationsDT.Rdata
 
@@ -32,7 +35,7 @@ step2=1    # run the pipeline
 
 
 
-TAD_DE_pipSteps=( "6fastSavePF" )
+TAD_DE_pipSteps=( "6fastSavePF" "9pF" "11sameNbrPF" )
 
 runDir="/mnt/etemp/marie/v2_Yuanlong_Cancer_HiC_data_TAD_DA"
 

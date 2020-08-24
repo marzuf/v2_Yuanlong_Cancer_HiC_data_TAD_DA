@@ -4,12 +4,8 @@
 
 # TCGA data have been prepared according to scripts in folder /mnt/etemp/marie/scripts/TAD_DE_pipeline_v2_TCGAdata
 
-# LIVER
+# ./run_pipeline_tmp.sh ENCSR489OCU_NCI-H460_40kb TCGAluad_norm_luad   
 
-# ./run_pipeline_6.sh GSE105381_HepG2_40kb TCGAlihc_norm_lihc # ok
-
-
-#PIPELINE/OUTPUT_FOLDER/GSE105381_HepG2_40kb/TCGAlihc_norm_lihc/5pF_runPermutationsMedian/permutationsDT.Rdata
 
 start_time=$(date -R)    
 #set -e
@@ -27,12 +23,121 @@ echo "... > Hi-C dataset: $hic_dataset"
 echo "... > Gene expression dataset: $expr_dataset"
 
 #********************** HARD-CODED SETTINGS FOR THE PIPELINE ********************************************
-step1=0     # prepare setting file
+step1=1     # prepare setting file
 step2=1    # run the pipeline
 
+# NB: 1cleanInput is same as 1cleanInputTCGAminCount, except added change rowToKeep based on minCount
+
+#TAD_DE_pipSteps=( "0cleanInputTCGAminCount" "1cleanInputTCGAminCount" "2" "2v2" "3" "4" "5" "6" "7" "8c" "9" "10" "11" "13cleanInput" "14f2" "170revision2EZH2" )
+#TAD_DE_pipSteps=( "0cleanInputTCGAminCount" "1cleanInputTCGAminCount" "2" "2v2" "3" "4")
+# TAD_DE_pipSteps=( "5" "6" "7" "8c" "9" "10" "11" "13cleanInput" "14f2" "170revision2EZH2" )
+#TAD_DE_pipSteps=( "8c" "9" "10" "11" "13cleanInput" "14f2" "170revision2EZH2" )
+# done later because slow
+#TAD_DE_pipSteps=( "4cond1" "4cond2" )
+#TAD_DE_pipSteps=( "9rank" )
+#TAD_DE_pipSteps=( "10rank" "11rank" )
+# TAD_DE_pipSteps=( "19" )
+#TAD_DE_pipSteps=( "5" "6" "9" )
+#TAD_DE_pipSteps=( "5" )
+#TAD_DE_pipSteps=( "6" "9" "19onlyFC" "8cOnlyRatioDown")
+#TAD_DE_pipSteps=( "8cOnlyRatioDown")
+#TAD_DE_pipSteps=( "19onlyFC")
+#TAD_DE_pipSteps=( "9" "19")
+#TAD_DE_pipSteps=( "19")
+#TAD_DE_pipSteps=( "10sameNbr" "11sameNbr" )
+#TAD_DE_pipSteps=( "8cOnlyRatioDown")
+#TAD_DE_pipSteps=( "7" "10")
+#TAD_DE_pipSteps=( "19onlyFCandCorr" )
+#TAD_DE_pipSteps=( "8cOnlyRatioDown" "19onlyFCandCorr" )
+#TAD_DE_pipSteps=( "11sameNbr" )
+#TAD_DE_pipSteps=( "11" "11sameNbr" )
+#TAD_DE_pipSteps=( "0cleanInputTCGAminCount" )
+#TAD_DE_pipSteps=( "1cleanInputTCGAminCount" "3" "4")
+#TAD_DE_pipSteps=( "5" "6" "7")
+#TAD_DE_pipSteps=( "7")
+
+#TAD_DE_pipSteps=( "8cOnlyRatioDownFastSave" ) ### !!! USE FAST SAVE FOR STEP 8 !!! 
+# use fast save and permut version
+#TAD_DE_pipSteps=( "5fastSavePermut" "6fastSave")
+#TAD_DE_pipSteps=( "11")
+#TAD_DE_pipSteps=( "19sameNbrPartial" )
+#TAD_DE_pipSteps=( "0cleanInputTCGAminCount" )
+#TAD_DE_pipSteps=( "1cleanInputTCGAminCount" "3" "4" )
+#TAD_DE_pipSteps=( "5fastSavePermut" "6fastSave")
+#TAD_DE_pipSteps=( "5sameNbr" )
+#TAD_DE_pipSteps=( "7sameNbr" )
+#TAD_DE_pipSteps=( "10sameNbr" )
+#TAD_DE_pipSteps=( "8cOnlyFCCfastSave" )
+#TAD_DE_pipSteps=( "6fastSave")
+#TAD_DE_pipSteps=( "8cOnlyRatioDownFastSave" )
+#TAD_DE_pipSteps=( "9" )
+#TAD_DE_pipSteps=( "10sameNbr" )
+#TAD_DE_pipSteps=( "11sameNbr" )
+#TAD_DE_pipSteps=( "19onlyFC" "19sameNbr" )
+
+#TAD_DE_pipSteps=( "9" "10sameNbr" "11sameNbr" "19sameNbr" "19onlyFC" )
+#TAD_DE_pipSteps=( "170revision2EZH2" )
+# STEP 9; STEP10sameNbr; STEP11sameNbr
+#TAD_DE_pipSteps=( "5fastSavePermut" "6fastSave" "5sameNbr" "8cOnlyFCCfastSave" "8cOnlyRatioDownFastSave" "9" "7sameNbr" "10sameNbr" "11sameNbr" "19sameNbr" "19onlyFC" "170revision2EZH2Folders" )
+#TAD_DE_pipSteps=( "6fastSave" )
+#TAD_DE_pipSteps=( "5sameNbr" "8cOnlyFCCfastSave" "8cOnlyRatioDownFastSave" "9" "7sameNbr" "10sameNbr" "11sameNbr" "19onlyFC" "170revision2EZH2Folders" )
+#TAD_DE_pipSteps=( "10sameNbr" "11sameNbr")
+#TAD_DE_pipSteps=( "10sameNbr" "11sameNbr" "19sameNbr" "19onlyFC" )
+
+#TAD_DE_pipSteps=( "0cleanInputTCGAminCount")
+#TAD_DE_pipSteps=( "0cleanInputTCGAminCount" "1cleanInputTCGAminCount" "3" "4" )
+#TAD_DE_pipSteps=(  "5fastSavePermut" "6fastSave" "5sameNbr" "9" "7sameNbr" "10sameNbr" )
+#TAD_DE_pipSteps=(  "9sameNbrRescaled" )
+#TAD_DE_pipSteps=( "1cleanInputTCGAminCount" "3" "4" )
+
+##TAD_DE_pipSteps=( "5fastSavePermut" "6fastSave" "5sameNbr" "8cOnlyFCCfastSave" "8cOnlyRatioDownFastSave" "9" "7sameNbr" "10sameNbr" "11sameNbr" "170revision2EZH2Folders"  "19sameNbr" "19onlyFC" )
+#TAD_DE_pipSteps=( "6fastSave" "5sameNbr" "8cOnlyFCCfastSave" "8cOnlyRatioDownFastSave" "9" "7sameNbr" "10sameNbr" "11sameNbr" "170revision2EZH2Folders"  "19sameNbr" "19onlyFC" )
+#TAD_DE_pipSteps=( "6fastSave" "8cOnlyFCCfastSave" "8cOnlyRatioDownFastSave" "9" "7sameNbr" "10sameNbr" "11sameNbr" "170revision2EZH2"  "19sameNbr" "19onlyFC" )
+#TAD_DE_pipSteps=( "19onlyFC" "19sameNbr" )
+#TAD_DE_pipSteps=( "8cOnlyFCCfastSaveOnlyObs" )
+
+#TAD_DE_pipSteps=( "7sameNbrSpearman" )
+#TAD_DE_pipSteps=( "10sameNbrSpearman" "11sameNbrSpearman" )
+
+#TAD_DE_pipSteps=( "5sameNbr" "6sameNbr" "7sameNbr" "8sameNbr" "9sameNbr" "10sameNbr" "11sameNbrSameNbr" )
+#TAD_DE_pipSteps=( "9sameNbrDouble" "11sameNbrSameNbrDouble" ) 
+#TAD_DE_pipSteps=( "9random" ) 
+#TAD_DE_pipSteps=( "9random" "10random" "11random" ) 
 
 
-TAD_DE_pipSteps=( "6fastSavePF" )
+# 28.04.2020
+
+#TAD_DE_pipSteps=( "0cleanInputTCGAminCount" "1cleanInputTCGAminCount" "3" "4" "5fastSavePermut" "6fastSave" "5sameNbr" "9" "7sameNbr" "10sameNbr" "11sameNbr" )
+#TAD_DE_pipSteps=(  "6fastSave" "5sameNbr" "9" "7sameNbr" "10sameNbr" "11sameNbr" )
+
+
+#TAD_DE_pipSteps=("3" "4" "5fastSavePermut" "6fastSave" "5sameNbr" "9" "7sameNbr" "10sameNbr" "11sameNbr" )
+
+# ./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_RANDOMSUB40-2_40kb TCGAskcm_lowInf_highInf  # run positron - DONE
+# ./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_RANDOMSUB40-3_40kb TCGAskcm_lowInf_highInf  # run positron - DONE
+# ./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_RANDOMSUB40-4_40kb TCGAskcm_lowInf_highInf  # run positron - DONE
+# ./run_pipeline.sh ENCSR312KHQ_SK-MEL-5_RANDOMSUB40-5_40kb TCGAskcm_lowInf_highInf  # run positron - DONE
+
+# ./run_pipeline.sh GSE105381_HepG2_RANDOMSUB3_40kb TCGAlihc_wt_mutCTNNB1 #  run ok
+
+#TAD_DE_pipSteps=( "0cleanInputTCGAminCount" )
+# "1cleanInputTCGAminCount")
+#TAD_DE_pipSteps=("3" "4" "5fastSavePermut" "6fastSave" "5sameNbr" "9" "7sameNbr" "10sameNbr" "11sameNbr" )
+#TAD_DE_pipSteps=( "5fastSavePermut" "6fastSave" "5sameNbr" "9" "7sameNbr" "10sameNbr" "11sameNbr" )
+#TAD_DE_pipSteps=("3" "4" "9" "7sameNbr" "10sameNbr" "11sameNbr" )
+#TAD_DE_pipSteps=( "6fastSave" "5sameNbr" "9" "7sameNbr" "10sameNbr" "11sameNbr" )
+
+#TAD_DE_pipSteps=( "0cleanInputTCGAminCountCheckRm" )
+# ./run_pipeline.sh ENCSR489OCU_NCI-H460_40kb TCGAluad_norm_luad
+
+#TAD_DE_pipSteps=( "3var" "3max" )
+
+#TAD_DE_pipSteps=( "3divmax" )
+
+#TAD_DE_pipSteps=( "8cOnlyRatioDownFastSave" "19onlyFC" "19sameNbr" )
+
+#TAD_DE_pipSteps=( "5pf" "19onlyFC" "19sameNbr" )
+TAD_DE_pipSteps=( "0cleanInputTCGAminCount" )
 
 runDir="/mnt/etemp/marie/v2_Yuanlong_Cancer_HiC_data_TAD_DA"
 

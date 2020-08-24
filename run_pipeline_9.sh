@@ -4,16 +4,12 @@
 
 # TCGA data have been prepared according to scripts in folder /mnt/etemp/marie/scripts/TAD_DE_pipeline_v2_TCGAdata
 
-#[1] "GSE105318_DLD1_40kb-TCGAcoad_msi_mss"
-#[2] "HMEC_40kb-TCGAbrca_lum_bas"          
-#[3] "LG1_40kb-TCGAluad_norm_luad"         
-#[4] "LG2_40kb-TCGAlusc_norm_lusc"         
+# LIVER
+
+# ./run_pipeline_6.sh GSE105381_HepG2_40kb TCGAlihc_norm_lihc # ok
 
 
-# ./run_pipeline_9.sh GSE105194_spinal_cord_PERMUTG2T_40kb TCGAgbm_classical_neural # run pos
-# ./run_pipeline_9.sh GSE105194_spinal_cord_PERMUTG2T_40kb TCGAgbm_classical_proneural  # run pos
-# ./run_pipeline_9.sh GSE105194_spinal_cord_PERMUTG2T_40kb TCGAlgg_IDHwt_IDHmutnc # run el
-# ./run_pipeline_9.sh K562_PERMUTG2T_40kb TCGAlaml_wt_mutFLT3 # ATTENDRE STEP 6 sur EL !!!
+#PIPELINE/OUTPUT_FOLDER/GSE105381_HepG2_40kb/TCGAlihc_norm_lihc/5pF_runPermutationsMedian/permutationsDT.Rdata
 
 start_time=$(date -R)    
 #set -e
@@ -34,10 +30,9 @@ echo "... > Gene expression dataset: $expr_dataset"
 step1=0     # prepare setting file
 step2=1    # run the pipeline
 
-# NB: 1cleanInput is same as 1cleanInputTCGAminCount, except added change rowToKeep based on minCount
 
 
-TAD_DE_pipSteps=( "9" )
+TAD_DE_pipSteps=( "9pF" )
 
 runDir="/mnt/etemp/marie/v2_Yuanlong_Cancer_HiC_data_TAD_DA"
 

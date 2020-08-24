@@ -4,16 +4,13 @@
 
 # TCGA data have been prepared according to scripts in folder /mnt/etemp/marie/scripts/TAD_DE_pipeline_v2_TCGAdata
 
-#[1] "GSE105318_DLD1_40kb-TCGAcoad_msi_mss"
-#[2] "HMEC_40kb-TCGAbrca_lum_bas"          
-#[3] "LG1_40kb-TCGAluad_norm_luad"         
-#[4] "LG2_40kb-TCGAlusc_norm_lusc"         
+# LIVER
+
+# ./run_pipeline_8.sh GSE105381_HepG2_40kb TCGAlihc_norm_lihc # running el
 
 
-# ./run_pipeline_8.sh GSE105318_DLD1_40kb TCGAcoad_msi_mss # run pos   -ok
-# ./run_pipeline_8.sh HMEC_40kb TCGAbrca_lum_bas # run el ok  
-# ./run_pipeline_8.sh LG1_40kb TCGAluad_norm_luad # run el   
-# ./run_pipeline_8.sh LG2_40kb TCGAlusc_norm_lusc # run el   ok
+#PIPELINE/OUTPUT_FOLDER/GSE105381_HepG2_40kb/TCGAlihc_norm_lihc/5pF_runPermutationsMedian/permutationsDT.Rdata
+
 start_time=$(date -R)    
 #set -e
 
@@ -33,10 +30,9 @@ echo "... > Gene expression dataset: $expr_dataset"
 step1=0     # prepare setting file
 step2=1    # run the pipeline
 
-# NB: 1cleanInput is same as 1cleanInputTCGAminCount, except added change rowToKeep based on minCount
 
 
-TAD_DE_pipSteps=( "8cOnlyRatioDownFastSave" )
+TAD_DE_pipSteps=( "8cOnlyFCCfastSavePF" )
 
 runDir="/mnt/etemp/marie/v2_Yuanlong_Cancer_HiC_data_TAD_DA"
 

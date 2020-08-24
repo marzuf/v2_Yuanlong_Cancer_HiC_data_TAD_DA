@@ -6,7 +6,7 @@
 
 # LIVER
 
-# ./run_pipeline_6.sh GSE105381_HepG2_40kb TCGAlihc_norm_lihc # ok
+# ./run_pipeline_11.sh GSE105194_cerebellum_40kb TCGAlgg_IDHwt_IDHmutnc
 
 
 #PIPELINE/OUTPUT_FOLDER/GSE105381_HepG2_40kb/TCGAlihc_norm_lihc/5pF_runPermutationsMedian/permutationsDT.Rdata
@@ -32,7 +32,7 @@ step2=1    # run the pipeline
 
 
 
-TAD_DE_pipSteps=( "6fastSavePF" )
+TAD_DE_pipSteps=( "11sameNbrPF" )
 
 runDir="/mnt/etemp/marie/v2_Yuanlong_Cancer_HiC_data_TAD_DA"
 

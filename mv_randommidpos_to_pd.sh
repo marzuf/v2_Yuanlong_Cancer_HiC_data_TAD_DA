@@ -32,3 +32,12 @@ done
 #mv PIPELINE/OUTPUT_FOLDER/Panc1_rep12_RANDOMMIDPOS_40kb/TCGApaad_wt_mutKRAS/5_runPermutationsMedian/permutationsDT.Rdata /mnt/pd2/marie//PIPELINE/OUTPUT_FOLDER/Panc1_rep12_RANDOMMIDPOS_40kb/TCGApaad_wt_mutKRAS/5_runPermutationsMedian
 
 # rsync -avz --remove-source-files -e ssh /this/dir remoteuser@remotehost:/remote/dir 
+#        -u, --update                skip files that are newer on the receiver
+
+
+mv AUC_COEXPRDIST_WITHREG_BOXPLOT /mnt/pd4/marie/ # 
+mv AUC_COEXPRDIST_WITHREG_SORTNODUP /mnt/pd4/marie
+mv AUC_COEXPRDIST_WITHTF_BOXPLOT  /mnt/pd4/marie
+mv AUC_COEXPRDIST_WITHTF_SORTNODUP /mnt/pd4/marie
+mv AUC_COEXPRDIST_PARALOGS_BOXPLOT /mnt/pd4/marie # 
+mv AUC_COEXPRDIST_PARALOGS_BOXPLOT_PERMUT /mnt/pd4/marie
