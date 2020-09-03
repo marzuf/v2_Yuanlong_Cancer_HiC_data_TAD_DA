@@ -4,6 +4,8 @@
 
 # don't add at TADs the end and beginning -> I just loose half TADs, and poor quality data at extremity
 
+set.seed(20200903) # NB forgot the first time I launched it
+
 require(doMC)
 require(foreach)
 registerDoMC(40)
@@ -26,7 +28,7 @@ myWidth <- 7
 
 source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 
-outFolder <- file.path("SAMEFAMINSAMETAD")
+outFolder <- file.path("SAMEFAMINSAMETAD_V2_ALLDS")
 dir.create(outFolder, recursive = TRUE)
 
 all_hicds <- list.files("PIPELINE/OUTPUT_FOLDER")
@@ -44,6 +46,8 @@ exprds = "TCGAbrca_lum_bas"
 # all_hicds=all_hicds[2:length(all_hicds)]
 
 buildData <- TRUE
+
+ds=all_ds[1]
 
 # all_ds=all_ds[1]
 
@@ -67,6 +71,7 @@ if(buildData) {
     g2t_dt_file <- file.path(runFolder, hicds, "genes2tad", "all_genes_positions.txt")
     g2t_dt <- read.delim(g2t_dt_file, stringsAsFactors = FALSE, header=FALSE, col.names=c("entrezID", "chromo", "start", "end", "region"))
     g2t_dt$entrezID <- as.character(g2t_dt$entrezID)
+    tad_g2t_dt <- g2t_dt[grepl("_TAD", g2t_dt$region),]
     stopifnot(!duplicated(g2t_dt$entrezID))
     entrezIDchromo <- setNames(g2t_dt$chromo, g2t_dt$entrezID)
 
@@ -86,6 +91,12 @@ if(buildData) {
     stopifnot(sameFam_dt$gene1 <= sameFam_dt$gene2)
     stopifnot(sameFam_dt$family %in% familyDT[,familyData])
     
+    stopifnot(sameFam_dt$gene1 %in% g2t_dt$entrezID) 
+    stopifnot(sameFam_dt$gene2 %in% g2t_dt$entrezID)
+    stopifnot(sameFam_dt$gene1 %in% tad_g2t_dt$entrezID)
+    stopifnot(sameFam_dt$gene2 %in% tad_g2t_dt$entrezID)
+    
+    
     sameFamSameTAD_dt <- merge(sameFam_dt, sameTAD_dt, all.x=TRUE, all.y=FALSE, by=c("gene1", "gene2"))
     
     all_genes <- familyDT$entrezID
@@ -96,7 +107,7 @@ if(buildData) {
     all_fams <- unique(sameFamSameTAD_dt$family)
     
     ##>> iterate here over families
-    
+    i_fam=1
     all_fam_results <- foreach(i_fam = 1:length(all_fams)) %dopar% {
       
       fam <- all_fams[i_fam]
@@ -107,7 +118,13 @@ if(buildData) {
       
       sameTAD_fam_dt <- fam_dt[!is.na(fam_dt$region),]
       
+      nbrSingletons <- length(setdiff(c(fam_dt$gene1,fam_dt$gene2), c(sameTAD_fam_dt$gene1, sameTAD_fam_dt$gene2)))
+      
       nbrGenes <- length(unique(c(fam_dt$gene1, fam_dt$gene2)))
+      
+      stopifnot(nbrSingletons + length(unique(c(sameTAD_fam_dt$gene1, sameTAD_fam_dt$gene2))) == nbrGenes)
+      
+      stopifnot(nbrSingletons <= nbrGenes)
       
       fam_net <- graph_from_data_frame(d=sameTAD_fam_dt[,c("gene1", "gene2")], directed=F) 
       nbrEdges <- gsize(fam_net)
@@ -149,6 +166,8 @@ if(buildData) {
         random_sameTAD_fam_dt <- merge(sample_dt, sameTAD_dt, all.x=T, all.y=F, by=c("gene1", "gene2"))
         random_sameTAD_fam_dt <- random_sameTAD_fam_dt[!is.na(random_sameTAD_fam_dt$region),]
         
+        random_nbrSingletons <- nbrGenes -length(unique(c(random_sameTAD_fam_dt$gene1, random_sameTAD_fam_dt$gene2)))
+        
         random_fam_net <- graph_from_data_frame(d=random_sameTAD_fam_dt[,c("gene1", "gene2")], directed=F) 
         random_nbrEdges <- gsize(random_fam_net)
         stopifnot(random_nbrEdges == nrow(random_sameTAD_fam_dt))
@@ -156,17 +175,20 @@ if(buildData) {
         random_nbrComponents <- components(random_fam_net)$no
         stopifnot(random_nbrComponents == length(unique(random_sameTAD_fam_dt$region)))
         
-        c(random_nbrEdges=random_nbrEdges, random_nbrComponents=random_nbrComponents)
+        c(random_nbrSingletons=random_nbrSingletons, random_nbrEdges=random_nbrEdges, random_nbrComponents=random_nbrComponents)
       } # end permut
       
       list(
         nbrGenes=nbrGenes,
+        nbrSingletons=nbrSingletons,
         nbrEdges=nbrEdges,
         nbrComponents=nbrComponents,
         random_results_dt=random_results_dt
       )
     } # end families
     names(all_fam_results) <- all_fams
+    outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_", "all_fam_results.Rdata"))
+    save(all_fam_results, file=outFile, version=2)
     all_fam_results
   } # end datasets
   names(all_ds_results) <- all_ds
@@ -179,9 +201,46 @@ if(buildData) {
   all_ds_results <- get(load(outFile))
 }
     
+all_ds_results = get(load("SAMEFAMINSAMETAD_ONEDS/all_ds_results.Rdata"))
     
+
+all_obs_nbrEdges <- unlist(lapply(all_ds_results, function(subl) lapply(subl, function(x) x[["nbrEdges"]])))
+all_obs_nbrCpts <- unlist(lapply(all_ds_results, function(subl) lapply(subl, function(x) x[["nbrComponents"]])))
+
+length(all_obs_nbrEdges)
+sum(all_obs_nbrEdges == 0)
+
+length(all_obs_nbrCpts)
+sum(all_obs_nbrCpts == 0)
+
+
+all_random_nbrEdges <- unlist(lapply(all_ds_results, function(subl) lapply(subl, function(x) x[["random_results_dt"]]['random_nbrEdges',])))
+
+length(all_random_nbrEdges)
+sum(all_random_nbrEdges == 0)
+
+
+all_random_nbrCpts <- unlist(lapply(all_ds_results, function(subl) lapply(subl, function(x) x[["random_results_dt"]]['random_nbrComponents',])))
+
+length(all_random_nbrCpts)
+sum(all_random_nbrCpts == 0)
+
+source("../Cancer_HiC_data_TAD_DA/utils_plot_fcts.R")
     
-    
+plot_multiDens(
+  list(
+    all_obs_nbrEdges=log10(0.01+all_obs_nbrEdges),
+    all_random_nbrEdges=log10(0.01+all_random_nbrEdges)
+  )
+)
+
+plot_multiDens(
+  list(
+    all_obs_nbrCpts=log10(0.01+all_obs_nbrCpts),
+    all_random_nbrCpts=log10(0.01+all_random_nbrCpts)
+  )
+)
+
 #     
 #     
 #     
