@@ -1,10 +1,12 @@
 
 
-# Rscript sameFamInSameTAD.R
+# Rscript sameFamInSameTAD_hicds.R
 
 # don't add at TADs the end and beginning -> I just loose half TADs, and poor quality data at extremity
 
-set.seed(20200903) # NB forgot the first time I launched it
+# no need to have exprds
+
+set.seed(20200903) # 
 
 require(doMC)
 require(foreach)
@@ -28,38 +30,36 @@ myWidth <- 7
 
 source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 
-# outFolder <- file.path("SAMEFAMINSAMETAD_V2_ALLDS")
-outFolder <- file.path("SAMEFAMINSAMETAD")
+outFolder <- file.path("SAMEFAMINSAMETAD_HICDS")
 dir.create(outFolder, recursive = TRUE)
 
 all_hicds <- list.files("PIPELINE/OUTPUT_FOLDER")
 # all_hicds=all_hicds[1]
 # all_hicds=all_hicds[2:length(all_hicds)]
 all_hicds <- all_hicds[!grepl("RANDOM", all_hicds) & !grepl("PERMUT", all_hicds)]
-all_exprds <- sapply(all_hicds, function(x) list.files(file.path(pipFolder, x)))
+# all_exprds <- sapply(all_hicds, function(x) list.files(file.path(pipFolder, x)))
 
 
-all_ds <- unlist(sapply(all_hicds, function(x) file.path(x, list.files(file.path(pipFolder, x)))), use.names = FALSE)
+# all_ds <- unlist(sapply(all_hicds, function(x) file.path(x, list.files(file.path(pipFolder, x)))), use.names = FALSE)
 
-hicds = "Barutcu_MCF-10A_40kb"
-exprds = "TCGAbrca_lum_bas"
+# hicds = "Barutcu_MCF-10A_40kb"
+# exprds = "TCGAbrca_lum_bas"
 # all_hicds=all_hicds[1]
 # all_hicds=all_hicds[2:length(all_hicds)]
 
-buildData <- FALSE
+buildData <- TRUE
 
-ds=all_ds[1]
+# ds=all_ds[1]
 
 # all_ds=all_ds[1]
 
 if(buildData) {
   
   
-  all_ds_results <- foreach(ds = all_ds) %do%{
+  all_ds_results <- foreach(hicds = all_hicds) %do%{
     
-    hicds <- dirname(ds)
-    exprds <- basename(ds)
-    cat(paste0("... start: ", hicds," - ", exprds,  "\n"))
+    
+    cat(paste0("... start: ", hicds,"\n"))
     
     
     #       ### => CHANGED FOR THE TISSUE DATA TO USE TISSUE SPECIFIC FAMILY FILES !!!
@@ -113,7 +113,7 @@ if(buildData) {
       
       fam <- all_fams[i_fam]
       
-      cat(paste0("... ", hicds, " - ", exprds, " - start fam: ", i_fam, "/", length(all_fams), "\n"))
+      cat(paste0("... ", hicds, " - start fam: ", i_fam, "/", length(all_fams), "\n"))
       
       fam_dt <- sameFamSameTAD_dt[sameFamSameTAD_dt$family == fam,]
       
@@ -188,11 +188,11 @@ if(buildData) {
       )
     } # end families
     names(all_fam_results) <- all_fams
-    outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_", "all_fam_results.Rdata"))
+    outFile <- file.path(outFolder, paste0(hicds, "_", "all_fam_results.Rdata"))
     save(all_fam_results, file=outFile, version=2)
     all_fam_results
   } # end datasets
-  names(all_ds_results) <- all_ds
+  names(all_ds_results) <- all_hicds
   
   outFile <- file.path(outFolder, "all_ds_results.Rdata")
   save(all_ds_results, file=outFile, version=2)
@@ -202,7 +202,7 @@ if(buildData) {
   all_ds_results <- get(load(outFile))
 }
     
-# all_ds_results = get(load("SAMEFAMINSAMETAD_ONEDS/all_ds_results.Rdata"))
+all_ds_results = get(load("SAMEFAMINSAMETAD_HICDS/all_ds_results.Rdata"))
     
 
 all_obs_nbrEdges <- unlist(lapply(all_ds_results, function(subl) lapply(subl, function(x) x[["nbrEdges"]])))
@@ -234,8 +234,7 @@ plot_multiDens(
   list(
     all_obs_nbrEdges=log10(0.01+all_obs_nbrEdges),
     all_random_nbrEdges=log10(0.01+all_random_nbrEdges)
-  ),
-  plotTit = "nbrEdges"
+  )
 )
 mtext(side=3, text = paste0("all DS - n =", length(all_ds_results)), font=3)
 foo <- dev.off()
@@ -247,9 +246,9 @@ plot_multiDens(
   list(
     all_obs_nbrCpts=log10(0.01+all_obs_nbrCpts),
     all_random_nbrCpts=log10(0.01+all_random_nbrCpts)
-  ),
-  plotTit ="nbrCpts"
+  )
 )
 mtext(side=3, text = paste0("all DS - n =", length(all_ds_results)), font=3)
 foo <- dev.off()
 cat(paste0("... written: ", outFile,  "\n"))
+
