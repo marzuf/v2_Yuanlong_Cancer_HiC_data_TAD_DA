@@ -28,8 +28,8 @@ myWidth <- 7
 
 source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 
-# outFolder <- file.path("SAMEFAMINSAMETAD_V2_ALLDS")
-outFolder <- file.path("SAMEFAMINSAMETAD")
+outFolder <- file.path("SAMEFAMINSAMETAD_V2_ALLDS")
+# outFolder <- file.path("SAMEFAMINSAMETAD")
 dir.create(outFolder, recursive = TRUE)
 
 all_hicds <- list.files("PIPELINE/OUTPUT_FOLDER")
@@ -202,11 +202,27 @@ if(buildData) {
   all_ds_results <- get(load(outFile))
 }
     
-# all_ds_results = get(load("SAMEFAMINSAMETAD_ONEDS/all_ds_results.Rdata"))
-    
+# all_ds_results = get(load("SAMEFAMINSAMETAD/all_ds_results.Rdata"))
+
+# lg1_1 = all_ds_results[["LG1_40kb/TCGAluad_mutKRAS_mutEGFR"]]
+# lg1_2 = all_ds_results[["LG1_40kb/TCGAluad_norm_luad"]]
+# lg1_1_genes <- lapply(lg1_1, function(x) x[["nbrGenes"]])
+# lg1_2_genes <- lapply(lg1_2, function(x) x[["nbrGenes"]])
+# all.equal(lg1_1_genes,lg1_2_genes)
+# # TRUE
+# all.equal(lg1_1[["nbrEdges"]], lg1_2[["nbrEdges"]])
+# # TRUE
+# all.equal(lg1_1[["nbrComponents"]], lg1_2[["nbrComponents"]])
+# # TRUE
+
+# singletons == TADs with regionOcc=1
+# dt1 = all_ds_results[["Barutcu_MCF-10A_40kb/TCGAbrca_lum_bas"]][["Tubulins"]]
+# dt2 = all_ds_results2[["Barutcu_MCF-10A_40kb"]][["Tubulins"]]
+# sum(dt2[["regionOcc"]] == 1) == dt1[["nbrSingletons"]]
 
 all_obs_nbrEdges <- unlist(lapply(all_ds_results, function(subl) lapply(subl, function(x) x[["nbrEdges"]])))
 all_obs_nbrCpts <- unlist(lapply(all_ds_results, function(subl) lapply(subl, function(x) x[["nbrComponents"]])))
+all_obs_nbrSingletons <- unlist(lapply(all_ds_results, function(subl) lapply(subl, function(x) x[["nbrSingletons"]])))
 
 length(all_obs_nbrEdges)
 sum(all_obs_nbrEdges == 0)
@@ -216,40 +232,111 @@ sum(all_obs_nbrCpts == 0)
 
 
 all_random_nbrEdges <- unlist(lapply(all_ds_results, function(subl) lapply(subl, function(x) x[["random_results_dt"]]['random_nbrEdges',])))
+all_random_meanNbrEdges <- unlist(lapply(all_ds_results, function(subl) lapply(subl, function(x) mean(x[["random_results_dt"]]['random_nbrEdges',]))))
+stopifnot(length(all_obs_nbrEdges) == length(all_random_meanNbrEdges))
 
 length(all_random_nbrEdges)
 sum(all_random_nbrEdges == 0)
 
 
 all_random_nbrCpts <- unlist(lapply(all_ds_results, function(subl) lapply(subl, function(x) x[["random_results_dt"]]['random_nbrComponents',])))
+all_random_meanNbrCpts <- unlist(lapply(all_ds_results, function(subl) lapply(subl, function(x) mean(x[["random_results_dt"]]['random_nbrComponents',]))))
+stopifnot(length(all_obs_nbrCpts) == length(all_random_meanNbrCpts))
+
+all_random_nbrSingletons <- unlist(lapply(all_ds_results, function(subl) lapply(subl, function(x) x[["random_results_dt"]]['random_nbrSingletons',])))
+all_random_meanNbrSingletons <- unlist(lapply(all_ds_results, function(subl) lapply(subl, function(x) mean(x[["random_results_dt"]]['random_nbrSingletons',]))))
+stopifnot(length(all_obs_nbrSingletons) == length(all_random_meanNbrSingletons))
+
+nPermut <- unique(unlist(lapply(all_ds_results, function(subl) lapply(subl, function(x) ncol(x[["random_results_dt"]])))))
+stopifnot(length(nPermut) == 1)
+
 
 length(all_random_nbrCpts)
 sum(all_random_nbrCpts == 0)
 
 source("../Cancer_HiC_data_TAD_DA/utils_plot_fcts.R")
     
-outFile <- file.path(outFolder,  paste0("allDS_nbrEdges_density.", plotType))
-do.call(plotType, list(outFile, height=myHeight, width=myWidth))
-plot_multiDens(
-  list(
-    all_obs_nbrEdges=log10(0.01+all_obs_nbrEdges),
-    all_random_nbrEdges=log10(0.01+all_random_nbrEdges)
-  ),
-  plotTit = "nbrEdges"
-)
-mtext(side=3, text = paste0("all DS - n =", length(all_ds_results)), font=3)
-foo <- dev.off()
-cat(paste0("... written: ", outFile,  "\n"))
+all_vars <- c("Edges", "Cpts", "Singletons")
+curr_var=all_vars[1]
+for(curr_var in all_vars) {
+  
+  plotTit <- paste0("nbr", curr_var)
+  subTit <- paste0("all DS - n =", length(all_ds_results))
+  
+  plot_list <- list(log10(0.01+eval(parse(text = paste0("all_obs_nbr", curr_var)))),
+                    log10(0.01+eval(parse(text = paste0("all_random_nbr", curr_var)))))
+  names(plot_list) <- c(paste0("all_obs_nbr",curr_var), paste0("all_random_nbr", curr_var) )
+  
+  outFile <- file.path(outFolder,  paste0("allDS_nbr", curr_var, "_density.", plotType))
+  do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+  plot_multiDens(
+      plot_list,
+    plotTit = plotTit, my_xlab = paste0("# ", curr_var, " [log10(+0.01)]")
+  )
+  mtext(side=3, text = subTit, font=3)
+  foo <- dev.off()
+  cat(paste0("... written: ", outFile,  "\n"))
+  
+  
+  plotTit <- paste0("nbr", curr_var, "[log10(+0.01)]")
+  subTit <- paste0("all DS - n =", length(all_ds_results))
+  
+  xlab <- "observed"
+  ylab <- paste0("mean permut. (n=", nPermut, ")" )
+  
+  outFile <- file.path(outFolder,  paste0("allDS_nbr", curr_var, "_meanPermut_vs_obs_densplot.", "png"))
+  do.call("png", list(outFile, height=400, width=400))
+  
+  densplot(x=log10(eval(parse(text=paste0("all_obs_nbr", curr_var))) +0.01), 
+           y=log10(eval(parse(text=paste0("all_random_meanNbr", curr_var))) +0.01),
+           xlab= xlab,ylab=ylab, main=plotTit
+  )
+  mtext(side=3, text = subTit, font=3)
+  curve(1*x, lty=1, col="darkgrey", add = T)
+  foo <- dev.off()
+  cat(paste0("... written: ", outFile,  "\n"))
+  
+  
+}
 
-outFile <- file.path(outFolder,  paste0("allDS_nbrCpts_density.", plotType))
-do.call(plotType, list(outFile, height=myHeight, width=myWidth))
-plot_multiDens(
-  list(
-    all_obs_nbrCpts=log10(0.01+all_obs_nbrCpts),
-    all_random_nbrCpts=log10(0.01+all_random_nbrCpts)
-  ),
-  plotTit ="nbrCpts"
-)
-mtext(side=3, text = paste0("all DS - n =", length(all_ds_results)), font=3)
-foo <- dev.off()
-cat(paste0("... written: ", outFile,  "\n"))
+# outFile <- file.path(outFolder,  paste0("allDS_nbrEdges_density.", plotType))
+# do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+# plot_multiDens(
+#   list(
+#     all_obs_nbrEdges=log10(0.01+all_obs_nbrEdges),
+#     all_random_nbrEdges=log10(0.01+all_random_nbrEdges)
+#   ),
+#   plotTit = "nbrEdges"
+# )
+# mtext(side=3, text = paste0("all DS - n =", length(all_ds_results)), font=3)
+# foo <- dev.off()
+# cat(paste0("... written: ", outFile,  "\n"))
+# 
+# 
+# outFile <- file.path(outFolder,  paste0("allDS_nbrCpts_density.", plotType))
+# do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+# plot_multiDens(
+#   list(
+#     all_obs_nbrCpts=log10(0.01+all_obs_nbrCpts),
+#     all_random_nbrCpts=log10(0.01+all_random_nbrCpts)
+#   ),
+#   plotTit ="nbrCpts"
+# )
+# mtext(side=3, text = paste0("all DS - n =", length(all_ds_results)), font=3)
+# foo <- dev.off()
+# cat(paste0("... written: ", outFile,  "\n"))
+# 
+# outFile <- file.path(outFolder,  paste0("allDS_nbrSingletons_density.", plotType))
+# do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+# plot_multiDens(
+#   list(
+#     all_obs_nbrSingletons=log10(0.01+all_obs_nbrSingletons),
+#     all_random_nbrSingletons=log10(0.01+all_random_nbrSingletons)
+#   ),
+#   plotTit ="nbrSingletons"
+# )
+# mtext(side=3, text = paste0("all DS - n =", length(all_ds_results)), font=3)
+# foo <- dev.off()
+# cat(paste0("... written: ", outFile,  "\n"))
+
+
