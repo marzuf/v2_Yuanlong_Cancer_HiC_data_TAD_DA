@@ -323,10 +323,13 @@ tot_by_data <- setNames(tot_dt$value, tot_dt$data)
 agg_dt <- aggregate(value ~ data + nbr_cat_label, FUN=sum, data=plot_dt)
 agg_dt$value_ratio <- agg_dt$value/tot_by_data[agg_dt$data]
 
-plotTit <- "# unique TADs by family"
+plotTit <- "# unique TADs by family (by occurence)"
 subTit <- paste0("# DS = ", length(all_ds_results), "; # permut = ", nRandom)
 
 agg_dt$value_log10 <- log10(agg_dt$value)
+
+agg_dt$nbr_cat_label <- factor(agg_dt$nbr_cat_label, levels=cat_labels)
+stopifnot(!is.na(agg_dt$nbr_cat_label))
 
 p1_nbr <- ggbarplot(agg_dt, x="data", y="value_log10", fill="nbr_cat_label", 
                     xlab = "", ylab = "# unique TADs [log10]")+
@@ -343,7 +346,10 @@ ggsave(p1_nbr, filename=outFile, height=myHeight, width=myWidth)
 cat(paste0("... written: ", outFile,  "\n"))
 
 
-plotTit <- "ratio unique TADs by family"
+plotTit <- "ratio unique TADs by family (by occurence)"
+
+agg_dt$nbr_cat_label <- factor(agg_dt$nbr_cat_label, levels=cat_labels)
+stopifnot(!is.na(agg_dt$nbr_cat_label))
 
 p1_ratio <- ggbarplot(agg_dt, x="data", y="value_ratio", fill="nbr_cat_label",
                       xlab = "", ylab = "ratio unique TADs")+

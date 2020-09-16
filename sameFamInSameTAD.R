@@ -256,6 +256,50 @@ sum(all_random_nbrCpts == 0)
 
 source("../Cancer_HiC_data_TAD_DA/utils_plot_fcts.R")
     
+### ITERATE TO DO THE SAME FOR EACH OF THE VARIABLE!!!
+          # aggregate by family
+          nbrEdges_obs_dt <- data.frame(family_lab=names(all_obs_nbrEdges), nbrEdges=as.numeric(all_obs_nbrEdges), stringsAsFactors = FALSE)
+          nbrEdges_obs_dt$family <- gsub(".+/.+\\.(.+)", "\\1", nbrEdges_obs_dt$family_lab)
+          stopifnot(nbrEdges_obs_dt$family != "")
+          stopifnot(!is.na(nbrEdges_obs_dt$family))
+          
+          nbrEdges_rd_dt <- data.frame(family_lab=names(all_random_nbrEdges), nbrEdges=as.numeric(all_random_nbrEdges), stringsAsFactors = FALSE)
+          nbrEdges_rd_dt$family <- gsub(".+/.+\\.(.+)\\.result.+", "\\1", nbrEdges_rd_dt$family_lab)
+          stopifnot(nbrEdges_rd_dt$family != "")
+          stopifnot(!is.na(nbrEdges_rd_dt$family))
+          
+          stopifnot(setequal(nbrEdges_obs_dt$family, nbrEdges_rd_dt$family))
+          
+          
+          agg_obs_dt <- aggregate(nbrEdges~family, data=nbrEdges_obs_dt, FUN=mean)
+          agg_rd_dt <- aggregate(nbrEdges~family, data=nbrEdges_rd_dt, FUN=mean)
+          
+          plot_dt <- merge(agg_obs_dt, agg_rd_dt, by="family", all=T, suffixes=c("_obs", "_rd"))
+          stopifnot(!is.na(plot_dt))
+          
+          plotTit <- "# of edges by family"
+          subTit <- "aggreg. func = mean"
+          
+          plot_dt$nbrEdges_obs_log10 <- -log10(plot_dt$nbrEdges_obs + 0.01)
+          plot_dt$nbrEdges_rd_log10 <- -log10(plot_dt$nbrEdges_rd + 0.01)
+          
+          my_x <- plot_dt$nbrEdges_obs_log10
+          my_y <- plot_dt$nbrEdges_rd_log10
+          
+          outFile <- file.path(outFolder,  paste0("allDS_nbr", curr_var, "_density.", plotType))
+          do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+          plot(x=my_x,y=my_y, main=plotTit, 
+               xlab="# edges obs.", 
+               ylab="# edges rd.")
+          curve(1*x, col="grey", add=TRUE)
+          addCorr(x=my_x, y=my_y, legPos="topleft", bty="n")
+          mtext(side=3, text = subTit, font=3)
+          foo <- dev.off()
+          cat(paste0("... written: ", outFile,  "\n"))
+
+
+
+
 all_vars <- c("Edges", "Cpts", "Singletons")
 curr_var=all_vars[1]
 for(curr_var in all_vars) {
