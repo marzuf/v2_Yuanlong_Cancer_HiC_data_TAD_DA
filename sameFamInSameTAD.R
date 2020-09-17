@@ -21,6 +21,7 @@ familyData <- "hgnc_family_short"
 
 nRandom <- 100
 
+aggFunc <- "mean"
 
 plotType <- "svg"
 myHeight <- 5
@@ -257,40 +258,50 @@ sum(all_random_nbrCpts == 0)
 source("../Cancer_HiC_data_TAD_DA/utils_plot_fcts.R")
     
 ### ITERATE TO DO THE SAME FOR EACH OF THE VARIABLE!!!
+
+all_vars <- c("Edges", "Cpts", "Singletons")
+curr_var=all_vars[1]
+for(curr_var in all_vars) {
+  
+  
           # aggregate by family
-          nbrEdges_obs_dt <- data.frame(family_lab=names(all_obs_nbrEdges), nbrEdges=as.numeric(all_obs_nbrEdges), stringsAsFactors = FALSE)
-          nbrEdges_obs_dt$family <- gsub(".+/.+\\.(.+)", "\\1", nbrEdges_obs_dt$family_lab)
-          stopifnot(nbrEdges_obs_dt$family != "")
-          stopifnot(!is.na(nbrEdges_obs_dt$family))
+          nbr_obs_dt <- data.frame(family_lab=names(eval(parse(text=paste0("all_obs_nbr", curr_var)))), 
+                                        nbr=as.numeric(eval(parse(text=paste0("all_obs_nbr", curr_var)))), stringsAsFactors = FALSE)
+          nbr_obs_dt$family <- gsub(".+/.+\\.(.+)", "\\1", nbr_obs_dt$family_lab)
+          stopifnot(nbr_obs_dt$family != "")
+          stopifnot(!is.na(nbr_obs_dt$family))
           
-          nbrEdges_rd_dt <- data.frame(family_lab=names(all_random_nbrEdges), nbrEdges=as.numeric(all_random_nbrEdges), stringsAsFactors = FALSE)
-          nbrEdges_rd_dt$family <- gsub(".+/.+\\.(.+)\\.result.+", "\\1", nbrEdges_rd_dt$family_lab)
-          stopifnot(nbrEdges_rd_dt$family != "")
-          stopifnot(!is.na(nbrEdges_rd_dt$family))
+          nbr_rd_dt <- data.frame(family_lab=names(eval(parse(text=paste0("all_random_nbr", curr_var)))), 
+                                       nbr=as.numeric(eval(parse(text=paste0("all_random_nbr", curr_var)))), 
+                                       stringsAsFactors = FALSE)
+          nbr_rd_dt$family <- gsub(".+/.+\\.(.+)\\.result.+", "\\1", nbr_rd_dt$family_lab)
+          stopifnot(nbr_rd_dt$family != "")
+          stopifnot(!is.na(nbr_rd_dt$family))
           
-          stopifnot(setequal(nbrEdges_obs_dt$family, nbrEdges_rd_dt$family))
+          stopifnot(setequal(nbr_obs_dt$family, nbr_rd_dt$family))
           
           
-          agg_obs_dt <- aggregate(nbrEdges~family, data=nbrEdges_obs_dt, FUN=mean)
-          agg_rd_dt <- aggregate(nbrEdges~family, data=nbrEdges_rd_dt, FUN=mean)
+          agg_obs_dt <- aggregate(nbr~family, data=nbr_obs_dt, FUN=aggFunc)
+          agg_rd_dt <- aggregate(nbr~family, data=nbr_rd_dt, FUN=aggFunc)
           
           plot_dt <- merge(agg_obs_dt, agg_rd_dt, by="family", all=T, suffixes=c("_obs", "_rd"))
           stopifnot(!is.na(plot_dt))
           
-          plotTit <- "# of edges by family"
-          subTit <- "aggreg. func = mean"
+          plotTit <- paste0("# of ", curr_var, " by family")
+          subTit <- paste0("aggreg. func = ", aggFunc, "; # families = ", length(unique(plot_dt$family)))
           
-          plot_dt$nbrEdges_obs_log10 <- -log10(plot_dt$nbrEdges_obs + 0.01)
-          plot_dt$nbrEdges_rd_log10 <- -log10(plot_dt$nbrEdges_rd + 0.01)
+          plot_dt$nbr_obs_log10 <- log10(plot_dt$nbr_obs + 0.01)
+          plot_dt$nbr_rd_log10 <- log10(plot_dt$nbr_rd + 0.01)
           
-          my_x <- plot_dt$nbrEdges_obs_log10
-          my_y <- plot_dt$nbrEdges_rd_log10
+          my_x <- plot_dt$nbr_obs_log10
+          my_y <- plot_dt$nbr_rd_log10
           
-          outFile <- file.path(outFolder,  paste0("allDS_nbr", curr_var, "_density.", plotType))
-          do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+          outFile <- file.path(outFolder,  paste0("allDS_nbr", curr_var, "_byFam_scatterplot.", plotType))
+          do.call(plotType, list(outFile, height=myHeight, width=myHeight))
           plot(x=my_x,y=my_y, main=plotTit, 
-               xlab="# edges obs.", 
-               ylab="# edges rd.")
+               pch=16, cex=0.7,
+               xlab=paste0("# ", curr_var, " obs. [log10(+0.01)]"), 
+               ylab=paste0("# ", curr_var, " rd. [log10(+0.01)]"))
           curve(1*x, col="grey", add=TRUE)
           addCorr(x=my_x, y=my_y, legPos="topleft", bty="n")
           mtext(side=3, text = subTit, font=3)
@@ -298,89 +309,50 @@ source("../Cancer_HiC_data_TAD_DA/utils_plot_fcts.R")
           cat(paste0("... written: ", outFile,  "\n"))
 
 
-
-
-all_vars <- c("Edges", "Cpts", "Singletons")
-curr_var=all_vars[1]
-for(curr_var in all_vars) {
-  
-  plotTit <- paste0("nbr", curr_var)
-  subTit <- paste0("all DS - n =", length(all_ds_results))
-  
-  plot_list <- list(log10(0.01+eval(parse(text = paste0("all_obs_nbr", curr_var)))),
-                    log10(0.01+eval(parse(text = paste0("all_random_nbr", curr_var)))))
-  names(plot_list) <- c(paste0("all_obs_nbr",curr_var), paste0("all_random_nbr", curr_var) )
-  
-  outFile <- file.path(outFolder,  paste0("allDS_nbr", curr_var, "_density.", plotType))
-  do.call(plotType, list(outFile, height=myHeight, width=myWidth))
-  plot_multiDens(
-      plot_list,
-    plotTit = plotTit, my_xlab = paste0("# ", curr_var, " [log10(+0.01)]")
-  )
-  mtext(side=3, text = subTit, font=3)
-  foo <- dev.off()
-  cat(paste0("... written: ", outFile,  "\n"))
-  
-  
-  plotTit <- paste0("nbr", curr_var, "[log10(+0.01)]")
-  subTit <- paste0("all DS - n =", length(all_ds_results))
-  
-  xlab <- "observed"
-  ylab <- paste0("mean permut. (n=", nPermut, ")" )
-  
-  outFile <- file.path(outFolder,  paste0("allDS_nbr", curr_var, "_meanPermut_vs_obs_densplot.", "png"))
-  do.call("png", list(outFile, height=400, width=400))
-  
-  densplot(x=log10(eval(parse(text=paste0("all_obs_nbr", curr_var))) +0.01), 
-           y=log10(eval(parse(text=paste0("all_random_meanNbr", curr_var))) +0.01),
-           xlab= xlab,ylab=ylab, main=plotTit
-  )
-  mtext(side=3, text = subTit, font=3)
-  curve(1*x, lty=1, col="darkgrey", add = T)
-  foo <- dev.off()
-  cat(paste0("... written: ", outFile,  "\n"))
-  
-  
 }
 
-# outFile <- file.path(outFolder,  paste0("allDS_nbrEdges_density.", plotType))
-# do.call(plotType, list(outFile, height=myHeight, width=myWidth))
-# plot_multiDens(
-#   list(
-#     all_obs_nbrEdges=log10(0.01+all_obs_nbrEdges),
-#     all_random_nbrEdges=log10(0.01+all_random_nbrEdges)
-#   ),
-#   plotTit = "nbrEdges"
-# )
-# mtext(side=3, text = paste0("all DS - n =", length(all_ds_results)), font=3)
-# foo <- dev.off()
-# cat(paste0("... written: ", outFile,  "\n"))
-# 
-# 
-# outFile <- file.path(outFolder,  paste0("allDS_nbrCpts_density.", plotType))
-# do.call(plotType, list(outFile, height=myHeight, width=myWidth))
-# plot_multiDens(
-#   list(
-#     all_obs_nbrCpts=log10(0.01+all_obs_nbrCpts),
-#     all_random_nbrCpts=log10(0.01+all_random_nbrCpts)
-#   ),
-#   plotTit ="nbrCpts"
-# )
-# mtext(side=3, text = paste0("all DS - n =", length(all_ds_results)), font=3)
-# foo <- dev.off()
-# cat(paste0("... written: ", outFile,  "\n"))
-# 
-# outFile <- file.path(outFolder,  paste0("allDS_nbrSingletons_density.", plotType))
-# do.call(plotType, list(outFile, height=myHeight, width=myWidth))
-# plot_multiDens(
-#   list(
-#     all_obs_nbrSingletons=log10(0.01+all_obs_nbrSingletons),
-#     all_random_nbrSingletons=log10(0.01+all_random_nbrSingletons)
-#   ),
-#   plotTit ="nbrSingletons"
-# )
-# mtext(side=3, text = paste0("all DS - n =", length(all_ds_results)), font=3)
-# foo <- dev.off()
-# cat(paste0("... written: ", outFile,  "\n"))
+# all_vars <- c("Edges", "Cpts", "Singletons")
+# curr_var=all_vars[1]
+# for(curr_var in all_vars) {
+#   
+#   plotTit <- paste0("nbr", curr_var)
+#   subTit <- paste0("all DS - n =", length(all_ds_results))
+#   
+#   plot_list <- list(log10(0.01+eval(parse(text = paste0("all_obs_nbr", curr_var)))),
+#                     log10(0.01+eval(parse(text = paste0("all_random_nbr", curr_var)))))
+#   names(plot_list) <- c(paste0("all_obs_nbr",curr_var), paste0("all_random_nbr", curr_var) )
+#   
+#   outFile <- file.path(outFolder,  paste0("allDS_nbr", curr_var, "_density.", plotType))
+#   do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+#   plot_multiDens(
+#       plot_list,
+#     plotTit = plotTit, my_xlab = paste0("# ", curr_var, " [log10(+0.01)]")
+#   )
+#   mtext(side=3, text = subTit, font=3)
+#   foo <- dev.off()
+#   cat(paste0("... written: ", outFile,  "\n"))
+#   
+#   
+#   plotTit <- paste0("nbr", curr_var, "[log10(+0.01)]")
+#   subTit <- paste0("all DS - n =", length(all_ds_results))
+#   
+#   xlab <- "observed"
+#   ylab <- paste0("mean permut. (n=", nPermut, ")" )
+#   
+#   outFile <- file.path(outFolder,  paste0("allDS_nbr", curr_var, "_meanPermut_vs_obs_densplot.", "png"))
+#   do.call("png", list(outFile, height=400, width=400))
+#   
+#   densplot(x=log10(eval(parse(text=paste0("all_obs_nbr", curr_var))) +0.01), 
+#            y=log10(eval(parse(text=paste0("all_random_meanNbr", curr_var))) +0.01),
+#            xlab= xlab,ylab=ylab, main=plotTit
+#   )
+#   mtext(side=3, text = subTit, font=3)
+#   curve(1*x, lty=1, col="darkgrey", add = T)
+#   foo <- dev.off()
+#   cat(paste0("... written: ", outFile,  "\n"))
+#   
+#   
+# }
 
 
+          
