@@ -2,24 +2,11 @@
 startTime <- Sys.time()
 cat(paste0("> Rscript allTADs_and_purity_final.R\n"))
 
-script_name <- "allTADs_and_purity_final.R"
+script_name <- "purity_by_cond_final.R"
 
 # _final -> discussion with Giovanni 04.08.2020 -> take Aran CPE data
 # corrected compared to some of the previous versions -> if only non-"A" vial, take the "A" vial
 # if multiple vials -> take "A" vials
-
-### 23.09 there was something dangerous in the foreach section
-# I replace use the same name "purity_dt" for DS -> risk to overwrite the initial data
-# therefore I try to rerun the script after renaming ds_purity_dt in the foreach section
-# -> output in ALLTADS_AND_PURITY_FINAL_CORRECT//aran/CPE/log10/all_ds_corrPurity_dt.Rdata
-# but then I check
-# dt1=get(load("ALLTADS_AND_PURITY_FINAL/aran/CPE/log10/all_ds_corrPurity_dt.Rdata"))
-# dt2=get(load("ALLTADS_AND_PURITY_FINAL_CORRECT//aran/CPE/log10/all_ds_corrPurity_dt.Rdata"))
-# stopifnot(dt1$purityCorr == dt2$purityCorr)
-# stopifnot(dt1$dataset == dt2$dataset)
-# stopifnot(dt1$region == dt2$region)
-# stopifnot(dt1$entrezID == dt2$entrezID)
-# => all TRUE, ouf !
 
 
 purity_file <- file.path("tcga_purity_aran2015.csv")
@@ -35,6 +22,9 @@ dt1 <- dt1[order(dt1$Sample.ID),]
 dt1$Sample.ID <- as.character(dt1$Sample.ID)
 stopifnot(all.equal(dt0, dt1))
 # TRUE
+
+curr_hicds <- "ENCSR489OCU_NCI-H460_40kb"
+curr_exprds <- "TCGAluad_mutKRAS_mutEGFR"  
 
 
 suppressPackageStartupMessages(library(foreach, warn.conflicts = FALSE, quietly = TRUE, verbose = FALSE))
@@ -59,13 +49,13 @@ do_plot <- function(my_x, my_y, ...) {
   addCorr(my_x, my_y, bty="n")
 }
 
-# Rscript allTADs_and_purity_final.R
+# Rscript purity_by_cond_final.R
 
 SSHFS <- FALSE
 setDir <- ifelse(SSHFS, "/media/electron", "")
 registerDoMC(ifelse(SSHFS, 2, 80))
 
-buildTable <- TRUE
+buildTable <- F
 
 fontFamily <- "Hershey"
 
@@ -135,7 +125,7 @@ stopifnot(any(grepl("A$", purity_dt$Sample.ID_withVial)))
 stopifnot(!duplicated(purity_dt$Sample.ID))
 purity_dt$Sample.ID_withVial <- NULL
 
-outFolder <- file.path("ALLTADS_AND_PURITY_FINAL_CORRECT", purity_ds, pm, transfExpr)
+outFolder <- file.path("PURITY_BY_COND_FINAL", purity_ds, pm, transfExpr)
 dir.create(outFolder, recursive = TRUE)
 
 cat(paste0("!!! > purity metric: ", pm, "\n"))
@@ -162,7 +152,7 @@ ex_TAD <- "chr11_TAD390"
 
 if(buildTable){
   
-  all_ds_corrPurity_dt <- foreach(ds = all_ds, .combine='rbind') %dopar% {
+  all_ds_corrPurity_data <- foreach(ds = all_ds) %dopar% {
     
     cat(paste0("... start: ", ds, "\n"))
     
@@ -226,7 +216,26 @@ if(buildTable){
     stopifnot(names(geneList) %in% rownames(fpkm_dt))
     
     ### -> do the same as for the GIMAPs but for all TADs !
+    
+    purity_values <- setNames(purity_dt[purity_dt$Sample.ID %in% pur2_samp1 | purity_dt$Sample.ID %in% pur2_samp2,paste0(pm)],
+                              purity_dt[purity_dt$Sample.ID %in% pur2_samp1 | purity_dt$Sample.ID %in% pur2_samp2,paste0("Sample.ID")])
+    
+    stopifnot( gsub("A$", "", names(purity_values)) == names(purity_values) )
+    
+    ds_purity_dt <- data.frame(
+      dataset=ds,
+      sampID = names(purity_values),
+      purity = purity_values,
+      stringsAsFactors = FALSE
+    )
+    rownames(ds_purity_dt) <- NULL
+    
+    ds_purity_dt$cond <- ifelse(ds_purity_dt$sampID %in% cond1_ID, cond1,
+                             ifelse(ds_purity_dt$sampID %in% cond2_ID, cond2, NA))
+    stopifnot(!is.na(ds_purity_dt$cond))
+    
     tad = unique(g2t_dt$region)[1]
+    
     all_tads_dt <- foreach(tad = unique(g2t_dt$region), .combine='rbind') %dopar% {
       
       tad_entrez <- g2t_dt$entrezID[g2t_dt$region == tad]
@@ -246,12 +255,10 @@ if(buildTable){
       stopifnot(!duplicated(all_samps2))
       stopifnot(all_samps2 == all_samps)
       
-      purity_values <- setNames(purity_dt[purity_dt$Sample.ID %in% pur2_samp1 | purity_dt$Sample.ID %in% pur2_samp2,paste0(pm)],
-                                purity_dt[purity_dt$Sample.ID %in% pur2_samp1 | purity_dt$Sample.ID %in% pur2_samp2,paste0("Sample.ID")])
       
       stopifnot(setequal(names(purity_values), all_samps2))
-      stopifnot( gsub("A$", "", names(purity_values)) == names(purity_values) )
       stopifnot(setequal(names(purity_values), all_samps))
+      
       
       stopifnot(all_samps %in% colnames(tad_fpkm_dt))
       
@@ -282,15 +289,9 @@ if(buildTable){
       tad_dt$sampID <- rownames(tad_dt)
       rownames(tad_dt) <- NULL
       
-      ds_purity_dt <- data.frame(
-        dataset=ds,
-        sampID = names(purity_values),
-        purity = purity_values,
-        stringsAsFactors = FALSE
-      )
       purity_expr_dt <- merge(ds_purity_dt, tad_dt, by="sampID", all=TRUE)
-      stopifnot(ncol(purity_expr_dt) == length(tad_entrez) + 3)
-      purity_expr_dt <- purity_expr_dt[,c("dataset", "sampID", "purity", tad_entrez)]
+      stopifnot(ncol(purity_expr_dt) == length(tad_entrez) + 4) ### added cond !
+      purity_expr_dt <- purity_expr_dt[,c("dataset", "sampID", "purity", "cond", tad_entrez)]
       
       if(hicds==ex_hicds & exprds==ex_exprds & tad == ex_TAD) {
         for(i_g in tad_entrez) {
@@ -315,236 +316,114 @@ if(buildTable){
       if(nrow(purity_expr_dt) == 0) return(NULL)
       
       
-      all_purityCors <- apply(purity_expr_dt[,tad_entrez],2, function(col) cor(col, purity_expr_dt$purity, method=corMet))
+      # all_purityCors <- apply(purity_expr_dt[,tad_entrez],2, function(col) cor(col, purity_expr_dt$purity, method=corMet))
+      # 
+      # stopifnot(!is.na(all_purityCors))
+      # 
+      # data.frame(
+      #   dataset=ds,
+      #   nSampWithPurity=length(purity_expr_dt$sampID),
+      #   region = tad,
+      #   entrezID= names(all_purityCors),
+      #   purityCorr = as.numeric(all_purityCors),
+      #   stringsAsFactors = FALSE
+      # )
       
-      stopifnot(!is.na(all_purityCors))
+      ### CHANGED HERE 23.09.20 to have by condition
       
+      out_dt <- do.call(rbind, by(purity_expr_dt,purity_expr_dt$cond, function(sub_dt){
+        
+        all_purityCors <- apply(sub_dt[,tad_entrez],2, function(col) cor(col, sub_dt$purity, method=corMet))
+        
+        stopifnot(!is.na(all_purityCors))
+        data.frame(
+          dataset=ds,
+          cond = unique(sub_dt$cond),
+          nSampWithPurity=length(sub_dt$sampID),
+          region = tad,
+          entrezID= names(all_purityCors),
+          purityCorr = as.numeric(all_purityCors),
+          stringsAsFactors = FALSE
+        )
+      } ))
       
-      data.frame(
-        dataset=ds,
-        nSampWithPurity=length(purity_expr_dt$sampID),
-        region = tad,
-        entrezID= names(all_purityCors),
-        purityCorr = as.numeric(all_purityCors),
-        stringsAsFactors = FALSE
-      )
-      
-      
-      
-      
-      
+      rownames(out_dt) <- NULL
+      out_dt
     }
-    all_tads_dt
+    list(
+      ds_purity_dt=ds_purity_dt,
+      all_tads_dt=all_tads_dt
+    )
   }
-  outFile <- file.path(outFolder,"all_ds_corrPurity_dt.Rdata" )
-  save(all_ds_corrPurity_dt, file=outFile, version=2)
+  outFile <- file.path(outFolder,"all_ds_corrPurity_data.Rdata" )
+  save(all_ds_corrPurity_data, file=outFile, version=2)
   cat(paste0("... written: ", outFile, "\n"))
-
+  
 } else {
-  outFile <- file.path(outFolder,"all_ds_corrPurity_dt.Rdata" )
-  all_ds_corrPurity_dt <- get(load(outFile))
-  }
-      
-
-# do the TADs that are signif. correspond to those that are well correlated with purity ?
-all_result_dt$regID <- file.path(all_result_dt$hicds, all_result_dt$exprds, all_result_dt$region)
-all_ds_corrPurity_dt$regID <- file.path(all_ds_corrPurity_dt$dataset, all_ds_corrPurity_dt$region)
-stopifnot(all_ds_corrPurity_dt$regID %in% all_result_dt$regID)
-
-if(purity_ds == "EPIC") stopifnot(all_result_dt$regID %in% all_ds_corrPurity_dt$regID)
-
-########### => Mean TAD-level
-all_ds_meanCorrPurity_dt <- aggregate(purityCorr~regID, data=all_ds_corrPurity_dt, FUN=mean)
-stopifnot(!duplicated(all_ds_meanCorrPurity_dt$regID))
-all_dt <- merge(all_ds_meanCorrPurity_dt, all_result_dt, by="regID", all.x=TRUE, all.y=FALSE)
-stopifnot(!duplicated(all_dt$regID))
-all_dt$adjPvalComb_log10 <- -log10(all_dt$adjPvalComb)
-all_dt$dotCols <- all_cols[all_cmps[paste0(all_dt$exprds)]]
-stopifnot(!is.na(all_dt$dotCols))
-
-plotTit <- paste0("TAD-level mean corr.")
-
-myx_lab <- paste0(transfExpr, " expr. and purity correlation (meanTAD)")
-
-all_vars <- c("adjPvalComb_log10", "meanCorr", "ratioDown")
-
-plot_var =all_vars[1]
-
-for(plot_var in all_vars) {
-  my_x <- all_dt$purityCorr
-  my_y <- all_dt[,c(plot_var)]
-  outFile <- file.path(outFolder, paste0(plot_var, "_exprPurityCorr_meanTAD.", plotType))
-  do.call(plotType, list(outFile, height=myHeight, width=myWidth))
-  do_plot(my_x,my_y, xlab=myx_lab, 
-          col = all_dt$dotCols,
-          main=paste0("meanTAD - ", plot_var, " vs. purity corr."),
-          ylab=paste0(plot_var))
-  mtext(side=3, text = paste0(corMet, "'s corr.", " - ", purity_plot_name, " data"))
-  legend("bottomleft",all_cols, legend=names(all_cols), bty="n", pch=16, col=all_cols)
-  foo <- dev.off()
-  cat(paste0("... written: ", outFile, "\n"))
+  outFile <- file.path(outFolder,"all_ds_corrPurity_data.Rdata" )
+  all_ds_corrPurity_data <- get(load(outFile))
 }
 
-onlysignif_dt <- all_dt[all_dt$adjPvalComb <= signifThresh,]
-for(plot_var in all_vars) {
-  my_x <- onlysignif_dt$purityCorr
-  my_y <- onlysignif_dt[,c(plot_var)]
-  outFile <- file.path(outFolder, paste0(plot_var, "_exprPurityCorr_meanTAD_onlySignif.", plotType))
-  do.call(plotType, list(outFile, height=myHeight, width=myWidth))
-  do_plot(my_x,my_y, xlab=myx_lab, 
-          col = onlysignif_dt$dotCols,
-          main=paste0("meanTAD - ", plot_var, " vs. purity corr."),
-          ylab=paste0(plot_var))
-  mtext(side=3, text = paste0(corMet, "'s corr. - adjPvalComb TAD <= ", signifThresh, " - ", purity_plot_name, " data"))
-  legend("bottomleft",all_cols, legend=names(all_cols), bty="n", pch=16, col=all_cols)
-  foo <- dev.off()
-  cat(paste0("... written: ", outFile, "\n"))
-}
+all_dt <- do.call(rbind, lapply(all_ds_corrPurity_data, function(x)x[["ds_purity_dt"]]))
+curr_dt <- all_dt[all_dt$dataset == file.path(curr_hicds, curr_exprds),]
+curr_dt$cond_id <- curr_dt$cond
+curr_dt$cond1 <- gsub("TCGA.+_(.+)_.+", "\\1", basename(curr_dt$dataset))
+curr_dt$cond2 <- gsub("TCGA.+_.+_(.+)", "\\1", basename(curr_dt$dataset))
+curr_dt$cond <- ifelse(curr_dt$cond_id == curr_dt$cond1, "cond1", 
+                               ifelse(curr_dt$cond_id == curr_dt$cond2, "cond2", NA))
+stopifnot(!is.na(curr_dt$cond))
+curr_dt$cond_lab <- paste0(curr_dt$cond, " (", curr_dt$cond_id, ")")
 
-onlyCorr_dt <- all_dt[abs(all_dt$purityCorr) >= highCorrThresh,]
-for(plot_var in all_vars) {
-  my_x <- onlyCorr_dt$purityCorr
-  my_y <- onlyCorr_dt[,c(plot_var)]
-  outFile <- file.path(outFolder, paste0(plot_var, "_exprPurityCorr_meanTAD_highCorr.", plotType))
-  do.call(plotType, list(outFile, height=myHeight, width=myWidth))
-  do_plot(my_x,my_y, xlab=myx_lab, 
-          col = onlyCorr_dt$dotCols,
-          main=paste0("meanTAD - ", plot_var, " vs. purity corr."),
-          ylab=paste0(plot_var))
-  mtext(side=3, text = paste0(corMet, "'s corr. - corr. expr-purity abs. >= ", highCorrThresh, " - ", purity_plot_name, " data" ))
-  legend("bottomleft",all_cols, legend=names(all_cols), bty="n", pch=16, col=all_cols)
-  foo <- dev.off()
-  cat(paste0("... written: ", outFile, "\n"))
-}
+plotTit <- paste0(curr_hicds, " - ", curr_exprds, ": sample purity level")
+mySub <- paste0(paste0(names(table(curr_dt$cond_id)), ": ", as.numeric(table(curr_dt$cond_id))), collapse="; ")
 
-myx_lab <- paste0(transfExpr, " expr. and purity correlation (mean TAD)")
+require(ggpubr)
 
-outFile <- file.path(outFolder, paste0("exprPurityCorr_signif_notSignif_density_meanTAD.", plotType))
-do.call(plotType, list(outFile, height=myHeight, width=myWidth*1.5))
-plot_multiDens(list(
-  "signif. TADs" =onlysignif_dt$purity,
-  "not signif. TADs" = all_dt$purityCorr[all_dt$adjPvalComb > signifThresh]),legPos = "topleft", my_xlab = myx_lab,
-  plotTit =paste0(corMet, "'s corr. expr.-purity (mean TAD)"))
-mtext(text=paste0("adj. p-val. signif. thresh = ", signifThresh, " - ", purity_plot_name, " data"))
-foo <- dev.off()
-cat(paste0("... written: ", outFile, "\n"))
+legTitle <- ""
 
-
-onlyCorr_dt <- all_dt[abs(all_dt$purityCorr) >= highCorrThresh,]
-myx_lab <- paste0("adjPvalComb_log10 (meanTAD)")
-outFile <- file.path(outFolder, paste0("adjPvalCombLog10_highCorr_lowCorr_density_meanTAD.", plotType))
-do.call(plotType, list(outFile, height=myHeight, width=myWidth*1.5))
-plot_multiDens(list(
-  "high corr. TADs" =onlyCorr_dt$adjPvalComb_log10,
-  "low corr. TADs" = all_dt$adjPvalComb_log10[all_dt$purityCorr < highCorrThresh]),legPos = "topright",
-  plotTit =paste0(corMet, "'s corr. expr.-purity (mean TAD)"), my_xlab = myx_lab)
-mtext(text=paste0("abs. high corr. thresh = ", highCorrThresh, " - ", purity_plot_name, " data"))
-foo <- dev.off()
-cat(paste0("... written: ", outFile, "\n"))
-
-
-# dataset boxplot
-all_ds_meanCorrPurity_dt$dataset <- dirname(all_ds_meanCorrPurity_dt$regID)
-aggds_meanCorrPurit_dt <- aggregate(purityCorr~dataset, data=all_ds_meanCorrPurity_dt, FUN=mean)
-aggds_meanCorrPurit_dt <- aggds_meanCorrPurit_dt[order(aggds_meanCorrPurit_dt$purityCorr),]
-all_ds_meanCorrPurity_dt$dataset <- factor(all_ds_meanCorrPurity_dt$dataset, levels=aggds_meanCorrPurit_dt$dataset)
-myx_lab <- paste0(transfExpr, " expr. and purity correlation (meanTAD)")
-
-plotTit <- paste0("Expr. ", transfExpr, " purity corr. - by DS")
-subTit <- paste0(corMet, "'s corr. - ", purity_plot_name, " data")
-p <- ggplot(all_ds_meanCorrPurity_dt, aes(x=dataset, y=purityCorr))+
-  geom_boxplot()+
-  ggtitle(plotTit, subtitle = subTit)+
-  # geom_boxplot(notch = TRUE, outlier.shape=NA)+
-  # geom_jitter()+
-  scale_y_continuous(breaks=scales::pretty_breaks(n = 10))+
-  scale_x_discrete(labels=function(x) paste0(dirname(x), "\n", basename(x)))+
-  labs(x="",
-       y =paste0(myx_lab))+ 
+p2 <- ggdensity(curr_dt,
+                x = "purity",
+                y = "..density..",
+                # combine = TRUE,                  # Combine the 3 plots
+                xlab = "sample purity", 
+                # add = "median",                  # Add median line. 
+                rug = FALSE,                      # Add marginal rug
+                color = "cond_lab", 
+                fill = "cond_lab",
+                palette = "jco"
+) +
+  # scale_color_manual(values=my_cols)+
+  # scale_fill_manual(values=my_cols)  +
+  ggtitle(plotTit, subtitle = mySub)+
+  labs(color=paste0(legTitle),fill=paste0(legTitle), y="Density") + 
+  guides(color=FALSE)+
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 10))+
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
   theme(
-    plot.margin=margin(t = 0, r = 0, b = 10, l = 0, unit = "pt"),
-    text = element_text(family=fontFamily),
     panel.grid.major.y =  element_line(colour = "grey", size = 0.5, linetype=1),
     panel.grid.minor.y =  element_line(colour = "grey", size = 0.5, linetype=1),
     panel.background = element_rect(fill = "transparent"),
     panel.grid.major.x =  element_blank(),
     panel.grid.minor.x =  element_blank(),
-    axis.line = element_line(),
     axis.title.x = element_text(size=14, hjust=0.5, vjust=0.5),
     axis.title.y = element_text(size=14, hjust=0.5, vjust=0.5),
     axis.text.y = element_text(size=12, hjust=0.5, vjust=0.5),
-    axis.text.x = element_text(size=6, hjust=1, vjust=0.5, angle=90, color=all_cols[all_cmps[basename(aggds_meanCorrPurit_dt$dataset)]]),
-    # axis.text.x = element_blank(),
+    axis.text.x = element_text(size=12, hjust=0.5, vjust=0.5),
     plot.title = element_text(hjust=0.5, size = 16, face="bold"),
     plot.subtitle = element_text(hjust=0.5, size = 14, face="italic"),
-    legend.title = element_text(face="bold"),
-    legend.text = element_text(size=12)
+    legend.title = element_text(face="bold")
   ) 
 
-outFile <- file.path(outFolder, paste0("all_purity_meanTAD_byDS_boxplot.", plotType))
-ggsave(p, filename = outFile, height=myHeightGG, width=myWidthGG)
-cat(paste0("... written: ", outFile, "\n"))
 
+outFile <- file.path(outFolder, paste0(curr_hicds, "_", curr_exprds, "_cond1_cond2_density.", "svg"))
+ggsave(p2, filename = outFile, height=5, width=7)
 
-
-########### => all gene-level
-all_dt <- merge(all_ds_corrPurity_dt, all_result_dt, by="regID", all.x=TRUE, all.y=FALSE)
-all_dt$adjPvalComb_log10 <- -log10(all_dt$adjPvalComb)
-stopifnot(!duplicated(file.path(all_dt$regID, all_dt$entrezID)))
-
-plotTit <- paste0("Gene-level")
-myx_lab <- paste0(transfExpr, " expr. and purity correlation (gene-level)")
-
-myx_lab <- paste0(transfExpr, " expr. and purity correlation (gene-level)")
-
-onlysignif_dt <- all_dt[all_dt$adjPvalComb <= signifThresh,]
-
-outFile <- file.path(outFolder, paste0("exprPurityCorr_signif_notSignif_density_geneLevel.", plotType))
-do.call(plotType, list(outFile, height=myHeight, width=myWidth*1.5))
-plot_multiDens(list(
-  "signif. TADs" =onlysignif_dt$purity,
-  "not signif. TADs" = all_dt$purity[all_dt$adjPvalComb > signifThresh]),legPos = "topleft",
-  plotTit =paste0(corMet, "'s corr. expr.-purity (gene-level)"), my_xlab = myx_lab)
-mtext(text=paste0("adj. p-val. signif. thresh = ", signifThresh," - ", purity_plot_name, " data"))
-foo <- dev.off()
-cat(paste0("... written: ", outFile, "\n"))
-
-onlyCorr_dt <- all_dt[abs(all_dt$purityCor)  >= highCorrThresh,]
-
-myx_lab <- paste0("adjPvalComb_log10 (gene-level)")
-
-outFile <- file.path(outFolder, paste0("adjPvalCombLog10_highCorr_lowCorr_density_geneLevel.", plotType))
-do.call(plotType, list(outFile, height=myHeight, width=myWidth*1.5))
-plot_multiDens(list(
-  "high corr. TADs" =onlyCorr_dt$adjPvalComb_log10,
-  "low corr. TADs" = all_dt$adjPvalComb_log10[all_dt$purityCorr < highCorrThresh]),legPos = "topright",
-  plotTit =paste0(corMet, "'s corr. expr.-purity (gene-level)"), my_xlab = myx_lab)
-mtext(text=paste0("abs. high corr. thresh = ", highCorrThresh, " - ", purity_plot_name, " data"))
-foo <- dev.off()
-cat(paste0("... written: ", outFile, "\n"))
 
 ######################################################################################
-setDir <- "/media/electron"
-setDir <- ""
-entrezDT_file <- paste0(setDir, "/mnt/ed4/marie/entrez2synonym/entrez/ENTREZ_POS/gff_entrez_position_GRCh37p13_nodup.txt")
-gff_dt <- read.delim(entrezDT_file, header = TRUE, stringsAsFactors = FALSE)
-gff_dt$entrezID <- as.character(gff_dt$entrezID)
-entrez2symb <- setNames(gff_dt$symbol,gff_dt$entrezID)
-
-# meanCorr by gene
-
-mean_agg <- aggregate(purityCorr ~ entrezID, data=all_ds_corrPurity_dt, FUN=mean)
-mean_agg <- mean_agg[order(abs(mean_agg$purityCorr), decreasing=T),]
-mean_agg$symbol <- entrez2symb[mean_agg$entrezID]
-head(mean_agg)
-
-
-onlysignif_dt <- all_dt[all_dt$adjPvalComb <= signifThresh,]
-onlysignif_dt$purityCorr_rd <- round(onlysignif_dt$purityCorr, 2)
-onlysignif_dt$adjPvalComb_log10_rd <- round(onlysignif_dt$adjPvalComb_log10, 2)
-onlysignif_dt <- onlysignif_dt[order(onlysignif_dt$purityCorr), c("regID", "region_genes", "purityCorr_rd","adjPvalComb_log10_rd")]
-rownames(onlysignif_dt) <- NULL
-head(onlysignif_dt,20)
+######################################################################################
+######################################################################################
+cat("*** DONE\n")
+cat(paste0(startTime, "\n", Sys.time(), "\n"))
 
 ######################################################################################
 ######################################################################################
