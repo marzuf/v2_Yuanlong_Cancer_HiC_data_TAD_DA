@@ -1,6 +1,6 @@
 
 
-# Rscript sameFamInSameTAD.R
+# Rscript sameFamInSameTAD_onlySignif.R
 
 # don't add at TADs the end and beginning -> I just loose half TADs, and poor quality data at extremity
 
@@ -29,7 +29,7 @@ myWidth <- 7
 
 source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 
-outFolder <- file.path("SAMEFAMINSAMETAD_V2_ALLDS")
+outFolder <- file.path("SAMEFAMINSAMETAD_ONLYSIGNIF")
 # outFolder <- file.path("SAMEFAMINSAMETAD")
 dir.create(outFolder, recursive = TRUE)
 
@@ -47,11 +47,18 @@ exprds = "TCGAbrca_lum_bas"
 # all_hicds=all_hicds[1]
 # all_hicds=all_hicds[2:length(all_hicds)]
 
-buildData <- FALSE
+final_dt <- get(load("CREATE_FINAL_TABLE/all_result_dt.Rdata"))
+
+
+buildData <- TRUE
 
 ds=all_ds[1]
 
 # all_ds=all_ds[1]
+
+tad_signifThresh <-  0.01
+final_dt$signif_tad <- final_dt$adjPvalComb <= tad_signifThresh
+
 
 if(buildData) {
   
@@ -62,6 +69,12 @@ if(buildData) {
     exprds <- basename(ds)
     cat(paste0("... start: ", hicds," - ", exprds,  "\n"))
     
+    ds_final_dt <- final_dt[final_dt$hicds == hicds &
+                              final_dt$exprds == exprds,]
+    
+    ds_signif_tads <- ds_final_dt$region[ds_final_dt$signif_tad]
+    
+    
     
     #       ### => CHANGED FOR THE TISSUE DATA TO USE TISSUE SPECIFIC FAMILY FILES !!!
     #       # inFoldFamily <- file.path(setDir, paste0("/mnt/ed4/marie/scripts/TAD_DE_pipeline_v2_", caller, "/", "PREP_GENE_FAMILIES_TAD_DATA"))
@@ -69,17 +82,34 @@ if(buildData) {
           familyData2 <- "hgnc"
           familyDT <- eval(parse(text = load(file.path(inFoldFamily, paste0(familyData2, "_entrezID_family_TAD_DT.Rdata")))))
           familyDT$entrezID <- as.character(familyDT$entrezID)
-    
+          
+          
+          ### 24.09.20 UPDATE HERE -> take only genes from signif TADs !!!!
+          familyDT <- familyDT[familyDT$region %in% ds_signif_tads,]
+          
+          
+          
     g2t_dt_file <- file.path(runFolder, hicds, "genes2tad", "all_genes_positions.txt")
     g2t_dt <- read.delim(g2t_dt_file, stringsAsFactors = FALSE, header=FALSE, col.names=c("entrezID", "chromo", "start", "end", "region"))
     g2t_dt$entrezID <- as.character(g2t_dt$entrezID)
     tad_g2t_dt <- g2t_dt[grepl("_TAD", g2t_dt$region),]
+
     stopifnot(!duplicated(g2t_dt$entrezID))
     entrezIDchromo <- setNames(g2t_dt$chromo, g2t_dt$entrezID)
+    
+    ### 24.09.20 UPDATE HERE -> take only genes from signif TADs !!!!
+    signif_tad_g2t_dt <- tad_g2t_dt[tad_g2t_dt$region %in% ds_signif_tads,]
+    signif_entrezID <- signif_tad_g2t_dt$entrezID
+    
+    discarded_entrezID <- tad_g2t_dt$entrezID[! tad_g2t_dt$region %in% ds_signif_tads]
 
     sameTADfile <- file.path("CREATE_SAME_TAD_SORTNODUP", hicds, "all_TAD_pairs.Rdata")
     stopifnot(file.exists(sameTADfile))
     sameTAD_dt <- get(load(sameTADfile))
+    
+    ### 24.09.20 UPDATE HERE -> take only genes from signif TADs !!!!
+    sameTAD_dt <- sameTAD_dt[sameTAD_dt$region %in% ds_signif_tads,]
+    
     
     # ADDED 08.01.19 to accommodate updated family file
     sameFamFolder <- file.path("CREATE_SAME_FAMILY_SORTNODUP", hicds)
@@ -88,6 +118,12 @@ if(buildData) {
     sameFamFile <- file.path(sameFamFolder, paste0(familyData, "_all_family_pairs.Rdata")) # at least this one should exist !
     stopifnot(file.exists(sameFamFile))
     sameFam_dt <- get(load(sameFamFile))
+    
+    ### 24.09.20 UPDATE HERE -> consider only genes from signif TADs !!!!
+    sameFam_dt <- sameFam_dt[sameFam_dt$gene1 %in% signif_entrezID & 
+                               sameFam_dt$gene2 %in% signif_entrezID,]
+    
+    stopifnot(nrow(sameFam_dt) > 0)
     
     stopifnot(sameTAD_dt$gene1 <= sameTAD_dt$gene2)
     stopifnot(sameFam_dt$gene1 <= sameFam_dt$gene2)
@@ -101,12 +137,21 @@ if(buildData) {
     
     sameFamSameTAD_dt <- merge(sameFam_dt, sameTAD_dt, all.x=TRUE, all.y=FALSE, by=c("gene1", "gene2"))
     
+    ### 24.09.20 UPDATE HERE -> familyDT has been updated to be only from signif !!! sampling of genes will be done only across signif. TADs
     all_genes <- familyDT$entrezID
     stopifnot(all_genes %in% names(entrezIDchromo))
     family_entrezIDchromo <- entrezIDchromo[names(entrezIDchromo) %in% all_genes]
     
     
     all_fams <- unique(sameFamSameTAD_dt$family)
+    
+    stopifnot(!sameTAD_dt$gene1 %in% discarded_entrezID)
+    stopifnot(!sameTAD_dt$gene2 %in% discarded_entrezID)
+    stopifnot(!sameFam_dt$gene1 %in% discarded_entrezID)
+    stopifnot(!sameFam_dt$gene2 %in% discarded_entrezID)
+    stopifnot(!sameFamSameTAD_dt$gene1 %in% discarded_entrezID)
+    stopifnot(!sameFamSameTAD_dt$gene2 %in% discarded_entrezID)
+    
     
     ##>> iterate here over families
     i_fam=1
@@ -151,6 +196,7 @@ if(buildData) {
         sample_genes <- foreach(chromo = names(true_countChromos), .combine='c') %do% {
           sample(names(family_entrezIDchromo)[family_entrezIDchromo == chromo], size=true_countChromos[chromo], replace=FALSE)
         }
+        stopifnot(!sample_genes %in% discarded_entrezID)
         stopifnot(!duplicated(sample_genes))
         stopifnot(length(sample_genes) == length(true_genes))
         

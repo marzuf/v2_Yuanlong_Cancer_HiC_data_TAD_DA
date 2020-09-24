@@ -419,16 +419,77 @@ outFile <- file.path(outFolder, paste0(curr_hicds, "_", curr_exprds, "_cond1_con
 ggsave(p2, filename = outFile, height=5, width=7)
 
 
-######################################################################################
-######################################################################################
-######################################################################################
-cat("*** DONE\n")
-cat(paste0(startTime, "\n", Sys.time(), "\n"))
+p2 <- ggboxplot(curr_dt,
+                x = "cond_lab",
+                y = "purity",
+                # combine = TRUE,                  # Combine the 3 plots
+                xlab = "sample purity", 
+                # add = "median",                  # Add median line. 
+                # rug = FALSE,                      # Add marginal rug
+                color = "cond_lab", 
+                fill = "cond_lab",
+                palette = "jco"
+) +
+  # scale_color_manual(values=my_cols)+
+  # scale_fill_manual(values=my_cols)  +
+  ggtitle(plotTit, subtitle = mySub)+
+  labs(color=paste0(legTitle),fill=paste0(legTitle), y="Density") + 
+  guides(color=FALSE)+
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 10))+
+  # scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
+  theme(
+    panel.grid.major.y =  element_line(colour = "grey", size = 0.5, linetype=1),
+    panel.grid.minor.y =  element_line(colour = "grey", size = 0.5, linetype=1),
+    panel.background = element_rect(fill = "transparent"),
+    panel.grid.major.x =  element_blank(),
+    panel.grid.minor.x =  element_blank(),
+    axis.title.x = element_text(size=14, hjust=0.5, vjust=0.5),
+    axis.title.y = element_text(size=14, hjust=0.5, vjust=0.5),
+    axis.text.y = element_text(size=12, hjust=0.5, vjust=0.5),
+    axis.text.x = element_text(size=12, hjust=0.5, vjust=0.5),
+    plot.title = element_text(hjust=0.5, size = 16, face="bold"),
+    plot.subtitle = element_text(hjust=0.5, size = 14, face="italic"),
+    legend.title = element_text(face="bold")
+  ) 
+
+outFile <- file.path(outFolder, paste0(curr_hicds, "_", curr_exprds, "_cond1_cond2_boxplot.", "svg"))
+ggsave(p2, filename = outFile, height=5, width=7)
+
+
 
 ######################################################################################
 ######################################################################################
 ######################################################################################
 cat("*** DONE\n")
 cat(paste0(startTime, "\n", Sys.time(), "\n"))
+
+# purity data form  Genomic Landscape of Non-Small Cell Lung Cancer in Smokers and Never-Smokers https://doi.org/10.1016/j.cell.2012.08.024
+dataDT <-	read.table(textConnection("
+Case	Gender	Smoking_Status	Dominant_Secondary_Clone_VAFs	Tumor_Purity__Dominant_Clone_VAFs	Tumor_Purity__X_VAFs	Clonality_Status
+LUC1	male	light_smoker	12.7%	25.4%	30.7%	monoclonal
+LUC2	female	smoker	22.5%/12.9%	45.0%	n/a	biclonal
+LUC4	male	smoker	14.9%	29.8%	29.8%	monoclonal
+LUC6	female	never-smoker	24.7%	49.4%	n/a	monoclonal
+LUC7	female	never-smoker	21.3%10.8%	42.6%	n/a	biclonal
+LUC8	female	smoker	22.7%	45.4%	n/a	monoclonal
+LUC9	female	smoker	41.1%/20.4%	82.2%	n/a	biclonal
+LUC10	male	smoker	43.1%/21.9%	86.2%	71.4%	biclonal
+LUC11	male	never-smoker	28.8%	57.6%	41.0%	monoclonal
+LUC12	male	smoker	10.4%	20.8%	24.3%	monoclonal
+LUC13	male	smoker	41.9%/21.3%	83.8%	58.6%	biclonal
+LUC14	female	smoker	29.5%/16.2%	59.0%	n/a	biclonal
+LUC15	female	never-smoker	19.2%/10.8%	38.4%	n/a	biclonal
+LUC16	female	never-smoker	47.2%/15.3%	94.4%	n/a	biclonal
+LUC17	female	smoker	13.9%/11.2%	27.8%	n/a	biclonal
+LUC18	male	smoker	18.8%/9.8%	37.6%	31.5%	biclonal
+LUC20	female	smoker	39.9%	79.8%	n/a	monoclonal
+                                    "),
+                     header=TRUE)
+
+dataDT$Tumor_Purity__Dominant_Clone_VAFs <- as.numeric(as.character(gsub("%", "", dataDT$Tumor_Purity__Dominant_Clone_VAFs)))
+dataDT$Tumor_Purity__X_VAFs <- as.numeric(as.character(gsub("%", "", dataDT$Tumor_Purity__X_VAFs)))
+
+aggregate(Tumor_Purity__Dominant_Clone_VAFs~Smoking_Status, data=dataDT, FUN=mean, na.rm=T)
+aggregate(Tumor_Purity__X_VAFs~Smoking_Status, data=dataDT, FUN=mean, na.rm=T)
 
 
