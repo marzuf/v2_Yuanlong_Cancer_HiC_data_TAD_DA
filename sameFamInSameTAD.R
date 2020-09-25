@@ -51,7 +51,19 @@ buildData <- FALSE
 
 ds=all_ds[1]
 
+logOffset <- 0.01
+
 # all_ds=all_ds[1]
+
+
+### FOR CHECK !!!
+setDir <- ""
+hgnc_geneFamilyFile <- file.path(setDir, "/mnt/ed4/marie/family_data_2/hgnc_entrez_family.txt")
+hgnc_geneFamilyDT <- read.delim(hgnc_geneFamilyFile, col.names=c("entrezID", "family"), header = F, stringsAsFactors = F)
+hgnc_geneFamilyDT$entrezID <- as.character(hgnc_geneFamilyDT$entrezID)
+hgnc_geneFamilyDT$family_short <- unlist(sapply(hgnc_geneFamilyDT$family, function(x) strsplit(x, "\\|")[[1]][1] ))
+# any(duplicated(hgnc_geneFamilyDT$entrezID))
+
 
 if(buildData) {
   
@@ -259,6 +271,8 @@ source("../Cancer_HiC_data_TAD_DA/utils_plot_fcts.R")
     
 ### ITERATE TO DO THE SAME FOR EACH OF THE VARIABLE!!!
 
+plotCex <- 1.2
+
 all_vars <- c("Edges", "Cpts", "Singletons")
 all_vars <- c("Edges")
 curr_var=all_vars[1]
@@ -268,16 +282,21 @@ for(curr_var in all_vars) {
           # aggregate by family
           nbr_obs_dt <- data.frame(family_lab=names(eval(parse(text=paste0("all_obs_nbr", curr_var)))), 
                                         nbr=as.numeric(eval(parse(text=paste0("all_obs_nbr", curr_var)))), stringsAsFactors = FALSE)
-          nbr_obs_dt$family <- gsub(".+/.+\\.(.+)", "\\1", nbr_obs_dt$family_lab)
+          nbr_obs_dt$family <- gsub(".+/.+?\\.(.+)", "\\1", nbr_obs_dt$family_lab)  ### CORRECT HERE THERE DOTS IN THE FAMILY NAMES SHOULD USE INTERROGATION MARK 25.09.2020
+          ### !!!! ADDED 25.09 IMPORTANT CHECK
+          stopifnot(nbr_obs_dt$family %in% hgnc_geneFamilyDT$family_short)
+          
           stopifnot(nbr_obs_dt$family != "")
           stopifnot(!is.na(nbr_obs_dt$family))
           
           nbr_rd_dt <- data.frame(family_lab=names(eval(parse(text=paste0("all_random_nbr", curr_var)))), 
                                        nbr=as.numeric(eval(parse(text=paste0("all_random_nbr", curr_var)))), 
                                        stringsAsFactors = FALSE)
-          nbr_rd_dt$family <- gsub(".+/.+\\.(.+)\\.result.+", "\\1", nbr_rd_dt$family_lab)
+          nbr_rd_dt$family <- gsub(".+/.+?\\.(.+)\\.result.+", "\\1", nbr_rd_dt$family_lab)  ### CORRECT HERE THERE DOTS IN THE FAMILY NAMES SHOULD USE INTERROGATION MARK 25.09.2020
           stopifnot(nbr_rd_dt$family != "")
           stopifnot(!is.na(nbr_rd_dt$family))
+          ### !!!! ADDED 25.09 IMPORTANT CHECK
+          stopifnot(nbr_rd_dt$family %in% hgnc_geneFamilyDT$family_short)
           
           stopifnot(setequal(nbr_obs_dt$family, nbr_rd_dt$family))
           
@@ -291,18 +310,21 @@ for(curr_var in all_vars) {
           plotTit <- paste0("# of ", curr_var, " by family")
           subTit <- paste0("aggreg. func = ", aggFunc, "; # families = ", length(unique(plot_dt$family)))
           
-          plot_dt$nbr_obs_log10 <- log10(plot_dt$nbr_obs + 0.01)
-          plot_dt$nbr_rd_log10 <- log10(plot_dt$nbr_rd + 0.01)
+          plot_dt$nbr_obs_log10 <- log10(plot_dt$nbr_obs + logOffset)
+          plot_dt$nbr_rd_log10 <- log10(plot_dt$nbr_rd + logOffset)
           
           my_x <- plot_dt$nbr_obs_log10
           my_y <- plot_dt$nbr_rd_log10
           
-          outFile <- file.path(outFolder,  paste0("allDS_nbr", curr_var, "_byFam_scatterplot.", plotType))
+          outFile <- file.path(outFolder,  paste0("allDS_nbr", curr_var, "_byFam_scatterplot_", gsub("\\.", "", logOffset), ".", plotType))
           do.call(plotType, list(outFile, height=myHeight, width=myHeight))
           plot(x=my_x,y=my_y, main=plotTit, 
                pch=16, cex=0.7,
-               xlab=paste0("# ", curr_var, " obs. [log10(+0.01)]"), 
-               ylab=paste0("# ", curr_var, " rd. [log10(+0.01)]"))
+               cex.axis=plotCex,
+               cex.lab=plotCex,
+               cex.main=plotCex,
+               xlab=paste0("# ", curr_var, " obs. [log10(+", logOffset, ")]"), 
+               ylab=paste0("# ", curr_var, " rd. [log10(+", logOffset, ")]"))
           curve(1*x, col="grey", add=TRUE)
           addCorr(x=my_x, y=my_y, legPos="topleft", bty="n")
           mtext(side=3, text = subTit, font=3)
@@ -320,36 +342,40 @@ for(curr_var in all_vars) {
   plotTit <- paste0("nbr", curr_var)
   subTit <- paste0("all DS - n =", length(all_ds_results))
 
-  plot_list <- list(log10(0.01+eval(parse(text = paste0("all_obs_nbr", curr_var)))),
-                    log10(0.01+eval(parse(text = paste0("all_random_nbr", curr_var)))))
+  
+  plot_list <- list(log10(logOffset+eval(parse(text = paste0("all_obs_nbr", curr_var)))),
+                    log10(logOffset+eval(parse(text = paste0("all_random_nbr", curr_var)))))
+  
+  
+  
   names(plot_list) <- c(paste0("all_obs_nbr",curr_var), paste0("all_random_nbr", curr_var) )
 
-  outFile <- file.path(outFolder,  paste0("allDS_nbr", curr_var, "_density.", plotType))
+  outFile <- file.path(outFolder,  paste0("allDS_nbr", curr_var, "_density_", gsub("\\.", "", logOffset), ".", plotType))
   do.call(plotType, list(outFile, height=myHeight, width=myWidth))
   plot_multiDens(
       plot_list,
-    plotTit = plotTit, my_xlab = paste0("# ", curr_var, " [log10(+0.01)]")
+    plotTit = plotTit, 
+    my_xlab = paste0("# ", curr_var, " [log10(+", logOffset, ")]")
   )
   mtext(side=3, text = subTit, font=3)
   foo <- dev.off()
   cat(paste0("... written: ", outFile,  "\n"))
 
 
-  plotTit <- paste0("nbr", curr_var, "[log10(+0.01)]")
+
+  plotTit <- paste0("nbr", curr_var, "[log10(+", logOffset, ")]")
   subTit <- paste0("all DS - n =", length(all_ds_results))
 
   xlab <- "observed"
   ylab <- paste0("mean permut. (n=", nPermut, ")" )
 
-  # outFile <- file.path(outFolder,  paste0("allDS_nbr", curr_var, "_meanPermut_vs_obs_densplot.", "png"))
-  # do.call("png", list(outFile, height=400, width=400))
-  
-  outFile <- file.path(outFolder,  paste0("allDS_nbr", curr_var, "_meanPermut_vs_obs_densplot.", "svg"))
+  # outFile <- file.path(outFolder,  paste0("allDS_nbr", curr_var, "_meanPermut_vs_obs_densplot.", "svg"))
+  outFile <- file.path(outFolder,  paste0("allDS_nbr", curr_var, "_meanPermut_vs_obs_densplot_", gsub("\\.", "", logOffset), ".", "svg"))
   do.call("svg", list(outFile, height=7, width=7))
   
 
-  densplot(x=log10(eval(parse(text=paste0("all_obs_nbr", curr_var))) +0.01),
-           y=log10(eval(parse(text=paste0("all_random_meanNbr", curr_var))) +0.01),
+  densplot(x=log10(eval(parse(text=paste0("all_obs_nbr", curr_var))) +logOffset),
+           y=log10(eval(parse(text=paste0("all_random_meanNbr", curr_var))) +logOffset),
            xlab= xlab,ylab=ylab, main=plotTit
   )
   mtext(side=3, text = subTit, font=3)

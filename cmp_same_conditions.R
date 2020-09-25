@@ -75,6 +75,7 @@ expr_hicds <- sapply(dup_exprds, function(exprds) {
 stopifnot(dup_exprds %in% names(expr_hicds))
   
 ### BUILD SIGNIF ALONG FDR THRESH
+exprds = dup_exprds[1]
 foo <- foreach(exprds = dup_exprds, .combine='rbind') %dopar% {
   
   all_hicds <- expr_hicds[[paste0(exprds)]]
@@ -123,7 +124,7 @@ foo <- foreach(exprds = dup_exprds, .combine='rbind') %dopar% {
   names(all_gene_DE_Rank) <- all_hicds
   
   # RETRIEVE PVAL COMBINED DATA
-  
+  hicds=all_hicds[1]
   all_gene_TAD_DE_Rank <- lapply(all_hicds, function(hicds) {
     pvalFile <- file.path(pipOutFolder, hicds, exprds, script11same_name, "emp_pval_combined.Rdata" )
     stopifnot(file.exists(pvalFile))
@@ -196,6 +197,11 @@ foo <- foreach(exprds = dup_exprds, .combine='rbind') %dopar% {
       foo <- dev.off()
       cat(paste0("... written: ", outFile, "\n"))
     } # end-for iterating over plot_var (TAD_rank or gene_rank)
+    
+    
+    # save correlation values for TAD rank
+    
+    
   } # end-for iterating over pairs of hic datasets
 } # end-for iterating over exprds
 
