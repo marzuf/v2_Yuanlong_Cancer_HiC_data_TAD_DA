@@ -1,12 +1,15 @@
 
 
-# Rscript sameFamInSameTAD_hicds.R
+# Rscript sameFamInSameTAD_RANDOM.R
 
 # don't add at TADs the end and beginning -> I just loose half TADs, and poor quality data at extremity
 
-# no need to have exprds
+## !!! OUTPUT FOLDER:
+# _RANDOM -> RANDOMMIDPOSSTRICT
+# _RANDOMMIDPOSDISC -> RANDOMMIDPOSDISC
+# _RANDOMMIDPOS -> RANDOMMIDPOS
 
-set.seed(20200903) # 
+set.seed(20200903) # NB forgot the first time I launched it
 
 require(doMC)
 require(foreach)
@@ -23,6 +26,7 @@ familyData <- "hgnc_family_short"
 
 nRandom <- 100
 
+aggFunc <- "mean"
 
 plotType <- "svg"
 myHeight <- 5
@@ -30,24 +34,29 @@ myWidth <- 7
 
 source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 
-outFolder <- file.path("SAMEFAMINSAMETAD_HICDS")
+outFolder <- file.path("SAMEFAMINSAMETAD_V2_ALLDS_RANDOMMIDPOS")
+# outFolder <- file.path("SAMEFAMINSAMETAD")
 dir.create(outFolder, recursive = TRUE)
 
 all_hicds <- list.files("PIPELINE/OUTPUT_FOLDER")
 # all_hicds=all_hicds[1]
 # all_hicds=all_hicds[2:length(all_hicds)]
-all_hicds <- all_hicds[!grepl("RANDOM", all_hicds) & !grepl("PERMUT", all_hicds)]
-# all_exprds <- sapply(all_hicds, function(x) list.files(file.path(pipFolder, x)))
+# all_hicds <- all_hicds[!grepl("RANDOM", all_hicds) & !grepl("PERMUT", all_hicds)]
+all_hicds <- all_hicds[grepl("RANDOMMIDPOS_", all_hicds)]
+all_exprds <- sapply(all_hicds, function(x) list.files(file.path(pipFolder, x)))
 
 
-# all_ds <- unlist(sapply(all_hicds, function(x) file.path(x, list.files(file.path(pipFolder, x)))), use.names = FALSE)
+all_ds <- unlist(sapply(all_hicds, function(x) file.path(x, list.files(file.path(pipFolder, x)))), use.names = FALSE)
 
-# hicds = "Barutcu_MCF-10A_40kb"
-# exprds = "TCGAbrca_lum_bas"
+hicds = "Barutcu_MCF-10A_40kb"
+exprds = "TCGAbrca_lum_bas"
 # all_hicds=all_hicds[1]
 # all_hicds=all_hicds[2:length(all_hicds)]
 
-buildData <- FALSE
+buildData <- TRUE
+
+ds=all_ds[1]
+
 logOffset <- 0.01
 
 # all_ds=all_ds[1]
@@ -61,19 +70,25 @@ hgnc_geneFamilyDT$entrezID <- as.character(hgnc_geneFamilyDT$entrezID)
 hgnc_geneFamilyDT$family_short <- unlist(sapply(hgnc_geneFamilyDT$family, function(x) strsplit(x, "\\|")[[1]][1] ))
 # any(duplicated(hgnc_geneFamilyDT$entrezID))
 
-aggFunc <- "mean"
 
-# ds=all_ds[1]
-
-# all_ds=all_ds[1]
+all_ds=all_ds[1]
 
 if(buildData) {
   
   
-  all_ds_results <- foreach(hicds = all_hicds) %do%{
+  all_ds_results <- foreach(ds = all_ds) %dopar%{
+    
+    hicds <- dirname(ds)
+    exprds <- basename(ds)
+    cat(paste0("... start: ", hicds," - ", exprds,  "\n"))
     
     
-    cat(paste0("... start: ", hicds,"\n"))
+    outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_", "all_fam_results.Rdata"))
+    if(file.exists(outFile)) {
+      all_fam_results <- get(load(outFile))
+      return(all_fam_results)
+    } 
+    
     
     
     #       ### => CHANGED FOR THE TISSUE DATA TO USE TISSUE SPECIFIC FAMILY FILES !!!
@@ -127,7 +142,7 @@ if(buildData) {
       
       fam <- all_fams[i_fam]
       
-      cat(paste0("... ", hicds, " - start fam: ", i_fam, "/", length(all_fams), "\n"))
+      cat(paste0("... ", hicds, " - ", exprds, " - start fam: ", i_fam, "/", length(all_fams), "\n"))
       
       fam_dt <- sameFamSameTAD_dt[sameFamSameTAD_dt$family == fam,]
       
@@ -202,11 +217,11 @@ if(buildData) {
       )
     } # end families
     names(all_fam_results) <- all_fams
-    outFile <- file.path(outFolder, paste0(hicds, "_", "all_fam_results.Rdata"))
+    outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_", "all_fam_results.Rdata"))
     save(all_fam_results, file=outFile, version=2)
     all_fam_results
   } # end datasets
-  names(all_ds_results) <- all_hicds
+  names(all_ds_results) <- all_ds
   
   outFile <- file.path(outFolder, "all_ds_results.Rdata")
   save(all_ds_results, file=outFile, version=2)
@@ -216,6 +231,23 @@ if(buildData) {
   all_ds_results <- get(load(outFile))
 }
     
+# all_ds_results = get(load("SAMEFAMINSAMETAD/all_ds_results.Rdata"))
+
+# lg1_1 = all_ds_results[["LG1_40kb/TCGAluad_mutKRAS_mutEGFR"]]
+# lg1_2 = all_ds_results[["LG1_40kb/TCGAluad_norm_luad"]]
+# lg1_1_genes <- lapply(lg1_1, function(x) x[["nbrGenes"]])
+# lg1_2_genes <- lapply(lg1_2, function(x) x[["nbrGenes"]])
+# all.equal(lg1_1_genes,lg1_2_genes)
+# # TRUE
+# all.equal(lg1_1[["nbrEdges"]], lg1_2[["nbrEdges"]])
+# # TRUE
+# all.equal(lg1_1[["nbrComponents"]], lg1_2[["nbrComponents"]])
+# # TRUE
+
+# singletons == TADs with regionOcc=1
+# dt1 = all_ds_results[["Barutcu_MCF-10A_40kb/TCGAbrca_lum_bas"]][["Tubulins"]]
+# dt2 = all_ds_results2[["Barutcu_MCF-10A_40kb"]][["Tubulins"]]
+# sum(dt2[["regionOcc"]] == 1) == dt1[["nbrSingletons"]]
 
 all_obs_nbrEdges <- unlist(lapply(all_ds_results, function(subl) lapply(subl, function(x) x[["nbrEdges"]])))
 all_obs_nbrCpts <- unlist(lapply(all_ds_results, function(subl) lapply(subl, function(x) x[["nbrComponents"]])))
@@ -252,7 +284,7 @@ length(all_random_nbrCpts)
 sum(all_random_nbrCpts == 0)
 
 source("../Cancer_HiC_data_TAD_DA/utils_plot_fcts.R")
-
+    
 ### ITERATE TO DO THE SAME FOR EACH OF THE VARIABLE!!!
 
 plotCex <- 1.2
@@ -263,69 +295,69 @@ curr_var=all_vars[1]
 for(curr_var in all_vars) {
   
   
-  # aggregate by family
-  nbr_obs_dt <- data.frame(family_lab=names(eval(parse(text=paste0("all_obs_nbr", curr_var)))), 
-                           nbr=as.numeric(eval(parse(text=paste0("all_obs_nbr", curr_var)))), stringsAsFactors = FALSE)
-  nbr_obs_dt$family <- gsub(".+?\\.(.+)", "\\1", nbr_obs_dt$family_lab)  ### CORRECT HERE THERE DOTS IN THE FAMILY NAMES SHOULD USE INTERROGATION MARK 25.09.2020
-  ### !!!! ADDED 25.09 IMPORTANT CHECK
-  stopifnot(nbr_obs_dt$family %in% hgnc_geneFamilyDT$family_short)
-  
-  stopifnot(nbr_obs_dt$family != "")
-  stopifnot(!is.na(nbr_obs_dt$family))
-  
-  nbr_rd_dt <- data.frame(family_lab=names(eval(parse(text=paste0("all_random_nbr", curr_var)))), 
-                          nbr=as.numeric(eval(parse(text=paste0("all_random_nbr", curr_var)))), 
-                          stringsAsFactors = FALSE)
-  nbr_rd_dt$family <- gsub(".+?\\.(.+)\\.result.+", "\\1", nbr_rd_dt$family_lab)  ### CORRECT HERE THERE DOTS IN THE FAMILY NAMES SHOULD USE INTERROGATION MARK 25.09.2020
-  stopifnot(nbr_rd_dt$family != "")
-  stopifnot(!is.na(nbr_rd_dt$family))
-  ### !!!! ADDED 25.09 IMPORTANT CHECK
-  stopifnot(nbr_rd_dt$family %in% hgnc_geneFamilyDT$family_short)
-  
-  stopifnot(setequal(nbr_obs_dt$family, nbr_rd_dt$family))
-  
-  
-  agg_obs_dt <- aggregate(nbr~family, data=nbr_obs_dt, FUN=aggFunc)
-  agg_rd_dt <- aggregate(nbr~family, data=nbr_rd_dt, FUN=aggFunc)
-  
-  plot_dt <- merge(agg_obs_dt, agg_rd_dt, by="family", all=T, suffixes=c("_obs", "_rd"))
-  stopifnot(!is.na(plot_dt))
-  
-  plotTit <- paste0("# of ", curr_var, " by family")
-  subTit <- paste0("aggreg. func = ", aggFunc, "; # families = ", length(unique(plot_dt$family)))
-  
-  plot_dt$nbr_obs_log10 <- log10(plot_dt$nbr_obs + logOffset)
-  plot_dt$nbr_rd_log10 <- log10(plot_dt$nbr_rd + logOffset)
-  
-  my_x <- plot_dt$nbr_obs_log10
-  my_y <- plot_dt$nbr_rd_log10
-  
-  outFile <- file.path(outFolder,  paste0("allDS_nbr", curr_var, "_byFam_scatterplot_", gsub("\\.", "", logOffset), ".", plotType))
-  do.call(plotType, list(outFile, height=myHeight, width=myHeight))
-  plot(x=my_x,y=my_y, main=plotTit, 
-       pch=16, cex=0.7,
-       cex.axis=plotCex,
-       cex.lab=plotCex,
-       cex.main=plotCex,
-       xlab=paste0("# ", curr_var, " obs. [log10(+", logOffset, ")]"), 
-       ylab=paste0("# ", curr_var, " rd. [log10(+", logOffset, ")]"))
-  curve(1*x, col="grey", add=TRUE)
-  addCorr(x=my_x, y=my_y, legPos="topleft", bty="n")
-  mtext(side=3, text = subTit, font=3)
-  foo <- dev.off()
-  cat(paste0("... written: ", outFile,  "\n"))
-  
-  
+          # aggregate by family
+          nbr_obs_dt <- data.frame(family_lab=names(eval(parse(text=paste0("all_obs_nbr", curr_var)))), 
+                                        nbr=as.numeric(eval(parse(text=paste0("all_obs_nbr", curr_var)))), stringsAsFactors = FALSE)
+          nbr_obs_dt$family <- gsub(".+/.+?\\.(.+)", "\\1", nbr_obs_dt$family_lab)  ### CORRECT HERE THERE DOTS IN THE FAMILY NAMES SHOULD USE INTERROGATION MARK 25.09.2020
+          ### !!!! ADDED 25.09 IMPORTANT CHECK
+          stopifnot(nbr_obs_dt$family %in% hgnc_geneFamilyDT$family_short)
+          
+          stopifnot(nbr_obs_dt$family != "")
+          stopifnot(!is.na(nbr_obs_dt$family))
+          
+          nbr_rd_dt <- data.frame(family_lab=names(eval(parse(text=paste0("all_random_nbr", curr_var)))), 
+                                       nbr=as.numeric(eval(parse(text=paste0("all_random_nbr", curr_var)))), 
+                                       stringsAsFactors = FALSE)
+          nbr_rd_dt$family <- gsub(".+/.+?\\.(.+)\\.result.+", "\\1", nbr_rd_dt$family_lab)  ### CORRECT HERE THERE DOTS IN THE FAMILY NAMES SHOULD USE INTERROGATION MARK 25.09.2020
+          stopifnot(nbr_rd_dt$family != "")
+          stopifnot(!is.na(nbr_rd_dt$family))
+          ### !!!! ADDED 25.09 IMPORTANT CHECK
+          stopifnot(nbr_rd_dt$family %in% hgnc_geneFamilyDT$family_short)
+          
+          stopifnot(setequal(nbr_obs_dt$family, nbr_rd_dt$family))
+          
+          
+          agg_obs_dt <- aggregate(nbr~family, data=nbr_obs_dt, FUN=aggFunc)
+          agg_rd_dt <- aggregate(nbr~family, data=nbr_rd_dt, FUN=aggFunc)
+          
+          plot_dt <- merge(agg_obs_dt, agg_rd_dt, by="family", all=T, suffixes=c("_obs", "_rd"))
+          stopifnot(!is.na(plot_dt))
+          
+          plotTit <- paste0("# of ", curr_var, " by family")
+          subTit <- paste0("aggreg. func = ", aggFunc, "; # families = ", length(unique(plot_dt$family)))
+          
+          plot_dt$nbr_obs_log10 <- log10(plot_dt$nbr_obs + logOffset)
+          plot_dt$nbr_rd_log10 <- log10(plot_dt$nbr_rd + logOffset)
+          
+          my_x <- plot_dt$nbr_obs_log10
+          my_y <- plot_dt$nbr_rd_log10
+          
+          outFile <- file.path(outFolder,  paste0("allDS_nbr", curr_var, "_byFam_scatterplot_", gsub("\\.", "", logOffset), ".", plotType))
+          do.call(plotType, list(outFile, height=myHeight, width=myHeight))
+          plot(x=my_x,y=my_y, main=plotTit, 
+               pch=16, cex=0.7,
+               cex.axis=plotCex,
+               cex.lab=plotCex,
+               cex.main=plotCex,
+               xlab=paste0("# ", curr_var, " obs. [log10(+", logOffset, ")]"), 
+               ylab=paste0("# ", curr_var, " rd. [log10(+", logOffset, ")]"))
+          curve(1*x, col="grey", add=TRUE)
+          addCorr(x=my_x, y=my_y, legPos="topleft", bty="n")
+          mtext(side=3, text = subTit, font=3)
+          foo <- dev.off()
+          cat(paste0("... written: ", outFile,  "\n"))
+
+
 }
 
 # all_vars <- c("Edges", "Cpts", "Singletons")
 all_vars <- c("Edges")
 curr_var=all_vars[1]
 for(curr_var in all_vars) {
-  
+
   plotTit <- paste0("nbr", curr_var)
   subTit <- paste0("all DS - n =", length(all_ds_results))
-  
+
   
   plot_list <- list(log10(logOffset+eval(parse(text = paste0("all_obs_nbr", curr_var)))),
                     log10(logOffset+eval(parse(text = paste0("all_random_nbr", curr_var)))))
@@ -333,31 +365,31 @@ for(curr_var in all_vars) {
   
   
   names(plot_list) <- c(paste0("all_obs_nbr",curr_var), paste0("all_random_nbr", curr_var) )
-  
+
   outFile <- file.path(outFolder,  paste0("allDS_nbr", curr_var, "_density_", gsub("\\.", "", logOffset), ".", plotType))
   do.call(plotType, list(outFile, height=myHeight, width=myWidth))
   plot_multiDens(
-    plot_list,
+      plot_list,
     plotTit = plotTit, 
     my_xlab = paste0("# ", curr_var, " [log10(+", logOffset, ")]")
   )
   mtext(side=3, text = subTit, font=3)
   foo <- dev.off()
   cat(paste0("... written: ", outFile,  "\n"))
-  
-  
-  
+
+
+
   plotTit <- paste0("nbr", curr_var, "[log10(+", logOffset, ")]")
   subTit <- paste0("all DS - n =", length(all_ds_results))
-  
+
   xlab <- "observed"
   ylab <- paste0("mean permut. (n=", nPermut, ")" )
-  
+
   # outFile <- file.path(outFolder,  paste0("allDS_nbr", curr_var, "_meanPermut_vs_obs_densplot.", "svg"))
   outFile <- file.path(outFolder,  paste0("allDS_nbr", curr_var, "_meanPermut_vs_obs_densplot_", gsub("\\.", "", logOffset), ".", "svg"))
   do.call("svg", list(outFile, height=7, width=7))
   
-  
+
   densplot(x=log10(eval(parse(text=paste0("all_obs_nbr", curr_var))) +logOffset),
            y=log10(eval(parse(text=paste0("all_random_meanNbr", curr_var))) +logOffset),
            xlab= xlab,ylab=ylab, main=plotTit
@@ -366,8 +398,9 @@ for(curr_var in all_vars) {
   curve(1*x, lty=1, col="darkgrey", add = T)
   foo <- dev.off()
   cat(paste0("... written: ", outFile,  "\n"))
-  
-  
+
+
 }
 
 
+          
