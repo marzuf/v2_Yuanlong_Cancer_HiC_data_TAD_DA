@@ -387,7 +387,84 @@ if(buildData) {
   outFile <- file.path(outFolder, "all_ds_results.Rdata")
   all_ds_results <- get(load(outFile))
 }
-    
+all_ds_results <- get(load("SAMEFAMCLUSTERNBRBD/all_ds_results.Rdata"))
+
+
+
+# 1st level 
+nGenes_dt <- lapply(all_ds_results, function(sub1) 
+              lapply(sub1, function(sub2)
+                lapply(sub2, function(sub3)
+                  lapply(sub3, function(x)x[["nGenes"]]))))
+nGenes_dt <- data.frame(unlist(nGenes_dt))
+nGenes_dt$id <- rownames(nGenes_dt)
+colnames(nGenes_dt) <- c("nGenes", "id")
+
+
+obsBD_dt <- lapply(all_ds_results, function(sub1) 
+  lapply(sub1, function(sub2)
+    lapply(sub2, function(sub3)
+      lapply(sub3, function(x)x[["obs_nbrBD"]]))))
+obsBD_dt <- data.frame(unlist(obsBD_dt))
+obsBD_dt$id <- rownames(obsBD_dt)
+colnames(obsBD_dt) <- c("obs_nbrBD", "id")
+
+
+meanrdBD_dt <- lapply(all_ds_results, function(sub1) 
+  lapply(sub1, function(sub2)
+    lapply(sub2, function(sub3)
+      lapply(sub3, function(x)mean(x[["random_nbrBD"]])))))
+meanrdBD_dt <- data.frame(unlist(meanrdBD_dt))
+meanrdBD_dt$id <- rownames(meanrdBD_dt)
+colnames(meanrdBD_dt) <- c("mean_random_nbrBD", "id")
+
+
+merged_dt <- merge(meanrdBD_dt, merge(nGenes_dt, obsBD_dt, by="id", all=TRUE), by="id", all=TRUE)
+
+plot(merged_dt$mean_random_nbrBD~merged_dt$obs_nbrBD)
+curve(1*x, add=T)
+
+count_obs_dt <- data.frame(
+  type="observed",
+  nbrBD= as.character(names(table(merged_dt$obs_nbrBD))),
+  count= as.numeric(table(merged_dt$obs_nbrBD)),
+  ratio= as.numeric(table(merged_dt$obs_nbrBD))/sum(table(merged_dt$obs_nbrBD)),
+  stringsAsFactors = FALSE)
+
+# round for the random !
+rdd_rd_data <- round(merged_dt$mean_random_nbrBD)
+count_rd_dt <- data.frame(
+  type="mean_random",
+  nbrBD= as.character(names(table(rdd_rd_data))),
+  count= as.numeric(table(rdd_rd_data)),
+  ratio= as.numeric(table(rdd_rd_data))/sum(table(rdd_rd_data)),
+  stringsAsFactors = FALSE)
+
+plot_dt <- rbind(count_obs_dt, count_rd_dt)
+
+require(ggpubr)
+require(ggsci)
+plotTit <- ""
+subTit <- ""
+
+ggbarplot(plot_dt, x = "type", y="ratio", 
+          fill = "nbrBD", 
+          xlab="",
+          ylab = "") + 
+  scale_fill_nejm() + 
+  labs(fill="") + 
+  ggtitle(plotTit, subtitle=subTit)+
+  theme(
+    plot.title = element_text(size=16, face = "bold", hjust=0.5),
+    plot.subtitle = element_text(size=14, face = "italic", hjust=0.5)
+  )
+
+outFile <- file.path(outFolder, paste0("nbrUniqueTADsByFam_log10_by_cat_barplot.", plotType))
+ggsave(p1_nbr, filename=outFile, height=myHeight, width=myWidth)
+cat(paste0("... written: ", outFile,  "\n"))
+
+
+
 
 
 ###################################################################### toy data checking contig retrieval
