@@ -4,7 +4,7 @@
 # - contiguty i.e. gene rank based on all genes (not only genes for which I have annotation)
 # - sample genes among all genes, not only those for which I have annotation
 
-# Rscript sameFamInSameTAD_hicds_contig_v2.R
+# Rscript sameFamInSameTAD_hicds_contig_v2.R # RUN POSITRON
 
 # don't add at TADs the end and beginning -> I just loose half TADs, and poor quality data at extremity
 
@@ -26,7 +26,7 @@ corMethod <- "pearson"
 familyData <- "hgnc_family_short"
 
 nRandom <- 100
-nRandom=5
+# nRandom=5
 
 logOffset <- 0.01
 
@@ -83,7 +83,7 @@ hgnc_geneFamilyDT$family_short <- unlist(sapply(hgnc_geneFamilyDT$family, functi
 
 # ds=all_ds[1]
 
-all_hicds=all_hicds[1]
+# all_hicds=all_hicds[1]
 
 if(buildData) {
   
@@ -189,8 +189,8 @@ if(buildData) {
     
     ##>> iterate here over families
     i_fam=1
-    # all_fam_results <- foreach(i_fam = 1:length(all_fams)) %dopar% {
-      all_fam_results <- foreach(i_fam = 1) %dopar% {
+    all_fam_results <- foreach(i_fam = 1:length(all_fams)) %dopar% {
+      # all_fam_results <- foreach(i_fam = 1) %dopar% {
       
       fam <- all_fams[i_fam]
       
@@ -266,8 +266,9 @@ if(buildData) {
         # !!! changed: i need to it chromosome wise because start_pos:start_pos+x could go over chromosomes otherwise
         
         sample_genes <- foreach(chromo = names(true_countChromos), .combine='c') %do% {
-          # v2: change here -> sample from all genes
-           all_chromo_genes <- names(tad_entrezIDchromo)[tad_entrezIDchromo == chromo]
+          # v2: change here 19.10.2020 -> sample from all genes
+          # all_chromo_genes <- names(family_entrezIDchromo)[family_entrezIDchromo == chromo]
+          all_chromo_genes <- names(tad_entrezIDchromo)[tad_entrezIDchromo == chromo]
            
            true_chromo_genes <- true_genes[true_genes %in% all_chromo_genes]
            stopifnot(length(true_chromo_genes) > 0)
@@ -285,7 +286,7 @@ if(buildData) {
            cont_gene_ranks <- diff(true_ranks)
            stopifnot(cont_gene_ranks > 0)
            rle_cont_genes <- rle(cont_gene_ranks)
-           contig_tosample <- rle_cont_genes$lengths[rle_cont_genes$values==1]+1
+           contig_tosample <- rle_cont_genes$lengths[rle_cont_genes$values==1]+1  # this works even if empty : if c() + 1 = numeric(0)
            nbr_notcontig_tosample <- length(true_chromo_genes) - sum(contig_tosample)
            
            

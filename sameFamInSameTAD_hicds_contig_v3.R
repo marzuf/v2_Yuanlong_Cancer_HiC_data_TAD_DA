@@ -1,11 +1,11 @@
 
 
-# Rscript sameFamInSameTAD_hicds_contig_disc_v2.R  # RUN ELECTRON
-
 ### !! v2 version: 
 # - contiguty i.e. gene rank based on all genes (not only genes for which I have annotation)
 # - sample genes among all genes, not only those for which I have annotation
-# - discard if 0.8 of the genes belong to same family  
+# - v3: combine pair of genes at chromo level because for sure from different chromo will never be in same TAD
+
+# Rscript sameFamInSameTAD_hicds_contig_v3.R # RUN POSITRON
 
 # don't add at TADs the end and beginning -> I just loose half TADs, and poor quality data at extremity
 
@@ -29,8 +29,8 @@ familyData <- "hgnc_family_short"
 nRandom <- 100
 # nRandom=5
 
-maxSameFamRatioThresh <- 0.8
-# keep sample if: all(fams_ratio < maxSameFamRatioThresh )
+logOffset <- 0.01
+
 
 plotType <- "svg"
 myHeight <- 5
@@ -51,7 +51,7 @@ stopifnot(is.numeric(gff_dt$true_start))
 gff_dt <- gff_dt[order(gff_dt$chromo, gff_dt$true_start, gff_dt$end),]
 
 
-outFolder <- file.path("SAMEFAMINSAMETAD_HICDS_CONTIG_DISC_V2")
+outFolder <- file.path("SAMEFAMINSAMETAD_HICDS_CONTIG_V3")
 dir.create(outFolder, recursive = TRUE)
 
 all_hicds <- list.files("PIPELINE/OUTPUT_FOLDER")
@@ -71,7 +71,6 @@ all_hicds <- all_hicds[!grepl("RANDOM", all_hicds) & !grepl("PERMUT", all_hicds)
 buildData <- TRUE
 
 aggFunc <- "mean"
-logOffset <- 0.01
 
 ### FOR CHECK !!!
 setDir <- "/media/electron"
@@ -98,11 +97,10 @@ if(buildData) {
     
     #       ### => CHANGED FOR THE TISSUE DATA TO USE TISSUE SPECIFIC FAMILY FILES !!!
     #       # inFoldFamily <- file.path(setDir, paste0("/mnt/ed4/marie/scripts/TAD_DE_pipeline_v2_", caller, "/", "PREP_GENE_FAMILIES_TAD_DATA"))
-    inFoldFamily <- file.path("PREP_GENE_FAMILIES_TAD_DATA", hicds)
-    familyData2 <- "hgnc"
-    familyDT <- eval(parse(text = load(file.path(inFoldFamily, paste0(familyData2, "_entrezID_family_TAD_DT.Rdata")))))
-    familyDT$entrezID <- as.character(familyDT$entrezID)
-    fam2entrezID <- setNames(familyDT[,paste0(familyData)], familyDT$entrezID)
+          inFoldFamily <- file.path("PREP_GENE_FAMILIES_TAD_DATA", hicds)
+          familyData2 <- "hgnc"
+          familyDT <- eval(parse(text = load(file.path(inFoldFamily, paste0(familyData2, "_entrezID_family_TAD_DT.Rdata")))))
+          familyDT$entrezID <- as.character(familyDT$entrezID)
     
     g2t_dt_file <- file.path(runFolder, hicds, "genes2tad", "all_genes_positions.txt")
     g2t_dt <- read.delim(g2t_dt_file, stringsAsFactors = FALSE, header=FALSE, col.names=c("entrezID", "chromo", "start", "end", "region"))
@@ -115,10 +113,10 @@ if(buildData) {
     stopifnot(tad_entrezID %in% names(entrezIDchromo))
     tad_entrezIDchromo <- entrezIDchromo[names(entrezIDchromo) %in% tad_entrezID] # used for the sampling
     
+    
     sameTADfile <- file.path("CREATE_SAME_TAD_SORTNODUP", hicds, "all_TAD_pairs.Rdata")
     stopifnot(file.exists(sameTADfile))
     sameTAD_dt <- get(load(sameTADfile))
-    
     
     #stopifnot(tad_entrezID %in% sameTAD_dt$gene1 | tad_entrezID %in% sameTAD_dt$gene2 )
     # => will not be true for genes from TAD that contain only 1 gene
@@ -128,7 +126,6 @@ if(buildData) {
                 tad_entrezID[tad_entrezID %in% big_tad_g2t_dt$entrezID] %in% sameTAD_dt$gene2 )
     
     
-    
     # ADDED 08.01.19 to accommodate updated family file
     sameFamFolder <- file.path("CREATE_SAME_FAMILY_SORTNODUP", hicds)
     # checking the file comes after (iterating over family and family_short)
@@ -136,7 +133,6 @@ if(buildData) {
     sameFamFile <- file.path(sameFamFolder, paste0(familyData, "_all_family_pairs.Rdata")) # at least this one should exist !
     stopifnot(file.exists(sameFamFile))
     sameFam_dt <- get(load(sameFamFile))
-    
     
     stopifnot(sameTAD_dt$gene1 <= sameTAD_dt$gene2)
     stopifnot(sameFam_dt$gene1 <= sameFam_dt$gene2)
@@ -150,13 +146,11 @@ if(buildData) {
     
     sameFamSameTAD_dt <- merge(sameFam_dt, sameTAD_dt, all.x=TRUE, all.y=FALSE, by=c("gene1", "gene2"))
     
-    
     all_genes <- familyDT$entrezID
     stopifnot(all_genes %in% names(entrezIDchromo))
     family_entrezIDchromo <- entrezIDchromo[names(entrezIDchromo) %in% all_genes] # used for the sampling - not in V2 !!!
     stopifnot(names(family_entrezIDchromo) %in% tad_g2t_dt$entrezID)
     rm("family_entrezIDchromo") # not used in v2 !!!
-    
     
     all_fams <- unique(sameFamSameTAD_dt$family)
     # all_fams=all_fams[1:5]
@@ -167,8 +161,8 @@ if(buildData) {
     stopifnot(tad_entrezID %in% gff_dt$entrezID)
     hicds_gff_dt <- gff_dt[gff_dt$entrezID %in% tad_entrezID,]
     hicds_gff_dt <- hicds_gff_dt[order(hicds_gff_dt$chromo, hicds_gff_dt$true_start, hicds_gff_dt$end),]
-    
-    
+
+      
     # to avoid iterating over chromo -> when switching chromo, add a step of 2
     hicds_gff_dt$chromo <- as.character(hicds_gff_dt$chromo)
     
@@ -272,125 +266,105 @@ if(buildData) {
         # V2: SAMPLE CONTIGUOUS - FOR THE MOMENT, NOT CHROMOSOME-WISE
         # !!! changed: i need to it chromosome wise because start_pos:start_pos+x could go over chromosomes otherwise
         
-        sample_genes <- foreach(chromo = names(true_countChromos), .combine='c') %do% {
+        # sample_genes <- foreach(chromo = names(true_countChromos), .combine='c') %do% {
+          # v3 update here -> combn inside chromo because for sure if different chromo -> different region -> then it is a rbind
+        all_chr_sample_dt <- foreach(chromo = names(true_countChromos), .combine='rbind') %do% {  
           
           # v2: change here 19.10.2020 -> sample from all genes
           # all_chromo_genes <- names(family_entrezIDchromo)[family_entrezIDchromo == chromo]
           all_chromo_genes <- names(tad_entrezIDchromo)[tad_entrezIDchromo == chromo]
-          
-          true_chromo_genes <- true_genes[true_genes %in% all_chromo_genes]
-          stopifnot(length(true_chromo_genes) > 0)
-          stopifnot(all_chromo_genes %in% names(entrezID_geneRanks))
-          stopifnot(true_chromo_genes %in% names(entrezID_geneRanks))
-          
-          # bag in which I sample:
-          chromo_entrezID_geneRanks <- entrezID_geneRanks[names(entrezID_geneRanks) %in% all_chromo_genes]
-          
-          
-          
-          true_ranks <- sort(chromo_entrezID_geneRanks[true_chromo_genes])
-          stopifnot(length(true_ranks) == length(true_chromo_genes))
-          names(true_ranks) <- NULL
-          cont_gene_ranks <- diff(true_ranks)
-          stopifnot(cont_gene_ranks > 0)
-          rle_cont_genes <- rle(cont_gene_ranks)
-          contig_tosample <- rle_cont_genes$lengths[rle_cont_genes$values==1]+1
-          nbr_notcontig_tosample <- length(true_chromo_genes) - sum(contig_tosample)
-          
-          
-          # contig_sampled <- unlist( sapply(contig_tosample, function(x) {
-          #   # sample the start index
-          #   start_pos <- sample(x = 1:(length(chromo_entrezID_geneRanks)-x), size = 1)
-          #   samp_genes <- names(chromo_entrezID_geneRanks)[start_pos:(start_pos+x-1)]
-          #   stopifnot(!is.na(samp_genes))
-          #   samp_genes
-          # }))
-          # I CANNOT ENSURE IT BECAUSE THE WAY I CONSTRUCT
-          # CONTIG SAMPLED I DO NOT ENSURE
-          # stopifnot(!duplicated(sample_genes))
-          # => need a for-loop because I should ensure not duplicated !!!
-          if(length(contig_tosample) == 0) {
-            contig_sampled <- c()
-          } else {
-            tmp_entrezID_geneRanks <- chromo_entrezID_geneRanks
-            contig_sampled <- list()
-            for(k in 1:length(contig_tosample)) {
-              nToSamp <- contig_tosample[k]
-              stopifnot(length(tmp_entrezID_geneRanks) >= nToSamp)
-              # for a vector of 3, if nSamp=2, maxIdx=2 (3-2+1)
-              # for a vector of 5, if nSamp=3, maxIdx=3 (5-3+1)
-              check_inf <- 0
-              while(TRUE) {
-                start_pos <- sample(x = 1:(length(tmp_entrezID_geneRanks)-nToSamp+1), size = 1)
-                # if startIdx=2, if nSamp=2, sample 2:(2+2-1)
-                samp_genes <- names(tmp_entrezID_geneRanks)[start_pos:(start_pos+nToSamp-1)]
-                stopifnot(!is.na(samp_genes))
-                ### for _disc -> discard if same family added 18.10.2020
-                # stopifnot(samp_genes %in% names(fam2entrezID)) # v2 not true since sample from all genes
-                # v2: 19.10.20
-                stopifnot(samp_genes %in% names(tad_entrezIDchromo))
-                stopifnot(samp_genes %in% tad_entrezID)
-                # samp_fams <- as.character(fam2entrezID[samp_genes])  # v2 not possible since sample from all genes
-                samp_fams <- fam2entrezID[names(fam2entrezID) %in% samp_genes]
-                save(samp_genes, file="samp_genes.Rdata", version=2)
-                save(samp_fams, file="samp_fams.Rdata", version=2)
-                # v2: no family with > 80% of the genes
-                fams_ratio <- as.numeric(table(samp_fams))/length(samp_genes) # and not length samp_fams since sample from ALL genes
-                # NB: it never happens that length(samp_genes) == 1
-                # otherwise not contiguous ;) ; checked in LOOK_SAMEFAM_CONTIG - stopifnot added 19.10
-                stopifnot(length(samp_genes) > 1)
-                # if(length(samp_genes) == 1 | length(unique(samp_fams)) > 1) {
-                # changed for v2
-                if(length(samp_genes) == 1 | all(fams_ratio < maxSameFamRatioThresh )) {  
-                  tmp_entrezID_geneRanks <- tmp_entrezID_geneRanks[! names(tmp_entrezID_geneRanks) %in% samp_genes]
-                  contig_sampled[[k]] <- samp_genes
-                  break
-                }
-                check_inf <- check_inf+1
-                stopifnot(check_inf < 100)
-              }
-            }
-            stopifnot(!unlist(lapply(contig_sampled, is.null)))
-            contig_sampled <- unlist(contig_sampled)
-            stopifnot(!duplicated(contig_sampled))
-            stopifnot(length(tmp_entrezID_geneRanks) == length(chromo_entrezID_geneRanks) - sum(contig_tosample))
-            stopifnot(length(contig_sampled) == sum(contig_tosample))
-            stopifnot(contig_sampled %in% names(chromo_entrezID_geneRanks))
-            
-          }
-          if(nbr_notcontig_tosample > 0) {
-            stopifnot(length(contig_sampled) == sum(contig_tosample))
-            notcontig_sampled <- sample(
-              x = names(chromo_entrezID_geneRanks)[!names(chromo_entrezID_geneRanks) %in% contig_sampled], # DISCARD THOSE ALREADY SAMPLED
-              size = nbr_notcontig_tosample
-            )
-            stopifnot(length(notcontig_sampled) == nbr_notcontig_tosample)
-            stopifnot(!duplicated(notcontig_sampled))
-            
-          } else {
-            notcontig_sampled <- c()
-          }
-          chromo_sample_genes <- c(contig_sampled, notcontig_sampled)
-          stopifnot(!duplicated(chromo_sample_genes))
-          stopifnot(chromo_sample_genes %in% names(chromo_entrezID_geneRanks))
-          stopifnot(chromo_sample_genes %in% all_chromo_genes)
-          chromo_sample_genes
+           
+           true_chromo_genes <- true_genes[true_genes %in% all_chromo_genes]
+           stopifnot(length(true_chromo_genes) > 0)
+           stopifnot(all_chromo_genes %in% names(entrezID_geneRanks))
+           stopifnot(true_chromo_genes %in% names(entrezID_geneRanks))
+           
+           # bag in which I sample:
+           chromo_entrezID_geneRanks <- entrezID_geneRanks[names(entrezID_geneRanks) %in% all_chromo_genes]
+           
+           
+           
+           true_ranks <- sort(chromo_entrezID_geneRanks[true_chromo_genes])
+           stopifnot(length(true_ranks) == length(true_chromo_genes))
+           names(true_ranks) <- NULL
+           cont_gene_ranks <- diff(true_ranks)
+           stopifnot(cont_gene_ranks > 0)
+           rle_cont_genes <- rle(cont_gene_ranks)
+           contig_tosample <- rle_cont_genes$lengths[rle_cont_genes$values==1]+1  # this works even if empty : if c() + 1 = numeric(0)
+           nbr_notcontig_tosample <- length(true_chromo_genes) - sum(contig_tosample)
+           
+           
+           # contig_sampled <- unlist( sapply(contig_tosample, function(x) {
+           #   # sample the start index
+           #   start_pos <- sample(x = 1:(length(chromo_entrezID_geneRanks)-x), size = 1)
+           #   samp_genes <- names(chromo_entrezID_geneRanks)[start_pos:(start_pos+x-1)]
+           #   stopifnot(!is.na(samp_genes))
+           #   samp_genes
+           # }))
+           # I CANNOT ENSURE IT BECAUSE THE WAY I CONSTRUCT
+           # CONTIG SAMPLED I DO NOT ENSURE
+           # stopifnot(!duplicated(sample_genes))
+           # => need a for-loop because I should ensure not duplicated !!!
+           if(length(contig_tosample) == 0) {
+             contig_sampled <- c()
+           } else {
+             tmp_entrezID_geneRanks <- chromo_entrezID_geneRanks
+             contig_sampled <- list()
+             for(k in 1:length(contig_tosample)) {
+               nToSamp <- contig_tosample[k]
+               stopifnot(length(tmp_entrezID_geneRanks) >= nToSamp)
+               # for a vector of 3, if nSamp=2, maxIdx=2 (3-2+1)
+               # for a vector of 5, if nSamp=3, maxIdx=3 (5-3+1)
+               start_pos <- sample(x = 1:(length(tmp_entrezID_geneRanks)-nToSamp+1), size = 1)
+               # if startIdx=2, if nSamp=2, sample 2:(2+2-1)
+               samp_genes <- names(tmp_entrezID_geneRanks)[start_pos:(start_pos+nToSamp-1)]
+               stopifnot(!is.na(samp_genes))
+               tmp_entrezID_geneRanks <- tmp_entrezID_geneRanks[! names(tmp_entrezID_geneRanks) %in% samp_genes]
+               contig_sampled[[k]] <- samp_genes
+             }
+             contig_sampled <- unlist(contig_sampled)
+             stopifnot(!duplicated(contig_sampled))
+             stopifnot(length(tmp_entrezID_geneRanks) == length(chromo_entrezID_geneRanks) - sum(contig_tosample))
+             stopifnot(length(contig_sampled) == sum(contig_tosample))
+             stopifnot(contig_sampled %in% names(chromo_entrezID_geneRanks))
+             
+           }
+           if(nbr_notcontig_tosample > 0) {
+             stopifnot(length(contig_sampled) == sum(contig_tosample))
+             notcontig_sampled <- sample(
+               x = names(chromo_entrezID_geneRanks)[!names(chromo_entrezID_geneRanks) %in% contig_sampled], # DISCARD THOSE ALREADY SAMPLED
+               size = nbr_notcontig_tosample
+             )
+             stopifnot(length(notcontig_sampled) == nbr_notcontig_tosample)
+             stopifnot(!duplicated(notcontig_sampled))
+             
+           } else {
+             notcontig_sampled <- c()
+           }
+           chromo_sample_genes <- c(contig_sampled, notcontig_sampled)
+           stopifnot(!duplicated(chromo_sample_genes))
+           stopifnot(chromo_sample_genes %in% names(chromo_entrezID_geneRanks))
+           stopifnot(chromo_sample_genes %in% all_chromo_genes)
+           chromo_sample_genes
+           
+           # v3 update here -> combn inside chromo because for sure if different chromo -> different region
+           stopifnot(length(sample_genes) == length(true_genes))
+           
+           sample_dt <- as.data.frame(t(combn(x=sample_genes, m = 2)))
+           colnames(sample_dt) <- c("gene1_tmp", "gene2_tmp")
+           
+           sample_dt$gene1_tmp <- as.character(sample_dt$gene1_tmp)
+           sample_dt$gene2_tmp <- as.character(sample_dt$gene2_tmp)
+           sample_dt$gene1 <-as.character(pmin(sample_dt$gene1_tmp, sample_dt$gene2_tmp))
+           sample_dt$gene2 <-as.character(pmax(sample_dt$gene1_tmp, sample_dt$gene2_tmp))
+           stopifnot(sample_dt$gene1 == sample_dt$gene1_tmp | sample_dt$gene1 == sample_dt$gene2_tmp)
+           stopifnot(sample_dt$gene2 == sample_dt$gene1_tmp | sample_dt$gene2 == sample_dt$gene2_tmp)
+           sample_dt$gene1_tmp <- sample_dt$gene2_tmp <- NULL
+           stopifnot(sample_dt$gene1 < sample_dt$gene2)
+           
         }
         
-        # NB 19.10 => would be faster to do the combn inside chromo because they will never be in same TAD if from different chromo...
-        
-        stopifnot(length(sample_genes) == length(true_genes))
-        
-        sample_dt <- as.data.frame(t(combn(x=sample_genes, m = 2)))
-        colnames(sample_dt) <- c("gene1_tmp", "gene2_tmp")
-        
-        sample_dt$gene1_tmp <- as.character(sample_dt$gene1_tmp)
-        sample_dt$gene2_tmp <- as.character(sample_dt$gene2_tmp)
-        sample_dt$gene1 <-as.character(pmin(sample_dt$gene1_tmp, sample_dt$gene2_tmp))
-        sample_dt$gene2 <-as.character(pmax(sample_dt$gene1_tmp, sample_dt$gene2_tmp))
-        stopifnot(sample_dt$gene1 == sample_dt$gene1_tmp | sample_dt$gene1 == sample_dt$gene2_tmp)
-        stopifnot(sample_dt$gene2 == sample_dt$gene1_tmp | sample_dt$gene2 == sample_dt$gene2_tmp)
-        sample_dt$gene1_tmp <- sample_dt$gene2_tmp <- NULL
+        sample_dt <- all_chr_sample_dt
         
         random_sameTAD_fam_dt <- merge(sample_dt, sameTAD_dt, all.x=T, all.y=F, by=c("gene1", "gene2"))
         random_sameTAD_fam_dt <- random_sameTAD_fam_dt[!is.na(random_sameTAD_fam_dt$region),]
@@ -413,7 +387,7 @@ if(buildData) {
         nbrEdges=nbrEdges,
         nbrComponents=nbrComponents,
         random_results_dt=random_results_dt
-      )
+        )
     } # end families
     names(all_fam_results) <- all_fams
     outFile <- file.path(outFolder, paste0(hicds, "_", "all_fam_results.Rdata"))
@@ -429,7 +403,7 @@ if(buildData) {
   outFile <- file.path(outFolder, "all_ds_results.Rdata")
   all_ds_results <- get(load(outFile))
 }
-
+    
 all_obs_nbrEdges <- unlist(lapply(all_ds_results, function(subl) lapply(subl, function(x) x[["nbrEdges"]])))
 all_obs_nbrCpts <- unlist(lapply(all_ds_results, function(subl) lapply(subl, function(x) x[["nbrComponents"]])))
 all_obs_nbrSingletons <- unlist(lapply(all_ds_results, function(subl) lapply(subl, function(x) x[["nbrSingletons"]])))
@@ -582,4 +556,5 @@ for(curr_var in all_vars) {
   
   
 }
+
 
