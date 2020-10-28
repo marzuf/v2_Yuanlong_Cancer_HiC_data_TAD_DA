@@ -9,6 +9,8 @@
 
 # no need to have exprds
 
+startTime <- Sys.time()
+
 set.seed(20200903) # 
 
 require(doMC)
@@ -16,6 +18,11 @@ require(foreach)
 registerDoMC(40)
 require(reshape2)
 require(igraph)
+
+
+require(ggpubr)
+require(ggsci)
+
 
 runFolder <- "."
 pipFolder <- file.path(runFolder, "PIPELINE", "OUTPUT_FOLDER")
@@ -29,9 +36,12 @@ nRandom <- 100
 
 logOffset <- 0.01
 
-plotType <- "svg"
+plotType <- "png"
+mySizeBase <- 400
 myHeight <- 5
 myWidth <- 7
+
+plotCex <- 1.2
 
 source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 
@@ -67,9 +77,8 @@ all_hicds <- all_hicds[!grepl("RANDOM", all_hicds) & !grepl("PERMUT", all_hicds)
 # all_hicds=all_hicds[1]
 # all_hicds=all_hicds[2:length(all_hicds)]
 
-buildData <- TRUE
+buildData <- FALSE
 
-aggFunc <- "mean"
 
 ### FOR CHECK !!!
 setDir <- "/media/electron"
@@ -257,6 +266,9 @@ if(buildData) {
         all_chromo_genes <- names(tad_entrezIDchromo)[tad_entrezIDchromo == chromo]
         true_chromo_genes <- true_genes[true_genes %in% all_chromo_genes]
         
+        chromo_entrezID_geneRanks <- entrezID_geneRanks[names(entrezID_geneRanks) %in% all_chromo_genes] # BAG IN WHICH I SAMPLE
+        
+        
         ### RETRIEVE THE CONTIGS AND THE GENES THEY SPAN
         true_ranks <- sort(entrezID_geneRanks[true_chromo_genes])
         stopifnot(length(true_ranks) == length(true_chromo_genes))
@@ -338,7 +350,10 @@ if(buildData) {
           
           contig_max_pos <- chromo_size - contig_dist+1 # if size=100, maxPos = 61
           
-          random_nbrBD <- foreach(i = 1:nRandom, .combine='c') %do% {
+          random_nbrBD <- foreach(i = 1:nRandom, .combine='cbind') %do% {
+            
+            
+            ######## 1) RANDOM NBR BD BY TAKING SAME SIZE OF CONTIG DIST
             random_start <- sample(1:contig_max_pos, size=1)
             random_end <- random_start + contig_dist - 1 # if random start 61, random_end = 100
             stopifnot(random_end <=  chromo_size)
@@ -351,10 +366,39 @@ if(buildData) {
                                                               chromo_tadpos_dt$end >= random_end]
             stopifnot(length(random_tad_lastGene) == 1)
             
-            rd_nbrBD <- as.numeric(tad2rank[random_tad_lastGene]) - as.numeric(tad2rank[random_tad_firstGene])
-            stopifnot(is.numeric(rd_nbrBD))
-            stopifnot(rd_nbrBD >= 0)
-            rd_nbrBD
+            rd_dist_nbrBD <- as.numeric(tad2rank[random_tad_lastGene]) - as.numeric(tad2rank[random_tad_firstGene])
+            stopifnot(is.numeric(rd_dist_nbrBD))
+            stopifnot(rd_dist_nbrBD >= 0)
+            
+            
+            ######## 2) RANDOM NBR BD BY TAKING SAME # OF GENES
+            # if 5 genes, 3 to sample, max pos=5-3+1=3; if 7 genes, 2 to sample, maxPos=7-2+1=6
+            random_idx <- sample(1:(length(chromo_entrezID_geneRanks) - nGenes + 1), size=1)
+            rd_gene_first <- names(chromo_entrezID_geneRanks)[random_idx]
+            # if I have nGenes=3, start idx = 10, end idx = start idx + nGenes - 1= 12
+            # if I have nGenes = 5, starrt idx= 22, end idx = start idx + nGenes -1 = 26
+            rd_gene_last <- names(chromo_entrezID_geneRanks)[(random_idx+nGenes-1)]
+            
+            stopifnot(rd_gene_first %in% names(entrezIDstarts))
+            stopifnot(rd_gene_last %in% names(entrezIDstarts))
+            
+            rd_start <- as.numeric(entrezIDstarts[rd_gene_first])
+            rd_end <- as.numeric(entrezIDstarts[rd_gene_last])
+            stopifnot(rd_end >= rd_start)
+            
+            rd_tad_firstGene <- chromo_tadpos_dt$region[chromo_tadpos_dt$start <= rd_start &
+                                                           chromo_tadpos_dt$end >= rd_start]
+            stopifnot(length(rd_tad_firstGene) == 1)
+            
+            rd_tad_lastGene <- chromo_tadpos_dt$region[chromo_tadpos_dt$start <= rd_end &
+                                                          chromo_tadpos_dt$end >= rd_end]
+            stopifnot(length(rd_tad_lastGene) == 1)
+            
+            rd_nbr_nbrBD <- as.numeric(tad2rank[rd_tad_lastGene]) - as.numeric(tad2rank[rd_tad_firstGene])
+            stopifnot(is.numeric(rd_nbr_nbrBD))
+            stopifnot(rd_nbr_nbrBD >= 0)
+            
+            c(rd_dist_nbrBD=rd_dist_nbrBD,rd_nbr_nbrBD=rd_nbr_nbrBD)
           } #end-foreach iterating over number of permutations
 
           list(
@@ -387,9 +431,7 @@ if(buildData) {
   outFile <- file.path(outFolder, "all_ds_results.Rdata")
   all_ds_results <- get(load(outFile))
 }
-all_ds_results <- get(load("SAMEFAMCLUSTERNBRBD/all_ds_results.Rdata"))
-
-
+# all_ds_results <- get(load("SAMEFAMCLUSTERNBRBD/all_ds_results.Rdata"))
 
 # 1st level 
 nGenes_dt <- lapply(all_ds_results, function(sub1) 
@@ -410,61 +452,249 @@ obsBD_dt$id <- rownames(obsBD_dt)
 colnames(obsBD_dt) <- c("obs_nbrBD", "id")
 
 
-meanrdBD_dt <- lapply(all_ds_results, function(sub1) 
+meanrdBDdist_dt <- lapply(all_ds_results, function(sub1) 
   lapply(sub1, function(sub2)
     lapply(sub2, function(sub3)
-      lapply(sub3, function(x)mean(x[["random_nbrBD"]])))))
-meanrdBD_dt <- data.frame(unlist(meanrdBD_dt))
-meanrdBD_dt$id <- rownames(meanrdBD_dt)
-colnames(meanrdBD_dt) <- c("mean_random_nbrBD", "id")
+      lapply(sub3, function(x)mean(x[["random_nbrBD"]]["rd_dist_nbrBD",])))))
+meanrdBDdist_dt <- data.frame(unlist(meanrdBDdist_dt))
+meanrdBDdist_dt$id <- rownames(meanrdBDdist_dt)
+colnames(meanrdBDdist_dt) <- c("mean_random_nbrBDdist", "id")
+
+medianrdBDdist_dt <- lapply(all_ds_results, function(sub1) 
+  lapply(sub1, function(sub2)
+    lapply(sub2, function(sub3)
+      lapply(sub3, function(x)median(x[["random_nbrBD"]]["rd_dist_nbrBD",])))))
+medianrdBDdist_dt <- data.frame(unlist(medianrdBDdist_dt))
+medianrdBDdist_dt$id <- rownames(medianrdBDdist_dt)
+colnames(medianrdBDdist_dt) <- c("median_random_nbrBDdist", "id")
+
+meanrdBDnbr_dt <- lapply(all_ds_results, function(sub1) 
+  lapply(sub1, function(sub2)
+    lapply(sub2, function(sub3)
+      lapply(sub3, function(x)mean(x[["random_nbrBD"]]["rd_nbr_nbrBD",])))))
+meanrdBDnbr_dt <- data.frame(unlist(meanrdBDnbr_dt))
+meanrdBDnbr_dt$id <- rownames(meanrdBDnbr_dt)
+colnames(meanrdBDnbr_dt) <- c("mean_random_nbrBDnbr", "id")
+
+medianrdBDnbr_dt <- lapply(all_ds_results, function(sub1) 
+  lapply(sub1, function(sub2)
+    lapply(sub2, function(sub3)
+      lapply(sub3, function(x)median(x[["random_nbrBD"]]["rd_nbr_nbrBD",])))))
+medianrdBDnbr_dt <- data.frame(unlist(medianrdBDnbr_dt))
+medianrdBDnbr_dt$id <- rownames(medianrdBDnbr_dt)
+colnames(medianrdBDnbr_dt) <- c("median_random_nbrBDnbr", "id")
+
+merged_dt <- merge(meanrdBDnbr_dt, 
+                   merge(medianrdBDnbr_dt, 
+                   merge(meanrdBDdist_dt, 
+                         merge(medianrdBDdist_dt,
+                         merge(nGenes_dt, obsBD_dt, by="id", all=TRUE), by="id", all=TRUE), by="id", all=TRUE), by="id", all=TRUE), by="id", all=TRUE)
+
+all_rds <- c("dist", "nbr")
+all_aggs <- c("mean", "median")
+rd_type = all_rds[1]
+agg_type = all_aggs[1]
+for(rd_type in all_rds) {
+  for(agg_type in all_aggs){
+    
+    cat(paste0("... ", rd_type, " - ", agg_type, "\n"))
+    
+    my_x <- merged_dt$obs_nbrBD
+    my_y <- merged_dt[,paste0(agg_type, "_random_nbrBD", rd_type)]
+    
+    my_xlab <- "observed # of boundaries"
+    my_ylab <- paste0(agg_type, " random # of boundaries (sampling based on: ", rd_type, ")")
+    
+    outFile <- file.path(outFolder, paste0("obs_vs_rd_", rd_type, "_", agg_type, "_nbrBD_scatterplot.", plotType))
+    do.call(plotType, list(outFile,height=mySizeBase, width=mySizeBase))
+    
+    plotTit <- "rd vs. obs # of boundaries within a family cluster"
+    subTit <- paste0("(rd based on ", rd_type, " - ",agg_type, " of ", nRandom, " permuts)")
+    
+    plot(my_y~my_x,
+         main=plotTit,
+         cex.lab =plotCex,
+         cex.axis=plotCex,
+         cex.main = plotCex,
+         xlab=my_xlab,
+         ylab=my_ylab,
+         pch=16,
+         cex =0.7
+         )
+    mtext(side=3, text=subTit)
+    curve(1*x, add=T, lty=1, col="darkgrey")
+    
+    foo <- dev.off()
+    cat(paste0("... written: ", outFile, "\n"))
+    
+    
+    count_obs_dt <- data.frame(
+      type="observed",
+      nbrBD= as.numeric(as.character(names(table(merged_dt$obs_nbrBD)))),
+      count= as.numeric(table(merged_dt$obs_nbrBD)),
+      ratio= as.numeric(table(merged_dt$obs_nbrBD))/sum(table(merged_dt$obs_nbrBD)),
+      stringsAsFactors = FALSE)
+    
+    stopifnot(sum(count_obs_dt$ratio) == 1) 
+    
+    # round for the random !
+    rdd_rd_data <- round(merged_dt[,paste0(agg_type, "_random_nbrBD", rd_type)])
+    count_rd_dt <- data.frame(
+      type=paste0(agg_type,"_random_", rd_type),
+      nbrBD= as.numeric(as.character(names(table(rdd_rd_data)))),
+      count= as.numeric(table(rdd_rd_data)),
+      ratio= as.numeric(table(rdd_rd_data))/sum(table(rdd_rd_data)),
+      stringsAsFactors = FALSE)
+    stopifnot(sum(count_rd_dt$ratio) == 1)
+    
+    plot_dt <- rbind(count_obs_dt, count_rd_dt)
+    
+    
+    if(rd_type=="dist") {
+      # level_classes <- c("<=1", 
+      #                      ">1 & <=3",
+      #                      ">3 & <=5",
+      #                      ">5 & <=10",
+      #                      ">10")
+      # plot_dt$nbrBD_class <- ifelse(plot_dt$nbrBD == 0 | plot_dt$nbrBD == 1 , "<=1",
+      #                                   ifelse(plot_dt$nbrBD > 1 & plot_dt$nbrBD <= 3 , ">1 & <=3",
+      #                                          ifelse(plot_dt$nbrBD > 3 & plot_dt$nbrBD <= 5 , ">3 & <=5",
+      #                                                 ifelse(plot_dt$nbrBD > 5 & plot_dt$nbrBD <= 10 , ">5 & <=10",
+      #                                                        ifelse(plot_dt$nbrBD > 10 , ">10", NA)))))
+      
+      level_classes <- c("0", "1", 
+                         ">1 & <=3",
+                         ">3 & <=5",
+                         ">5 & <=10",
+                         ">10")
+      plot_dt$nbrBD_class <- ifelse(plot_dt$nbrBD == 0 , "0",
+                                    ifelse(plot_dt$nbrBD == 1 , "1",
+                                    ifelse(plot_dt$nbrBD > 1 & plot_dt$nbrBD <= 3 , ">1 & <=3",
+                                           ifelse(plot_dt$nbrBD > 3 & plot_dt$nbrBD <= 5 , ">3 & <=5",
+                                                  ifelse(plot_dt$nbrBD > 5 & plot_dt$nbrBD <= 10 , ">5 & <=10",
+                                                         ifelse(plot_dt$nbrBD > 10 , ">10", NA))))))
+      
+      
+      
+      stopifnot(!is.na(plot_dt$nbrBD_class))
+    }else if(rd_type=="nbr") {
+      # level_classes <- c("<=1",
+      #                     ">1 & <=5",
+      #                     ">5 & <=10",
+      #                     ">10 & <=15",
+      #                     ">15 & <=20",
+      #                     ">20"
+      # )
+      # plot_dt$nbrBD_class <- ifelse(plot_dt$nbrBD == 0 | plot_dt$nbrBD == 1 , "<=1",
+      #                                   ifelse(plot_dt$nbrBD > 1 & plot_dt$nbrBD <= 5 , ">1 & <=5",
+      #                                          ifelse(plot_dt$nbrBD > 5 & plot_dt$nbrBD <= 10 , ">5 & <=10",
+      #                                                 ifelse(plot_dt$nbrBD > 10 & plot_dt$nbrBD <= 15 , ">10 & <=15",
+      #                                                        ifelse(plot_dt$nbrBD > 15 & plot_dt$nbrBD <= 20 , ">15 & <=20",
+      #                                                               ifelse(plot_dt$nbrBD > 20 , ">20", NA))))))
+      
+      
+      level_classes <- c("0",
+                        "1",
+                         ">1 & <=3",
+                         ">3 & <=5",
+                         ">5 & <=10",
+                         ">10"
+      )
+      plot_dt$nbrBD_class <- ifelse(plot_dt$nbrBD == 0 , "0",
+                                    ifelse(plot_dt$nbrBD == 1 , "1",
+                                    ifelse(plot_dt$nbrBD > 1 & plot_dt$nbrBD <= 3 , ">1 & <=3",
+                                           ifelse(plot_dt$nbrBD > 3 & plot_dt$nbrBD <= 5 , ">3 & <=5",
+                                                  ifelse(plot_dt$nbrBD > 5 & plot_dt$nbrBD <= 10 , ">5 & <=10",
+                                                                ifelse(plot_dt$nbrBD > 10 , ">10", NA))))))
+      
+      
+      
+      stopifnot(!is.na(plot_dt$nbrBD_class))
+    }
+    plot_dt$nbrBD_class <- factor(plot_dt$nbrBD_class, levels=level_classes)
+    stopifnot(!is.na(plot_dt$nbrBD_class))
+    
+    
+    plot_dt2 <- aggregate(ratio~nbrBD_class + type, FUN=sum, data=plot_dt)
+    
+    stopifnot(round(sum(plot_dt2$ratio[plot_dt2$type=="observed"]),5) == 1)
+    stopifnot(round(sum(plot_dt2$ratio[!plot_dt2$type=="observed"]),5) == 1)
+    
+    # plotTit <- ""
+    # subTit <- ""
+    
+    bar_p <- ggbarplot(plot_dt2, x = "type", y="ratio", 
+              fill = "nbrBD_class", 
+              xlab="",
+              ylab = "") + 
+      scale_fill_nejm() + 
+      labs(fill="") + 
+      ggtitle(plotTit, subtitle=subTit)+
+      theme(
+        plot.title = element_text(size=16, face = "bold", hjust=0.5),
+        plot.subtitle = element_text(size=14, face = "italic", hjust=0.5)
+      )
+    
+    outFile <- file.path(outFolder, paste0("obs_vs_rd_", rd_type, "_", agg_type, "_nbrBD_ratioByCat_barplot.", plotType))
+    ggsave(bar_p, filename=outFile, height=myHeight, width=myWidth)
+    cat(paste0("... written: ", outFile,  "\n"))
+    
+    
+    
+    
+    
+  }
+}
+# 
+# 
+# plot(merged_dt$median_random_nbrBDdist~merged_dt$obs_nbrBD)
+# curve(1*x, add=T)
+# 
+# plot(merged_dt$mean_random_nbrBDnbr~merged_dt$obs_nbrBD)
+# curve(1*x, add=T)
+# 
+# plot(merged_dt$median_random_nbrBDnbr~merged_dt$obs_nbrBD)
+# curve(1*x, add=T)
 
 
-merged_dt <- merge(meanrdBD_dt, merge(nGenes_dt, obsBD_dt, by="id", all=TRUE), by="id", all=TRUE)
-
-plot(merged_dt$mean_random_nbrBD~merged_dt$obs_nbrBD)
-curve(1*x, add=T)
-
-count_obs_dt <- data.frame(
-  type="observed",
-  nbrBD= as.character(names(table(merged_dt$obs_nbrBD))),
-  count= as.numeric(table(merged_dt$obs_nbrBD)),
-  ratio= as.numeric(table(merged_dt$obs_nbrBD))/sum(table(merged_dt$obs_nbrBD)),
-  stringsAsFactors = FALSE)
-
-# round for the random !
-rdd_rd_data <- round(merged_dt$mean_random_nbrBD)
-count_rd_dt <- data.frame(
-  type="mean_random",
-  nbrBD= as.character(names(table(rdd_rd_data))),
-  count= as.numeric(table(rdd_rd_data)),
-  ratio= as.numeric(table(rdd_rd_data))/sum(table(rdd_rd_data)),
-  stringsAsFactors = FALSE)
-
-plot_dt <- rbind(count_obs_dt, count_rd_dt)
-
-require(ggpubr)
-require(ggsci)
-plotTit <- ""
-subTit <- ""
-
-ggbarplot(plot_dt, x = "type", y="ratio", 
-          fill = "nbrBD", 
-          xlab="",
-          ylab = "") + 
-  scale_fill_nejm() + 
-  labs(fill="") + 
-  ggtitle(plotTit, subtitle=subTit)+
-  theme(
-    plot.title = element_text(size=16, face = "bold", hjust=0.5),
-    plot.subtitle = element_text(size=14, face = "italic", hjust=0.5)
-  )
-
-outFile <- file.path(outFolder, paste0("nbrUniqueTADsByFam_log10_by_cat_barplot.", plotType))
-ggsave(p1_nbr, filename=outFile, height=myHeight, width=myWidth)
-cat(paste0("... written: ", outFile,  "\n"))
+# count_obs_dt <- data.frame(
+#   type="observed",
+#   nbrBD= as.numeric(as.character(names(table(merged_dt$obs_nbrBD)))),
+#   count= as.numeric(table(merged_dt$obs_nbrBD)),
+#   ratio= as.numeric(table(merged_dt$obs_nbrBD))/sum(table(merged_dt$obs_nbrBD)),
+#   stringsAsFactors = FALSE)
+# 
+# # round for the random !
+# rdd_rd_data <- round(merged_dt$mean_random_nbrBDdist)
+# count_rd_dt <- data.frame(
+#   type="mean_random",
+#   nbrBD= as.numeric(as.character(names(table(rdd_rd_data)))),
+#   count= as.numeric(table(rdd_rd_data)),
+#   ratio= as.numeric(table(rdd_rd_data))/sum(table(rdd_rd_data)),
+#   stringsAsFactors = FALSE)
+# 
+# rdd_rd_data <- round(merged_dt$median_random_nbrBDdist)
+# count_rd_dt <- data.frame(
+#   type="mean_random",
+#   nbrBD= as.numeric(as.character(names(table(rdd_rd_data)))),
+#   count= as.numeric(table(rdd_rd_data)),
+#   ratio= as.numeric(table(rdd_rd_data))/sum(table(rdd_rd_data)),
+#   stringsAsFactors = FALSE)
+# 
+# rdd_rd_data <- round(merged_dt$median_random_nbrBDnbr)
+# count_rd_dt <- data.frame(
+#   type="mean_random",
+#   nbrBD= as.numeric(as.character(names(table(rdd_rd_data)))),
+#   count= as.numeric(table(rdd_rd_data)),
+#   ratio= as.numeric(table(rdd_rd_data))/sum(table(rdd_rd_data)),
+#   stringsAsFactors = FALSE)
+# 
+# 
+# plot_dt_nbr <- rbind(count_obs_dt, count_rd_dt)
+# stopifnot(!is.na(plot_dt_nbr$nbrBD))
 
 
-
+cat(paste0("*** DONE\n", startTime, "\n", Sys.time(), "\n"))
 
 
 ###################################################################### toy data checking contig retrieval

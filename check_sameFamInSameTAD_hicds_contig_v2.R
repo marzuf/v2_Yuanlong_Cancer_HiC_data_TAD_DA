@@ -1,11 +1,11 @@
 
+startTime <- Sys.time()
 
 ### !! v2 version: 
 # - contiguty i.e. gene rank based on all genes (not only genes for which I have annotation)
 # - sample genes among all genes, not only those for which I have annotation
-# - v3: combine pair of genes at chromo level because for sure from different chromo will never be in same TAD
 
-# Rscript sameFamInSameTAD_hicds_contig_v3.R # RUN POSITRON
+# Rscript check_sameFamInSameTAD_hicds_contig_v2.R # RUN POSITRON
 
 # don't add at TADs the end and beginning -> I just loose half TADs, and poor quality data at extremity
 
@@ -27,7 +27,7 @@ corMethod <- "pearson"
 familyData <- "hgnc_family_short"
 
 nRandom <- 100
-# nRandom=10
+# nRandom=5
 
 logOffset <- 0.01
 
@@ -51,8 +51,6 @@ stopifnot(is.numeric(gff_dt$true_start))
 gff_dt <- gff_dt[order(gff_dt$chromo, gff_dt$true_start, gff_dt$end),]
 
 
-outFolder <- file.path("SAMEFAMINSAMETAD_HICDS_CONTIG_V3")
-dir.create(outFolder, recursive = TRUE)
 
 all_hicds <- list.files("PIPELINE/OUTPUT_FOLDER")
 # all_hicds=all_hicds[1]
@@ -82,6 +80,10 @@ hgnc_geneFamilyDT$family_short <- unlist(sapply(hgnc_geneFamilyDT$family, functi
 # any(duplicated(hgnc_geneFamilyDT$entrezID))
 
 
+# ds=all_ds[1]
+
+# all_hicds=all_hicds[1]
+
 if(buildData) {
   
   
@@ -104,6 +106,8 @@ if(buildData) {
     tad_g2t_dt <- g2t_dt[grepl("_TAD", g2t_dt$region),]
     stopifnot(!duplicated(g2t_dt$entrezID))
     entrezIDchromo <- setNames(g2t_dt$chromo, g2t_dt$entrezID)
+    
+    entrezIDregion <- setNames(tad_g2t_dt$chromo, tad_g2t_dt$entrezID)
     
     tad_entrezID <- tad_g2t_dt$entrezID  ### v2 => I will sample from them !!!
     stopifnot(tad_entrezID %in% names(entrezIDchromo))
@@ -149,8 +153,8 @@ if(buildData) {
     rm("family_entrezIDchromo") # not used in v2 !!!
     
     all_fams <- unique(sameFamSameTAD_dt$family)
-    # all_fams=all_fams[6:25]
-    #all_fams=all_fams[1]
+    # all_fams=all_fams[1]
+    
     ## !!! added here for gene rank
     # hicds_gff_dt <- gff_dt[gff_dt$entrezID %in% names(family_entrezIDchromo),]
     # ADAPTED 19.10.20 V2: CONTIGUITY BASED ON ALL GENES ASSIGNED TO A TAD
@@ -262,10 +266,7 @@ if(buildData) {
         # V2: SAMPLE CONTIGUOUS - FOR THE MOMENT, NOT CHROMOSOME-WISE
         # !!! changed: i need to it chromosome wise because start_pos:start_pos+x could go over chromosomes otherwise
         
-        # sample_genes <- foreach(chromo = names(true_countChromos), .combine='c') %do% {
-          # v3 update here -> combn inside chromo because for sure if different chromo -> different region -> then it is a rbind
-        all_chr_sample_dt <- foreach(chromo = names(true_countChromos), .combine='rbind') %do% {  
-          
+        sample_genes <- foreach(chromo = names(true_countChromos), .combine='c') %do% {
           # v2: change here 19.10.2020 -> sample from all genes
           # all_chromo_genes <- names(family_entrezIDchromo)[family_entrezIDchromo == chromo]
           all_chromo_genes <- names(tad_entrezIDchromo)[tad_entrezIDchromo == chromo]
@@ -341,223 +342,46 @@ if(buildData) {
            stopifnot(!duplicated(chromo_sample_genes))
            stopifnot(chromo_sample_genes %in% names(chromo_entrezID_geneRanks))
            stopifnot(chromo_sample_genes %in% all_chromo_genes)
-           #chromo_sample_genes
-           
-           # v3 update here -> combn inside chromo because for sure if different chromo -> different region
-           # stopifnot(length(sample_genes) == length(true_genes)) was true in v2
-           stopifnot(length(chromo_sample_genes) == length(true_chromo_genes)) 
-           
-           #sample_dt <- as.data.frame(t(combn(x=sample_genes, m = 2))) # for v2
-            # for v3
-           stopifnot(length(chromo_sample_genes) > 0)
-           if(length(chromo_sample_genes)==1) 
-             return(data.frame(gene1=character(0), gene2=character(0), stringsAsFactors = FALSE))
-           sample_dt <- as.data.frame(t(combn(x=chromo_sample_genes, m = 2)))
-           colnames(sample_dt) <- c("gene1_tmp", "gene2_tmp")
-           
-           sample_dt$gene1_tmp <- as.character(sample_dt$gene1_tmp)
-           sample_dt$gene2_tmp <- as.character(sample_dt$gene2_tmp)
-           sample_dt$gene1 <-as.character(pmin(sample_dt$gene1_tmp, sample_dt$gene2_tmp))
-           sample_dt$gene2 <-as.character(pmax(sample_dt$gene1_tmp, sample_dt$gene2_tmp))
-           stopifnot(sample_dt$gene1 == sample_dt$gene1_tmp | sample_dt$gene1 == sample_dt$gene2_tmp)
-           stopifnot(sample_dt$gene2 == sample_dt$gene1_tmp | sample_dt$gene2 == sample_dt$gene2_tmp)
-           sample_dt$gene1_tmp <- sample_dt$gene2_tmp <- NULL
-           stopifnot(sample_dt$gene1 < sample_dt$gene2)
-           sample_dt
+           chromo_sample_genes
         }
         
-        sample_dt <- all_chr_sample_dt
-
+        stopifnot(length(sample_genes) == length(true_genes))
+        
+        sample_dt <- as.data.frame(t(combn(x=sample_genes, m = 2)))
+        colnames(sample_dt) <- c("gene1_tmp", "gene2_tmp")
+        
+        sample_dt$gene1_tmp <- as.character(sample_dt$gene1_tmp)
+        sample_dt$gene2_tmp <- as.character(sample_dt$gene2_tmp)
+        sample_dt$gene1 <-as.character(pmin(sample_dt$gene1_tmp, sample_dt$gene2_tmp))
+        sample_dt$gene2 <-as.character(pmax(sample_dt$gene1_tmp, sample_dt$gene2_tmp))
+        stopifnot(sample_dt$gene1 == sample_dt$gene1_tmp | sample_dt$gene1 == sample_dt$gene2_tmp)
+        stopifnot(sample_dt$gene2 == sample_dt$gene1_tmp | sample_dt$gene2 == sample_dt$gene2_tmp)
+        sample_dt$gene1_tmp <- sample_dt$gene2_tmp <- NULL
+        stopifnot(sample_dt$gene1 < sample_dt$gene2)
         
         random_sameTAD_fam_dt <- merge(sample_dt, sameTAD_dt, all.x=T, all.y=F, by=c("gene1", "gene2"))
         random_sameTAD_fam_dt <- random_sameTAD_fam_dt[!is.na(random_sameTAD_fam_dt$region),]
         
-        random_nbrSingletons <- nbrGenes -length(unique(c(random_sameTAD_fam_dt$gene1, random_sameTAD_fam_dt$gene2)))
+        random_sameTAD_fam_dt$gene1 <- as.character(random_sameTAD_fam_dt$gene1)
+        stopifnot(random_sameTAD_fam_dt$gene1 %in% names(entrezIDregion))
+        random_sameTAD_fam_dt$gene2 <- as.character(random_sameTAD_fam_dt$gene2)
+        stopifnot(random_sameTAD_fam_dt$gene2 %in% names(entrezIDregion))
         
-        random_fam_net <- graph_from_data_frame(d=random_sameTAD_fam_dt[,c("gene1", "gene2")], directed=F) 
-        random_nbrEdges <- gsize(random_fam_net)
-        stopifnot(random_nbrEdges == nrow(random_sameTAD_fam_dt))
+        all_regions_gene1 <- entrezIDregion[random_sameTAD_fam_dt$gene1]
+        all_regions_gene2 <- entrezIDregion[random_sameTAD_fam_dt$gene2]
         
-        random_nbrComponents <- components(random_fam_net)$no
-        stopifnot(random_nbrComponents == length(unique(random_sameTAD_fam_dt$region)))
+        stopifnot(all_regions_gene1 == all_regions_gene2)
         
-        c(random_nbrSingletons=random_nbrSingletons, random_nbrEdges=random_nbrEdges, random_nbrComponents=random_nbrComponents)
+        return(NULL)
       } # end permut
       
-      list(
-        nbrGenes=nbrGenes,
-        nbrSingletons=nbrSingletons,
-        nbrEdges=nbrEdges,
-        nbrComponents=nbrComponents,
-        random_results_dt=random_results_dt
-        )
+      return(NULL)
     } # end families
-    names(all_fam_results) <- all_fams
-    outFile <- file.path(outFolder, paste0(hicds, "_", "all_fam_results.Rdata"))
-    save(all_fam_results, file=outFile, version=2)
-    all_fam_results
+
+    return(NULL)
   } # end datasets
-  names(all_ds_results) <- all_hicds
-  
-  outFile <- file.path(outFolder, "all_ds_results.Rdata")
-  save(all_ds_results, file=outFile, version=2)
-  cat(paste0("... written: ", outFile, "\n"))
-} else {
-  outFile <- file.path(outFolder, "all_ds_results.Rdata")
-  all_ds_results <- get(load(outFile))
-}
-    
-all_obs_nbrEdges <- unlist(lapply(all_ds_results, function(subl) lapply(subl, function(x) x[["nbrEdges"]])))
-all_obs_nbrCpts <- unlist(lapply(all_ds_results, function(subl) lapply(subl, function(x) x[["nbrComponents"]])))
-all_obs_nbrSingletons <- unlist(lapply(all_ds_results, function(subl) lapply(subl, function(x) x[["nbrSingletons"]])))
-
-length(all_obs_nbrEdges)
-sum(all_obs_nbrEdges == 0)
-
-length(all_obs_nbrCpts)
-sum(all_obs_nbrCpts == 0)
-
-
-all_random_nbrEdges <- unlist(lapply(all_ds_results, function(subl) lapply(subl, function(x) x[["random_results_dt"]]['random_nbrEdges',])))
-all_random_meanNbrEdges <- unlist(lapply(all_ds_results, function(subl) lapply(subl, function(x) mean(x[["random_results_dt"]]['random_nbrEdges',]))))
-stopifnot(length(all_obs_nbrEdges) == length(all_random_meanNbrEdges))
-
-length(all_random_nbrEdges)
-sum(all_random_nbrEdges == 0)
-
-
-all_random_nbrCpts <- unlist(lapply(all_ds_results, function(subl) lapply(subl, function(x) x[["random_results_dt"]]['random_nbrComponents',])))
-all_random_meanNbrCpts <- unlist(lapply(all_ds_results, function(subl) lapply(subl, function(x) mean(x[["random_results_dt"]]['random_nbrComponents',]))))
-stopifnot(length(all_obs_nbrCpts) == length(all_random_meanNbrCpts))
-
-all_random_nbrSingletons <- unlist(lapply(all_ds_results, function(subl) lapply(subl, function(x) x[["random_results_dt"]]['random_nbrSingletons',])))
-all_random_meanNbrSingletons <- unlist(lapply(all_ds_results, function(subl) lapply(subl, function(x) mean(x[["random_results_dt"]]['random_nbrSingletons',]))))
-stopifnot(length(all_obs_nbrSingletons) == length(all_random_meanNbrSingletons))
-
-nPermut <- unique(unlist(lapply(all_ds_results, function(subl) lapply(subl, function(x) ncol(x[["random_results_dt"]])))))
-stopifnot(length(nPermut) == 1)
-
-
-length(all_random_nbrCpts)
-sum(all_random_nbrCpts == 0)
-
-source("../Cancer_HiC_data_TAD_DA/utils_plot_fcts.R")
-
-### ITERATE TO DO THE SAME FOR EACH OF THE VARIABLE!!!
-
-plotCex <- 1.2
-
-all_vars <- c("Edges", "Cpts", "Singletons")
-all_vars <- c("Edges")
-curr_var=all_vars[1]
-for(curr_var in all_vars) {
-  
-  
-  # aggregate by family
-  nbr_obs_dt <- data.frame(family_lab=names(eval(parse(text=paste0("all_obs_nbr", curr_var)))), 
-                           nbr=as.numeric(eval(parse(text=paste0("all_obs_nbr", curr_var)))), stringsAsFactors = FALSE)
-  nbr_obs_dt$family <- gsub(".+?\\.(.+)", "\\1", nbr_obs_dt$family_lab)  ### CORRECT HERE THERE DOTS IN THE FAMILY NAMES SHOULD USE INTERROGATION MARK 25.09.2020
-  ### !!!! ADDED 25.09 IMPORTANT CHECK
-  stopifnot(nbr_obs_dt$family %in% hgnc_geneFamilyDT$family_short)
-  
-  stopifnot(nbr_obs_dt$family != "")
-  stopifnot(!is.na(nbr_obs_dt$family))
-  
-  nbr_rd_dt <- data.frame(family_lab=names(eval(parse(text=paste0("all_random_nbr", curr_var)))), 
-                          nbr=as.numeric(eval(parse(text=paste0("all_random_nbr", curr_var)))), 
-                          stringsAsFactors = FALSE)
-  nbr_rd_dt$family <- gsub(".+?\\.(.+)\\.result.+", "\\1", nbr_rd_dt$family_lab)  ### CORRECT HERE THERE DOTS IN THE FAMILY NAMES SHOULD USE INTERROGATION MARK 25.09.2020
-  stopifnot(nbr_rd_dt$family != "")
-  stopifnot(!is.na(nbr_rd_dt$family))
-  ### !!!! ADDED 25.09 IMPORTANT CHECK
-  stopifnot(nbr_rd_dt$family %in% hgnc_geneFamilyDT$family_short)
-  
-  stopifnot(setequal(nbr_obs_dt$family, nbr_rd_dt$family))
-  
-  
-  agg_obs_dt <- aggregate(nbr~family, data=nbr_obs_dt, FUN=aggFunc)
-  agg_rd_dt <- aggregate(nbr~family, data=nbr_rd_dt, FUN=aggFunc)
-  
-  plot_dt <- merge(agg_obs_dt, agg_rd_dt, by="family", all=T, suffixes=c("_obs", "_rd"))
-  stopifnot(!is.na(plot_dt))
-  
-  plotTit <- paste0("# of ", curr_var, " by family")
-  subTit <- paste0("aggreg. func = ", aggFunc, "; # families = ", length(unique(plot_dt$family)))
-  
-  plot_dt$nbr_obs_log10 <- log10(plot_dt$nbr_obs + logOffset)
-  plot_dt$nbr_rd_log10 <- log10(plot_dt$nbr_rd + logOffset)
-  
-  my_x <- plot_dt$nbr_obs_log10
-  my_y <- plot_dt$nbr_rd_log10
-  
-  outFile <- file.path(outFolder,  paste0("allDS_nbr", curr_var, "_byFam_scatterplot_", gsub("\\.", "", logOffset), ".", plotType))
-  do.call(plotType, list(outFile, height=myHeight, width=myHeight))
-  plot(x=my_x,y=my_y, main=plotTit, 
-       pch=16, cex=0.7,
-       cex.axis=plotCex,
-       cex.lab=plotCex,
-       cex.main=plotCex,
-       xlab=paste0("# ", curr_var, " obs. [log10(+", logOffset, ")]"), 
-       ylab=paste0("# ", curr_var, " rd. [log10(+", logOffset, ")]"))
-  curve(1*x, col="grey", add=TRUE)
-  addCorr(x=my_x, y=my_y, legPos="topleft", bty="n")
-  mtext(side=3, text = subTit, font=3)
-  foo <- dev.off()
-  cat(paste0("... written: ", outFile,  "\n"))
-  
-  
 }
 
-# all_vars <- c("Edges", "Cpts", "Singletons")
-all_vars <- c("Edges")
-curr_var=all_vars[1]
-for(curr_var in all_vars) {
-  
-  plotTit <- paste0("nbr", curr_var)
-  subTit <- paste0("all DS - n =", length(all_ds_results))
-  
-  
-  plot_list <- list(log10(logOffset+eval(parse(text = paste0("all_obs_nbr", curr_var)))),
-                    log10(logOffset+eval(parse(text = paste0("all_random_nbr", curr_var)))))
-  
-  
-  
-  names(plot_list) <- c(paste0("all_obs_nbr",curr_var), paste0("all_random_nbr", curr_var) )
-  
-  outFile <- file.path(outFolder,  paste0("allDS_nbr", curr_var, "_density_", gsub("\\.", "", logOffset), ".", plotType))
-  do.call(plotType, list(outFile, height=myHeight, width=myWidth))
-  plot_multiDens(
-    plot_list,
-    plotTit = plotTit, 
-    my_xlab = paste0("# ", curr_var, " [log10(+", logOffset, ")]")
-  )
-  mtext(side=3, text = subTit, font=3)
-  foo <- dev.off()
-  cat(paste0("... written: ", outFile,  "\n"))
-  
-  
-  
-  plotTit <- paste0("nbr", curr_var, "[log10(+", logOffset, ")]")
-  subTit <- paste0("all DS - n =", length(all_ds_results))
-  
-  xlab <- "observed"
-  ylab <- paste0("mean permut. (n=", nPermut, ")" )
-  
-  # outFile <- file.path(outFolder,  paste0("allDS_nbr", curr_var, "_meanPermut_vs_obs_densplot.", "svg"))
-  outFile <- file.path(outFolder,  paste0("allDS_nbr", curr_var, "_meanPermut_vs_obs_densplot_", gsub("\\.", "", logOffset), ".", "svg"))
-  do.call("svg", list(outFile, height=7, width=7))
-  
-  
-  densplot(x=log10(eval(parse(text=paste0("all_obs_nbr", curr_var))) +logOffset),
-           y=log10(eval(parse(text=paste0("all_random_meanNbr", curr_var))) +logOffset),
-           xlab= xlab,ylab=ylab, main=plotTit
-  )
-  mtext(side=3, text = subTit, font=3)
-  curve(1*x, lty=1, col="darkgrey", add = T)
-  foo <- dev.off()
-  cat(paste0("... written: ", outFile,  "\n"))
-  
-  
-}
-
+cat("# check ok\n")
+cat(paste0("*** DONE\n", startTime, "\n", Sys.time(), "\n"))
 

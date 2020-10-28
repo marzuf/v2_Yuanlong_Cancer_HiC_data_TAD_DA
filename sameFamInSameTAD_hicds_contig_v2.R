@@ -67,7 +67,7 @@ all_hicds <- all_hicds[!grepl("RANDOM", all_hicds) & !grepl("PERMUT", all_hicds)
 # all_hicds=all_hicds[1]
 # all_hicds=all_hicds[2:length(all_hicds)]
 
-buildData <- TRUE
+buildData <- FALSE
 
 aggFunc <- "mean"
 
@@ -470,11 +470,16 @@ for(curr_var in all_vars) {
   plot_dt <- merge(agg_obs_dt, agg_rd_dt, by="family", all=T, suffixes=c("_obs", "_rd"))
   stopifnot(!is.na(plot_dt))
   
+  
   plotTit <- paste0("# of ", curr_var, " by family")
   subTit <- paste0("aggreg. func = ", aggFunc, "; # families = ", length(unique(plot_dt$family)))
   
   plot_dt$nbr_obs_log10 <- log10(plot_dt$nbr_obs + logOffset)
   plot_dt$nbr_rd_log10 <- log10(plot_dt$nbr_rd + logOffset)
+  
+  save(plot_dt, file=file.path(outFolder, "sameFam_nbrEdges_contig_plot_dt_scatterplot.Rdata"), version=2)
+  cat(paste0("... written: ", file.path(outFolder, "sameFam_nbrEdges_contig_plot_dt_scatterplot.Rdata"),  "\n"))
+  
   
   my_x <- plot_dt$nbr_obs_log10
   my_y <- plot_dt$nbr_rd_log10
@@ -493,60 +498,79 @@ for(curr_var in all_vars) {
   mtext(side=3, text = subTit, font=3)
   foo <- dev.off()
   cat(paste0("... written: ", outFile,  "\n"))
+
+  my_x <- plot_dt$nbr_obs
+  my_y <- plot_dt$nbr_rd
+  
+  outFile <- file.path(outFolder,  paste0("allDS_nbr", curr_var, "_byFam_scatterplot_notLog.", plotType))
+  do.call(plotType, list(outFile, height=myHeight, width=myHeight))
+  plot(x=my_x,y=my_y, main=plotTit, 
+       pch=16, cex=0.7,
+       cex.axis=plotCex,
+       cex.lab=plotCex,
+       cex.main=plotCex,
+       xlab=paste0("# ", curr_var, " obs."), 
+       ylab=paste0("# ", curr_var, " rd."))
+  curve(1*x, col="grey", add=TRUE)
+  addCorr(x=my_x, y=my_y, legPos="topleft", bty="n")
+  mtext(side=3, text = subTit, font=3)
+  foo <- dev.off()
+  cat(paste0("... written: ", outFile,  "\n"))
+  
   
   
 }
 
-# all_vars <- c("Edges", "Cpts", "Singletons")
-all_vars <- c("Edges")
-curr_var=all_vars[1]
-for(curr_var in all_vars) {
-  
-  plotTit <- paste0("nbr", curr_var)
-  subTit <- paste0("all DS - n =", length(all_ds_results))
-  
-  
-  plot_list <- list(log10(logOffset+eval(parse(text = paste0("all_obs_nbr", curr_var)))),
-                    log10(logOffset+eval(parse(text = paste0("all_random_nbr", curr_var)))))
-  
-  
-  
-  names(plot_list) <- c(paste0("all_obs_nbr",curr_var), paste0("all_random_nbr", curr_var) )
-  
-  outFile <- file.path(outFolder,  paste0("allDS_nbr", curr_var, "_density_", gsub("\\.", "", logOffset), ".", plotType))
-  do.call(plotType, list(outFile, height=myHeight, width=myWidth))
-  plot_multiDens(
-    plot_list,
-    plotTit = plotTit, 
-    my_xlab = paste0("# ", curr_var, " [log10(+", logOffset, ")]")
-  )
-  mtext(side=3, text = subTit, font=3)
-  foo <- dev.off()
-  cat(paste0("... written: ", outFile,  "\n"))
-  
-  
-  
-  plotTit <- paste0("nbr", curr_var, "[log10(+", logOffset, ")]")
-  subTit <- paste0("all DS - n =", length(all_ds_results))
-  
-  xlab <- "observed"
-  ylab <- paste0("mean permut. (n=", nPermut, ")" )
-  
-  # outFile <- file.path(outFolder,  paste0("allDS_nbr", curr_var, "_meanPermut_vs_obs_densplot.", "svg"))
-  outFile <- file.path(outFolder,  paste0("allDS_nbr", curr_var, "_meanPermut_vs_obs_densplot_", gsub("\\.", "", logOffset), ".", "svg"))
-  do.call("svg", list(outFile, height=7, width=7))
-  
-  
-  densplot(x=log10(eval(parse(text=paste0("all_obs_nbr", curr_var))) +logOffset),
-           y=log10(eval(parse(text=paste0("all_random_meanNbr", curr_var))) +logOffset),
-           xlab= xlab,ylab=ylab, main=plotTit
-  )
-  mtext(side=3, text = subTit, font=3)
-  curve(1*x, lty=1, col="darkgrey", add = T)
-  foo <- dev.off()
-  cat(paste0("... written: ", outFile,  "\n"))
-  
-  
-}
+## all_vars <- c("Edges", "Cpts", "Singletons")
+#all_vars <- c("Edges")
+#curr_var=all_vars[1]
+#for(curr_var in all_vars) {
+#  
+#  plotTit <- paste0("nbr", curr_var)
+#  subTit <- paste0("all DS - n =", length(all_ds_results))
+#  
+#  
+#  plot_list <- list(log10(logOffset+eval(parse(text = paste0("all_obs_nbr", curr_var)))),
+#                    log10(logOffset+eval(parse(text = paste0("all_random_nbr", curr_var)))))
+#  
+#  
+#  
+#  names(plot_list) <- c(paste0("all_obs_nbr",curr_var), paste0("all_random_nbr", curr_var) )
+#  
+#  outFile <- file.path(outFolder,  paste0("allDS_nbr", curr_var, "_density_", gsub("\\.", "", logOffset), ".", plotType))
+#  do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+#  plot_multiDens(
+#    plot_list,
+#    plotTit = plotTit, 
+#    my_xlab = paste0("# ", curr_var, " [log10(+", logOffset, ")]")
+#  )
+#  mtext(side=3, text = subTit, font=3)
+#  foo <- dev.off()
+#  cat(paste0("... written: ", outFile,  "\n"))
+#  
+#  
+#  
+#  plotTit <- paste0("nbr", curr_var, "[log10(+", logOffset, ")]")
+#  subTit <- paste0("all DS - n =", length(all_ds_results))
+#  
+#  xlab <- "observed"
+#  ylab <- paste0("mean permut. (n=", nPermut, ")" )
+#  
+#  # outFile <- file.path(outFolder,  paste0("allDS_nbr", curr_var, "_meanPermut_vs_obs_densplot.", "svg"))
+#  outFile <- file.path(outFolder,  paste0("allDS_nbr", curr_var, "_meanPermut_vs_obs_densplot_", gsub("\\.", "", logOffset), ".", "svg"))
+#  do.call("svg", list(outFile, height=7, width=7))
+#  
+#  
+#  densplot(x=log10(eval(parse(text=paste0("all_obs_nbr", curr_var))) +logOffset),
+#           y=log10(eval(parse(text=paste0("all_random_meanNbr", curr_var))) +logOffset),
+#           xlab= xlab,ylab=ylab, main=plotTit
+#  )
+#  mtext(side=3, text = subTit, font=3)
+#  curve(1*x, lty=1, col="darkgrey", add = T)
+#  foo <- dev.off()
+#  cat(paste0("... written: ", outFile,  "\n"))
+#  
+#  
+#}
 
 
