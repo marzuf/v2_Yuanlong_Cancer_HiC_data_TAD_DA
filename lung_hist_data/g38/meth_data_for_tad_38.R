@@ -1,11 +1,19 @@
-# Rscript meth_data_for_tad.R 
+# Rscript meth_data_for_tad_38.R 
 
 require(foreach)
 require(doMC)
 registerDoMC(40)
 require(ggpubr)
 
-outFolder <- file.path("METH_DATA_FOR_TAD")
+# chain <- import.chain("hg19ToHg18.over.chain")
+# library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+# tx_hg19 <- transcripts(TxDb.Hsapiens.UCSC.hg19.knownGene)
+# tx_hg18 <- liftOver(tx_hg19, chain)
+require(liftOver)
+require(GenomicRanges)
+chain <- import.chain("hg19ToHg38.over.chain")
+
+outFolder <- file.path("METH_DATA_FOR_TAD_38")
 dir.create(outFolder, recursive = TRUE)
 
 buildTable <- TRUE
@@ -14,9 +22,9 @@ all_hicds <- c("ENCSR444WCZ_A549_40kb", "LG1_40kb", "LG2_40kb", "ENCSR489OCU_NCI
 hicds="LG1_40kb"
 gene_oi <- "AKR1C1"
 
-all_files <- list.files("encode_data", pattern="\\.bed$", full.names=TRUE)
+all_files <- list.files("encode_data_38", pattern="\\.bed$", full.names=TRUE)
 
-runFolder <- ".."
+runFolder <- file.path("..", "..")
 
 normQt <- 0.95
 qvalThresh <- 0.01
@@ -42,21 +50,23 @@ stopifnot(gene_oi %in% entrez2symb)
 
 entrez_oi <- names(entrez2symb)[entrez2symb == gene_oi]
 
-encode_annot_dt <- read.delim("metadata_filter.csv", header=FALSE, sep=",", stringsAsFactors = FALSE)
-bed2annot <- setNames(as.character(encode_annot_dt$V22), as.character(encode_annot_dt$V1))
+encode_annot_dt <- read.delim("metadata_filter.csv", header=FALSE, sep="\t", stringsAsFactors = FALSE)
+bed2annot <- setNames(as.character(encode_annot_dt$V13), as.character(encode_annot_dt$V1))
 bed2annot <- gsub("-human", "",  bed2annot)
 bed2cl <- setNames(as.character(encode_annot_dt$V10), as.character(encode_annot_dt$V1))
 
 cl_levels <- c("lung",
+               "left lung",
                "upper lobe of left lung",
+               "lower lobe of left lung",
                "AG04450", # fetal
                "IMR-90" , # normal
+               "A549", # kras mut
                "PC-9") # egfr mut
-
 
 stopifnot(gsub("\\.bed$", "", basename(basename(all_files))) %in% names(bed2annot))
 
-filename = "encode_data/ENCFF001WUY.bed"
+filename = all_files[1]
 
 if(buildTable) {
     
@@ -90,13 +100,19 @@ if(buildTable) {
             tad_oi <- entrez2tad[names(entrez2tad) == entrez_oi]
             
             
-            tad_dt <- read.delim(file.path("..", hicds, "genes2tad/all_assigned_regions.txt"), 
+            tad_dt <- read.delim(file.path(runFolder, hicds, "genes2tad/all_assigned_regions.txt"), 
                                  col.names=c("chromo", "region", "start", "end"), header=F, stringsAsFactors=FALSE)
             
             stopifnot(tad_oi %in% tad_dt$region)
             tadChr_oi <- tad_dt$chromo[tad_dt$region == tad_oi]
-            tadStart_oi <- tad_dt$start[tad_dt$region == tad_oi]
-            tadEnd_oi <- tad_dt$end[tad_dt$region == tad_oi]
+            hg19_tadStart_oi <- tad_dt$start[tad_dt$region == tad_oi]
+            hg19_tadEnd_oi <- tad_dt$end[tad_dt$region == tad_oi]
+            
+            tad_gr <- GRanges(seqnames=tadChr_oi, ranges=IRanges(start=hg19_tadStart_oi, end=hg19_tadEnd_oi))
+            tad_hg38 <- liftOver(tad_gr, chain)
+            tadStart_oi <- as.numeric(start(tad_hg38))
+            tadEnd_oi <- as.numeric(end(tad_hg38))
+            
             
             chromo_dt <- hist_dt[hist_dt$chromo == tadChr_oi,]
             
@@ -129,6 +145,8 @@ if(buildTable) {
                 hicds = hicds,
                 gene_oi=gene_oi,
                 tad_oi = tad_oi,
+                hg19_tadStart_oi=hg19_tadStart_oi,
+                hg19_tadEnd_oi=hg19_tadEnd_oi,
                 tadStart_oi=tadStart_oi,
                 tadEnd_oi=tadEnd_oi,
                 hist_id = ds_name,
@@ -149,7 +167,7 @@ if(buildTable) {
     save(all_histOverlap_dt, file=outFile, version=2)
     cat(paste0("... written: ", outFile, "\n"))
 } else {
-    # all_histOverlap_dt <- get(load("METH_DATA_FOR_TAD/AKR1C1_all_histOverlap_dt.Rdata"))
+    # all_histOverlap_dt <- get(load("METH_DATA_FOR_TAD_38/AKR1C1_all_histOverlap_dt.Rdata"))
     outFile <- file.path(outFolder, paste0(gene_oi, "_all_histOverlap_dt.Rdata"))
     all_histOverlap_dt <- get(load(outFile))
 }
@@ -173,7 +191,6 @@ for(hist_m in all_hists) {
         
         sub_dt$hist_cl <- factor(sub_dt$hist_cl, levels=cl_levels)
         stopifnot(!is.na(sub_dt$hist_cl))
-        
 
         p3 <- ggboxplot(sub_dt,
                         x = "hist_cl",

@@ -1,0 +1,11 @@
+"https://www.encodeproject.org/metadata/?type=Experiment&status=released&target.label=H3K27ac&assay_title=Histone+ChIP-seq&assay_title=Mint-ChIP-seq&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&biosample_ontology.classification=cell+line&biosample_ontology.organ_slims=lung&target.label=H3K27me3&biosample_ontology.classification=tissue&replicates.library.biosample.treatments.treatment_term_name%21=dexamethasone&replicates.library.biosample.treatments.treatment_term_name%21=ethanol&perturbed=false"
+
+chain <- import.chain("hg19ToHg18.over.chain")
+library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+tx_hg19 <- transcripts(TxDb.Hsapiens.UCSC.hg19.knownGene)
+tx_hg18 <- liftOver(tx_hg19, chain)
+
+excel file autofilter -> bed peaks + g38
+
+xargs -L 1 curl -O -J -L < files_filter_38.txt
+

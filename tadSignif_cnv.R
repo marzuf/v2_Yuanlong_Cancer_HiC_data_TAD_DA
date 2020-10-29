@@ -13,7 +13,7 @@ registerDoMC(40)
 
 setDir <- "/media/electron"
 setDir <- ""
-load(file.path(setDir, "/mnt/ndata/marco/databank/TCGA/TCGA_PancanAtlas/cnv/pancan_cnv/data_CNA.RData"))
+load(file.path(setDir, "/mnt/ndata//databank/TCGA/TCGA_PancanAtlas/cnv/pancan_cnv/data_CNA.RData"))
 
 # > cna[1:5,1:5]
 # TCGA-OR-A5J1-01 TCGA-OR-A5J2-01 TCGA-OR-A5J3-01 TCGA-OR-A5J4-01 TCGA-OR-A5J5-01
