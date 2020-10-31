@@ -16,7 +16,7 @@ chain <- import.chain("hg19ToHg38.over.chain")
 outFolder <- file.path("METH_DATA_FOR_TAD_38")
 dir.create(outFolder, recursive = TRUE)
 
-buildTable <- TRUE
+buildTable <- F
 
 all_hicds <- c("ENCSR444WCZ_A549_40kb", "LG1_40kb", "LG2_40kb", "ENCSR489OCU_NCI-H460_40kb")
 hicds="LG1_40kb"
@@ -193,6 +193,7 @@ for(hist_m in all_hists) {
         stopifnot(!is.na(sub_dt$hist_cl))
 
         p3 <- ggboxplot(sub_dt,
+                        add = "jitter",
                         x = "hist_cl",
                         y = paste0(plot_var),
                         # combine = TRUE,                  # Combine the 3 plots
@@ -201,14 +202,14 @@ for(hist_m in all_hists) {
                         # add = "median",                  # Add median line.
                         rug = FALSE,                      # Add marginal rug
                         color = "hicds",
-                        fill = "hicds",
+                        # fill = "hicds",
                         palette = "jco"
         ) +
             ggtitle(plotTit, subtitle = mySub)+
             # scale_color_manual(values=my_cols)+
             # scale_fill_manual(values=my_cols)  +
             labs(color=paste0(legTitle),fill=paste0(legTitle)) +
-            guides(color=FALSE)+
+            # guides(color=FALSE)+
             scale_y_continuous(breaks = scales::pretty_breaks(n = 10))+
             # scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
             theme(

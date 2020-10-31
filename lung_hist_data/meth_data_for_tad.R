@@ -177,6 +177,7 @@ for(hist_m in all_hists) {
 
         p3 <- ggboxplot(sub_dt,
                         x = "hist_cl",
+                        add = "jitter",
                         y = paste0(plot_var),
                         # combine = TRUE,                  # Combine the 3 plots
                         xlab ="",
@@ -184,14 +185,14 @@ for(hist_m in all_hists) {
                         # add = "median",                  # Add median line.
                         rug = FALSE,                      # Add marginal rug
                         color = "hicds",
-                        fill = "hicds",
+                        # fill = "hicds",
                         palette = "jco"
         ) +
             ggtitle(plotTit, subtitle = mySub)+
             # scale_color_manual(values=my_cols)+
             # scale_fill_manual(values=my_cols)  +
             labs(color=paste0(legTitle),fill=paste0(legTitle)) +
-            guides(color=FALSE)+
+            # guides(color=FALSE)+
             scale_y_continuous(breaks = scales::pretty_breaks(n = 10))+
             # scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
             theme(
