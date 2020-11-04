@@ -48,7 +48,10 @@ setDir <- ifelse(SSHFS, "/media/electron", "")
 # chr1 	100020000 	chr1 	100100000 	201
 # chr1 	100020000 	chr1 	100140000 	232
 
-# Rscript 5_prep_FitHiC.R INPUT_AGG/KARPAS_DMSO KARPAS_DMSO noDS_merged_agg.txt chr1 10000 PREP_FITHIC
+
+
+# Rscript 6_run_FitHiC.R PREP_FITHIC/ENCSR489OCU_NCI-H460_mat_chr10_10kb_ob_FitHiC_fragsfile.txt PREP_FITHIC/ENCSR489OCU_NCI-H460_mat_chr10_10kb_ob_FitHiC_intersfile.txt FITHIC_OUTPUT
+# Rscript 6_run_FitHiC.R PREP_FITHIC/ENCSR444WCZ_A549_mat_chr10_20kb_ob_FitHiC_fragsfile.txt PREP_FITHIC/ENCSR444WCZ_A549_mat_chr10_20kb_ob_FitHiC_intersfile.txt FITHIC_OUTPUT
 
 
 fithic_fragfile <- "PREP_FITHIC/KARPAS_DMSO/KARPAS_DMSO_chr1_10kb_downsample16_merged_agg_FitHiC_fragsfile.txt"
