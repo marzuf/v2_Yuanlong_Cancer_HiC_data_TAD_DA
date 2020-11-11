@@ -14,13 +14,15 @@ outFolder <- "ENCODE_EXPR"
 dir.create(outFolder, recursive = TRUE)
 
 id_of_interest <- c("1645", "1646") # AKR1C1 AKR1C2
-ids_of_interest <- c("AKR1C1" = "ENSG00000187134", "AKR1C2"= "ENSG00000151632") # AKR1C1 AKR1C2
-ensg2symb<- c( "ENSG00000187134" ="AKR1C1", "ENSG00000151632" = "AKR1C2") # AKR1C1 AKR1C2
+ids_of_interest <- c("AKR1C1" = "ENSG00000187134", "AKR1C2"= "ENSG00000151632", "AKR1C3"="ENSG00000196139") # AKR1C1 AKR1C2
+ensg2symb<- c( "ENSG00000187134" ="AKR1C1", "ENSG00000151632" = "AKR1C2", "ENSG00000196139"="AKR1C3") # AKR1C1 AKR1C2
 
 
 cl_names <- c("ENCSR489OCU_NCI-H460" = "H460", "ENCSR444WCZ_A549" = "A549", "LG1" = "LG1", "LG2"="LG2")
 
-count_col <- "expected_count"
+count_col <- "FPKM"
+# count_col <- "TPM"
+# count_col <- "expected_count"
 
 aggFun <- "mean"
 
