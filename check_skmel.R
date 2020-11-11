@@ -50,6 +50,23 @@ if(buildData) {
 var_file <- "../OLDER_v2_Yuanlong_Cancer_HiC_data_TAD_DA/EXPR_VARIANCE_BYTAD/LOG2FPKM/all_ds_geneVarDT.Rdata"
 var_values <- get(load(var_file))  
 
+var_values2 <- lapply(var_values, function(x) x[["meanMostVar"]])
+var_dt <- data.frame(
+  hicds = gsub("(.+_40kb)_(.+)", "\\1", names(var_values2)),
+  exprds = gsub("(.+_40kb)_(.+)", "\\2", names(var_values2)),
+  meanMostVar = as.numeric(var_values2),
+  stringsAsFactors = FALSE
+)
+tmp_dt <- merge(var_dt, all_auc_dt, by=c("hicds", "exprds"), all=T)
+stopifnot(!is.na(tmp_dt))
+
+outFile <- file.path(outFolder, paste0("meanMostVar_FCCAUC.", "svg"))
+do.call("svg", list(outFile, height=6, width=6))
+plot(meanMostVar~fcc_auc, data=tmp_dt, pch=16, cex=0.7)
+foo <-dev.off()
+cat(paste0("... written: ", outFile, "\n"))
+
+
 corr_file <- "ALLTADS_AND_PURITY_FINAL/aran/CPE/log10/all_ds_corrPurity_dt.Rdata"
 corr_dt <- get(load(corr_file))  
 
@@ -132,6 +149,7 @@ stopifnot(setequal(pipeline_regions, names(var_data)))
         meanCorr = meanCorr[pipeline_regions],
         FCC = fcc[pipeline_regions],
         meanVar = var_data[pipeline_regions],
+        purityCorr = puritycorr[pipeline_regions],
         stringsAsFactors = FALSE
       )
     }

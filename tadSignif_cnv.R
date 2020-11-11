@@ -37,7 +37,7 @@ plotType <- "png"
 plotCex <- 1.4
 myHeight <- myWidth <- 400
 
-buildData <- TRUE
+buildData <- FALSE
 
 tad_signif_thresh <- 0.01
 signif_col <- "red"
@@ -49,6 +49,8 @@ final_dt <- get(load("CREATE_FINAL_TABLE/all_result_dt.Rdata"))
 
 
 all_hicds <- list.files("PIPELINE/OUTPUT_FOLDER")
+all_hicds <- all_hicds[! (grepl("PERMUTG2T", all_hicds) | grepl("RANDOM", all_hicds))]
+
 all_exprds <- sapply(all_hicds, function(x) list.files(file.path("PIPELINE/OUTPUT_FOLDER", x)))
 
 if(buildData){
@@ -406,6 +408,13 @@ if(buildData){
         
       )
       
+      signif_dt = meanCNV_reg_signif_dt[meanCNV_reg_signif_dt$dotCol == signif_col,]
+      text(
+        x = signif_dt$diff_cnv_samp12,
+        y=-log10(signif_dt$adjPvalComb),
+        labels = signif_dt$region
+      )
+      
       abline(lm(my_y~my_x), lty=2, col="grey")
       addCorr(x = my_x, y = my_y, bty="n",  legPos="bottomright")
       # mtext(side = 3, text = subTit)
@@ -430,6 +439,88 @@ if(buildData){
   outFile <- file.path(outFolder, "all_cnv_dt.Rdata")
   all_cnv_dt <- get(load(outFile))
 }  
+
+stopifnot(!duplicated(file.path(all_cnv_dt$hicds, all_cnv_dt$exprds, all_cnv_dt$region)))
+
+signifThresh <- 0.01
+
+all_cnv_dt$diff_cnv_samp12_abs <- abs(all_cnv_dt$diff_cnv_samp12)
+
+all_cnv_dt$signif <- ifelse(all_cnv_dt$adjPvalComb <= signifThresh, "signif.", "not signif.")
+
+require(ggpubr)
+require(ggsci)
+
+my_cols <- setNames(pal_jama()(5)[c(3, 2,4)], c("signif.", "not signif."))
+
+plotTit <- "abs. diff. CNV samp1-samp2"
+mySub <- paste0("# DS = ", length(unique(file.path(all_cnv_dt$hicds, all_cnv_dt$exprds))))
+legTitle <- ""
+
+p3 <- ggdensity(all_cnv_dt,
+                x = "diff_cnv_samp12_abs",
+                y = "..density..",
+                # combine = TRUE,                  # Combine the 3 plots
+                xlab = "TAD mean abs. diff. CNV mean samp1-samp2",
+                # add = "median",                  # Add median line.
+                rug = FALSE,                      # Add marginal rug
+                color = "signif",
+                fill = "signif",
+                palette = "jco"
+) +
+  ggtitle(plotTit, subtitle = mySub)+
+  scale_color_manual(values=my_cols)+
+  scale_fill_manual(values=my_cols)  +
+  labs(color=paste0(legTitle),fill=paste0(legTitle), y="Density") +
+  guides(color=FALSE)+
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 10))+
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
+  theme(
+    # text = element_text(family=fontFamily),
+    panel.grid.major.y =  element_line(colour = "grey", size = 0.5, linetype=1),
+    panel.grid.minor.y =  element_line(colour = "grey", size = 0.5, linetype=1),
+    panel.background = element_rect(fill = "transparent"),
+    panel.grid.major.x =  element_blank(),
+    panel.grid.minor.x =  element_blank(),
+    axis.title.x = element_text(size=14, hjust=0.5, vjust=0.5),
+    axis.title.y = element_text(size=14, hjust=0.5, vjust=0.5),
+    axis.text.y = element_text(size=12, hjust=0.5, vjust=0.5),
+    axis.text.x = element_text(size=12, hjust=0.5, vjust=0.5),
+    plot.title = element_text(hjust=0.5, size = 16, face="bold"),
+    plot.subtitle = element_text(hjust=0.5, size = 14, face="italic"),
+    legend.title = element_text(face="bold")
+  ) 
+
+outFile <- file.path(outFolder, paste0("abs_diff_mean_cnv_density.", "svg"))
+ggsave(p3, file=outFile, height=5.5, width=7)
+cat(paste0("... written: ", outFile, "\n"))
+
+stop("-ok\n")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 if(exists("meanCNV_reg_signif_dt")) rm("meanCNV_reg_signif_dt")
 
