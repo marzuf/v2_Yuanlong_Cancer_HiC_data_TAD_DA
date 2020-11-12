@@ -23,7 +23,9 @@ signif_dt$ds <- file.path(signif_dt$hicds, signif_dt$exprds)
 
 all_ds <- unique(signif_dt$ds)
 
-buildTable <- T
+buildTable <- F
+
+pipFolder <- file.path("PIPELINE/OUTPUT_FOLDER")
 
 if(buildTable) {
   
@@ -65,6 +67,83 @@ signif_tad_thresh <- 0.01
 signif_gene_thresh <- 0.01
 
 abs_fc_qtThresh <- 0.95
+
+
+tmp_dt <- signif_dt[,c("hicds", "exprds", "region", "tad_adjCombPval")]
+tmp_dt <- unique(tmp_dt)
+tmp_dt2 <- aggregate(tad_adjCombPval~hicds+exprds, FUN=function(x) sum(x <= signif_tad_thresh), data = tmp_dt)
+tmp_dt2 <- tmp_dt2[order(tmp_dt2$tad_adjCombPval, decreasing=T),]
+tmp_dt2$ds <- paste0(tmp_dt2$hicds, "\n", tmp_dt2$exprds)
+
+signifOnly_dt <- signif_dt[signif_dt$tad_adjCombPval <= signif_tad_thresh,]
+
+minRankBySignifTAD_dt <- aggregate(gene_rank ~hicds+exprds+region, data=signifOnly_dt, min)
+minRankBySignifTAD_dt$ds <- paste0(minRankBySignifTAD_dt$hicds,"\n", minRankBySignifTAD_dt$exprds)
+
+minRankBySignifTAD_dt$ds <- factor(minRankBySignifTAD_dt$ds, levels = as.character(tmp_dt2$ds))
+stopifnot(!is.na(minRankBySignifTAD_dt$ds))
+
+minRankBySignifTAD_dt$min_gene_rank_log10 <- log10(minRankBySignifTAD_dt$gene_rank)
+
+pBox <- ggboxplot(minRankBySignifTAD_dt, y = paste0("gene_rank"), x ="ds", add="jitter",
+                  # xlab ="", 
+                  xlab ="Datasets ranked by decreasing # signif. TADs",
+                  ylab="min gene rank") + 
+  ggtitle(paste0("min gene rank in signif. TADs"), subtitle=paste0("TAD p-val. signif. thresh. <= ", signif_tad_thresh)) + 
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 10))+
+  theme(
+    # text = element_text(family=fontFamily),
+    panel.grid.major.y =  element_line(colour = "grey", size = 0.5, linetype=1),
+    panel.grid.minor.y =  element_line(colour = "grey", size = 0.5, linetype=1),
+    panel.background = element_rect(fill = "transparent"),
+    panel.grid.major.x =  element_blank(),
+    panel.grid.minor.x =  element_blank(),
+    axis.title.x = element_text(size=14, hjust=0.5, vjust=0.5),
+    axis.title.y = element_text(size=14, hjust=0.5, vjust=0.5),
+    axis.text.y = element_text(size=12, hjust=0.5, vjust=0.5),
+    # axis.text.x = element_text(size=12, hjust=0.5, vjust=0.5),
+    axis.text.x = element_blank(),
+    plot.title = element_text(hjust=0.5, size = 16, face="bold"),
+    plot.subtitle = element_text(hjust=0.5, size = 14, face="italic"),
+    legend.title = element_text(face="bold")
+  )
+
+outFile <- file.path(outFolder, paste0("minGeneRankInSignifTADs_boxplot.", "svg"))
+ggsave(pBox, file=outFile, height=myHeight, width=myWidth)
+cat(paste0("... written: ", outFile, "\n"))
+
+pBox <- ggboxplot(minRankBySignifTAD_dt, y = paste0("min_gene_rank_log10"), x ="ds", add="jitter",
+                  xlab ="Datasets ranked by decreasing # signif. TADs",
+                  ylab="min gene rank [log10]") + 
+  ggtitle(paste0("min gene rank in signif. TADs"), subtitle=paste0("TAD p-val. signif. thresh. <= ", signif_tad_thresh)) + 
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 10))+
+  theme(
+    # text = element_text(family=fontFamily),
+    panel.grid.major.y =  element_line(colour = "grey", size = 0.5, linetype=1),
+    panel.grid.minor.y =  element_line(colour = "grey", size = 0.5, linetype=1),
+    panel.background = element_rect(fill = "transparent"),
+    panel.grid.major.x =  element_blank(),
+    panel.grid.minor.x =  element_blank(),
+    axis.title.x = element_text(size=14, hjust=0.5, vjust=0.5),
+    axis.title.y = element_text(size=14, hjust=0.5, vjust=0.5),
+    axis.text.y = element_text(size=12, hjust=0.5, vjust=0.5),
+    # axis.text.x = element_text(size=12, hjust=0.5, vjust=0.5),
+    axis.text.x = element_blank(),
+    plot.title = element_text(hjust=0.5, size = 16, face="bold"),
+    plot.subtitle = element_text(hjust=0.5, size = 14, face="italic"),
+    legend.title = element_text(face="bold")
+    
+  )
+
+outFile <- file.path(outFolder, paste0("minGeneRankInSignifTADs_log10_boxplot.", "svg"))
+ggsave(pBox, file=outFile, height=myHeight, width=myWidth)
+cat(paste0("... written: ", outFile, "\n"))
+
+
+
+stop("-ok \n")
+
+
 
 all_withfc_dt <- do.call(rbind, by(all_withfc_dt, all_withfc_dt$ds, function(sub_dt){
   fc_qt <- quantile(abs(sub_dt$geneFC), probs=abs_fc_qtThresh)
