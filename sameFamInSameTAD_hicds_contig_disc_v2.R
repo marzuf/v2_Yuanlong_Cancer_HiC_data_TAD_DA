@@ -292,7 +292,7 @@ if(buildData) {
           true_ranks <- sort(chromo_entrezID_geneRanks[true_chromo_genes])
           stopifnot(length(true_ranks) == length(true_chromo_genes))
           names(true_ranks) <- NULL
-          cont_gene_ranks <- diff(true_ranks)
+          cont_gene_ranks <- diff(true_ranks) # remark 7.12: I think I could have directly do rle(...$familyID) without using diff()
           stopifnot(cont_gene_ranks > 0)
           rle_cont_genes <- rle(cont_gene_ranks)
           contig_tosample <- rle_cont_genes$lengths[rle_cont_genes$values==1]+1
