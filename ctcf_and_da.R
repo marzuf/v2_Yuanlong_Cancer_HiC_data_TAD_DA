@@ -7,6 +7,17 @@ library(foreach)
 library(stringr)
 
 
+require(ggpubr)
+require(ggsci)
+
+
+pipFolder <- file.path("PIPELINE", "OUTPUT_FOLDER")
+
+all_hicds <- list.files(pipFolder)
+all_exprds <- sapply(all_hicds, function(x) list.files(file.path(pipFolder, x)))
+all_obs_hicds <- all_hicds[! (grepl("RANDOM", all_hicds) | grepl("PERMUT", all_hicds))]
+all_obs_exprds <- sapply(all_obs_hicds, function(x) list.files(file.path(pipFolder, x)))
+
 registerDoMC(40)
 # runFolder <- "../v2_Yuanlong_Cancer_HiC_data_TAD_DA_GM12878" #PIPELINE/OUTPUT_FOLDER/GM12878_40kb/TCGAluad_norm_luad/11sameNbr_runEmpPvalCombined/"
 # hicds <- "GM12878_40kb"
@@ -16,7 +27,11 @@ plotType <- "png"
 myHeight <- myWidth <- 400
 plotCex <- 1.2
 
+plotTypeGG <- "svg"
+ggHeight <- 6
+ggWidth <- 5
 
+fontFamily <- "Hershey"
 
 do_densplot_withCorr <- function(xvar, yvar, plot_dt) {
   my_x <- plot_dt[,paste0(xvar)]
@@ -35,6 +50,28 @@ do_densplot_withCorr <- function(xvar, yvar, plot_dt) {
 }
 
 
+plot_density <- function(p) {
+  p2 <- p+  
+    guides(color=FALSE)+
+    scale_y_continuous(breaks = scales::pretty_breaks(n = 10))+
+    scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
+    theme(
+      text = element_text(family=fontFamily),
+      panel.grid.major.y =  element_line(colour = "grey", size = 0.5, linetype=1),
+      panel.grid.minor.y =  element_line(colour = "grey", size = 0.5, linetype=1),
+      panel.background = element_rect(fill = "transparent"),
+      panel.grid.major.x =  element_blank(),
+      panel.grid.minor.x =  element_blank(),
+      axis.title.x = element_text(size=14, hjust=0.5, vjust=0.5),
+      axis.title.y = element_text(size=14, hjust=0.5, vjust=0.5),
+      axis.text.y = element_text(size=12, hjust=0.5, vjust=0.5),
+      axis.text.x = element_text(size=12, hjust=0.5, vjust=0.5),
+      plot.title = element_text(hjust=0.5, size = 16, face="bold"),
+      plot.subtitle = element_text(hjust=0.5, size = 14, face="italic"),
+      legend.title = element_text(face="bold")
+    )
+  return(p2)
+}
 
 runFolder <- "." 
 hicds <- "ENCSR444WCZ_A549_40kb"
@@ -146,15 +183,27 @@ agg_merged_dt <- merge(wide_aggByOrientation_dt, agg_dt, by="region", all=TRUE)
 agg_merged_dt$CTCF_count.forward[is.na(agg_merged_dt$CTCF_count.forward)] <- 0
 agg_merged_dt$CTCF_count.reverse[is.na(agg_merged_dt$CTCF_count.reverse)] <- 0
 stopifnot(!is.na(agg_merged_dt))
-
-
 stopifnot(agg_merged_dt$CTCF_count.reverse + agg_merged_dt$CTCF_count.forward == agg_merged_dt$CTCF_totCount)
 
+
+### RETRIEVE THE REGION WITH 0 CTCF
+agg_merged_dt2 <- merge(ds_final_dt[,c("region", "meanCorr", "meanLogFC", "adjPvalComb")], 
+                        agg_merged_dt, all.x=T, all.y=T, by=c("region", "meanCorr", "meanLogFC", "adjPvalComb"))
+agg_merged_dt2$CTCF_count.forward[is.na(agg_merged_dt2$CTCF_count.forward)] <- 0
+agg_merged_dt2$CTCF_count.reverse[is.na(agg_merged_dt2$CTCF_count.reverse)] <- 0
+agg_merged_dt2$CTCF_totCount[is.na(agg_merged_dt2$CTCF_totCount)] <- 0
+stopifnot(!is.na(agg_merged_dt2))
+stopifnot(agg_merged_dt2$CTCF_count.reverse + agg_merged_dt2$CTCF_count.forward == agg_merged_dt2$CTCF_totCount)
+
+agg_merged_dt <- agg_merged_dt2
+
 agg_merged_dt$adjPvalComb_log10 <- -log10(agg_merged_dt$adjPvalComb)
+
 
 ntot <- nrow(agg_merged_dt)
 nDS <- length(unique(file.path(agg_merged_dt$hicds, agg_merged_dt$exprds)))
 
+################### DENSPLOT CTCF count
 
 all_yvars <-  c("meanCorr", "meanLogFC", "adjPvalComb_log10")
 xvar <- "CTCF_totCount"
@@ -168,6 +217,60 @@ for(yvar in all_yvars){
   foo <- dev.off()
   cat(paste0("... written: ", outFile,"\n"))
 }
+
+signifThresh <- 0.01
+
+################### BARPLOT CTCF count
+
+agg_merged_dt$signif_lab <- ifelse(agg_merged_dt$adjPvalComb <= signifThresh, "signif.", "not signif.")
+
+agg_merged_dt$CTCF_totCount_lab <- ifelse(agg_merged_dt$CTCF_totCount == 0, "0",
+                                          ifelse(agg_merged_dt$CTCF_totCount > 0 & agg_merged_dt$CTCF_totCount <= 5, ">0 & <=5",
+                                                 ifelse(agg_merged_dt$CTCF_totCount > 5 & agg_merged_dt$CTCF_totCount <= 10, ">5 & <=10",
+                                                        ifelse(agg_merged_dt$CTCF_totCount > 10 & agg_merged_dt$CTCF_totCount <= 15, ">10 & <=15",
+                                                               ifelse(agg_merged_dt$CTCF_totCount > 15 & agg_merged_dt$CTCF_totCount <= 20, ">15 & <=20",
+                                                                      ifelse(agg_merged_dt$CTCF_totCount > 20, ">20", NA))))))
+
+stopifnot(!is.na(agg_merged_dt$CTCF_totCount_lab))
+
+CTCFcount_levels <- c("0", ">0 & <=5", ">5 & <=10", ">10 & <=15", ">15 & <=20", ">20")
+
+plot_dt <- aggregate(region ~ CTCF_totCount_lab+signif_lab, data=agg_merged_dt, FUN=length)
+plot_dt$CTCF_totCount_lab <- factor(plot_dt$CTCF_totCount_lab, levels=rev(CTCFcount_levels))
+stopifnot(!is.na(plot_dt$CTCF_totCount_lab))
+
+tmp <- aggregate(region~signif_lab, data=plot_dt, FUN=sum)
+
+totSignif <- setNames(tmp$region, tmp$signif_lab)
+
+stopifnot(sum(ds_final_dt$adjPvalComb <= signifThresh) == totSignif[ "signif."])
+stopifnot(sum(ds_final_dt$adjPvalComb > signifThresh) == totSignif["not signif."])
+
+plot_dt$signif_lab <- as.character(plot_dt$signif_lab)
+plot_dt$region_ratio <- plot_dt$region/totSignif[plot_dt$signif_lab]
+
+stopifnot(!is.na(plot_dt$region_ratio))
+
+
+plotTit <- "Ratio domains by # of CTCT_totCount"
+subTit <- paste0("#", names(totSignif), "=", totSignif, collapse="; ")
+
+p <- ggbarplot(plot_dt, x="signif_lab", y="region_ratio", fill="CTCF_totCount_lab", 
+                    xlab = "", ylab = "Ratio of domains")+
+  scale_fill_nejm() + 
+  labs(fill="CTCT_totCount") + 
+  ggtitle(plotTit, subtitle=subTit)+
+  theme(
+    plot.title = element_text(size=16, face = "bold", hjust=0.5),
+    plot.subtitle = element_text(size=14, face = "italic", hjust=0.5)
+  )
+
+
+
+outFile <- file.path(outFolder, paste0("CTCF_totCount_byTAD_bySignif_ratio_barplot.", plotTypeGG))
+ggsave(p, filename=outFile, height=ggHeight, width=ggWidth)
+cat(paste0("... written: ", outFile,  "\n"))
+
 
 #############################################################################
 # look by cluster
@@ -213,6 +316,8 @@ tad_conv_dt$nConvergent[is.na(tad_conv_dt$nConvergent)] <- 0
 
 tad_conv_dt$adjPvalComb_log10 <- -log10(tad_conv_dt$adjPvalComb)
 
+################### DENSPLOT nConvergent
+
 xvar <- "nConvergent"
 all_yvars <-  c("meanCorr", "meanLogFC", "adjPvalComb_log10")
 yvar <- "adjPvalComb_log10"
@@ -228,18 +333,109 @@ for(yvar in all_yvars){
 
 
 
+################### BARPLOT nConvergent
+
+plot(density(tad_conv_dt$nConvergent))
+range(tad_conv_dt$nConvergent)
+
+tad_conv_dt$signif_lab <- ifelse(tad_conv_dt$adjPvalComb <= signifThresh, "signif.", "not signif.")
+
+tad_conv_dt$nConvergent_lab <- ifelse(tad_conv_dt$nConvergent == 0, "0",
+                                          ifelse(tad_conv_dt$nConvergent > 0 & tad_conv_dt$nConvergent <= 3, ">0 & <=3",
+                                                 ifelse(tad_conv_dt$nConvergent > 3 & tad_conv_dt$nConvergent <= 10, ">3 & <=6",
+                                                        ifelse(tad_conv_dt$nConvergent > 6 & tad_conv_dt$nConvergent <= 15, ">6 & <=9",
+                                                               ifelse(tad_conv_dt$nConvergent > 9, ">9", NA)))))
+
+stopifnot(!is.na(tad_conv_dt$nConvergent_lab))
+
+nConvergent_levels <- c("0", ">0 & <=3", ">3 & <=6", ">6 & <=9", ">9")
+
+plot_dt <- aggregate(region ~ nConvergent_lab+signif_lab, data=tad_conv_dt, FUN=length)
+plot_dt$nConvergent_lab <- factor(plot_dt$nConvergent_lab, levels=rev(nConvergent_levels))
+stopifnot(!is.na(plot_dt$nConvergent_lab))
+
+tmp <- aggregate(region~signif_lab, data=plot_dt, FUN=sum)
+
+totSignif <- setNames(tmp$region, tmp$signif_lab)
+
+stopifnot(sum(ds_final_dt$adjPvalComb <= signifThresh) == totSignif[ "signif."])
+stopifnot(sum(ds_final_dt$adjPvalComb > signifThresh) == totSignif["not signif."])
+
+plot_dt$signif_lab <- as.character(plot_dt$signif_lab)
+plot_dt$region_ratio <- plot_dt$region/totSignif[plot_dt$signif_lab]
+
+stopifnot(!is.na(plot_dt$region_ratio))
 
 
-ntot <- nrow(maxClust_tad_dt)
-nDS <- length(unique(file.path(maxClust_tad_dt$hicds, maxClust_tad_dt$exprds)))
+plotTit <- "Ratio domains by # of nConvergent"
+subTit <- paste0("#", names(totSignif), "=", totSignif, collapse="; ")
+
+p <- ggbarplot(plot_dt, x="signif_lab", y="region_ratio", fill="nConvergent_lab", 
+               xlab = "", ylab = "Ratio of domains")+
+  scale_fill_nejm() + 
+  labs(fill="nConvergent") + 
+  ggtitle(plotTit, subtitle=subTit)+
+  theme(
+    plot.title = element_text(size=16, face = "bold", hjust=0.5),
+    plot.subtitle = element_text(size=14, face = "italic", hjust=0.5)
+  )
+
+
+
+outFile <- file.path(outFolder, paste0("nConvergent_byTAD_bySignif_ratio_barplot.", plotTypeGG))
+ggsave(p, filename=outFile, height=ggHeight, width=ggWidth)
+cat(paste0("... written: ", outFile,  "\n"))
+
+
+################### DENSITY signif not signif ratioMaxClust
+
+totSignif <- table(tad_conv_dt$signif_lab)
+
+plot_var <- "nConvergent"
+plotTit <- paste0(plot_var, " dist.")
+mySub <- paste0("#", names(totSignif), "=", totSignif, collapse="; ")
+legTitle <- ""
+
+p <- plot_density(ggdensity(tad_conv_dt,
+                            x = plot_var,
+                            y = "..density..",
+                            # combine = TRUE,                  # Combine the 3 plots
+                            xlab = plot_var,
+                            # add = "median",                  # Add median line.
+                            rug = FALSE,                      # Add marginal rug
+                            color = "signif_lab",
+                            fill = "signif_lab",
+                            palette = "jco"
+) +
+  ggtitle(plotTit, subtitle = mySub)+
+  labs(color=paste0(legTitle),fill=paste0(legTitle), y="Density"))
+
+outFile <- file.path(outFolder, paste0(paste0(plot_var, "_signif_notSignif_dist_density."), plotTypeGG))
+ggsave(p, file=outFile, height=ggHeight, width=ggWidth*1.5)
+cat(paste0("... written: ", outFile, "\n"))
+
+
 
 tmp_dt <- clust_merged_dt
 tmp_dt$orientation <- tmp_dt$nConvergent <- NULL
 stopifnot(is.numeric(tmp_dt$nInClust))
+tmp_dt$nInClust[is.na(tmp_dt$nInClust)] <- 0
 maxClust_tad_dt <- aggregate(nInClust~ ., data = tmp_dt, FUN=max)
 colnames(maxClust_tad_dt) [colnames(maxClust_tad_dt) == "nInClust"] <- "max_nInClust"
 
+ntot <- nrow(maxClust_tad_dt)
+nDS <- length(unique(file.path(maxClust_tad_dt$hicds, maxClust_tad_dt$exprds)))
+
+
 maxClust_tad_dt$adjPvalComb_log10 <- -log10(maxClust_tad_dt$adjPvalComb)
+
+stopifnot(!duplicated(file.path(maxClust_tad_dt$hicds, maxClust_tad_dt$exprds, maxClust_tad_dt$region)))
+
+
+
+
+
+################### DENSPLOT max_nInClust
 
 xvar <- "max_nInClust"
 all_yvars <-  c("meanCorr", "meanLogFC", "adjPvalComb_log10")
@@ -254,17 +450,114 @@ for(yvar in all_yvars){
   cat(paste0("... written: ", outFile,"\n"))
 }
 
+################### BARPLOT max_nInClust
+
+plot(density(maxClust_tad_dt$max_nInClust))
+range(maxClust_tad_dt$max_nInClust)
+
+maxClust_tad_dt$signif_lab <- ifelse(maxClust_tad_dt$adjPvalComb <= signifThresh, "signif.", "not signif.")
+
+maxClust_tad_dt$max_nInClust_lab <- ifelse(maxClust_tad_dt$max_nInClust == 0, "0",
+                                      ifelse(maxClust_tad_dt$max_nInClust > 0 & maxClust_tad_dt$max_nInClust <= 3, ">0 & <=3",
+                                             ifelse(maxClust_tad_dt$max_nInClust > 3 & maxClust_tad_dt$max_nInClust <= 10, ">3 & <=6",
+                                                    ifelse(maxClust_tad_dt$max_nInClust > 6 & maxClust_tad_dt$max_nInClust <= 15, ">6 & <=9",
+                                                           ifelse(maxClust_tad_dt$max_nInClust > 9, ">9", NA)))))
+
+stopifnot(!is.na(maxClust_tad_dt$max_nInClust_lab))
+
+maxClust_levels <- c("0", ">0 & <=3", ">3 & <=6", ">6 & <=9", ">9")
+
+plot_dt <- aggregate(region ~ max_nInClust_lab+signif_lab, data=maxClust_tad_dt, FUN=length)
+plot_dt$max_nInClust_lab <- factor(plot_dt$max_nInClust_lab, levels=rev(nConvergent_levels))
+stopifnot(!is.na(plot_dt$max_nInClust_lab))
+
+tmp <- aggregate(region~signif_lab, data=plot_dt, FUN=sum)
+
+totSignif <- setNames(tmp$region, tmp$signif_lab)
+
+stopifnot(sum(ds_final_dt$adjPvalComb <= signifThresh) == totSignif[ "signif."])
+stopifnot(sum(ds_final_dt$adjPvalComb > signifThresh) == totSignif["not signif."])
+
+plot_dt$signif_lab <- as.character(plot_dt$signif_lab)
+plot_dt$region_ratio <- plot_dt$region/totSignif[plot_dt$signif_lab]
+
+stopifnot(!is.na(plot_dt$region_ratio))
+
+
+plotTit <- "Ratio domains by # of max_nInClust"
+subTit <- paste0("#", names(totSignif), "=", totSignif, collapse="; ")
+
+p <- ggbarplot(plot_dt, x="signif_lab", y="region_ratio", fill="max_nInClust_lab", 
+               xlab = "", ylab = "Ratio of domains")+
+  scale_fill_nejm() + 
+  labs(fill="max_nInClust") + 
+  ggtitle(plotTit, subtitle=subTit)+
+  theme(
+    plot.title = element_text(size=16, face = "bold", hjust=0.5),
+    plot.subtitle = element_text(size=14, face = "italic", hjust=0.5)
+  )
+
+
+
+outFile <- file.path(outFolder, paste0("max_nInClust_byTAD_bySignif_ratio_barplot.", plotTypeGG))
+ggsave(p, filename=outFile, height=ggHeight, width=ggWidth)
+cat(paste0("... written: ", outFile,  "\n"))
+
+
+
+
+################### DENSITY signif not signif ratioMaxClust
+
+totSignif <- table(maxClust_tad_dt$signif_lab)
+
+plot_var <- "max_nInClust"
+plotTit <- paste0(plot_var, " dist.")
+mySub <- paste0("#", names(totSignif), "=", totSignif, collapse="; ")
+legTitle <- ""
+
+p <- plot_density(ggdensity(maxClust_tad_dt,
+                            x = plot_var,
+                            y = "..density..",
+                            # combine = TRUE,                  # Combine the 3 plots
+                            xlab = plot_var,
+                            # add = "median",                  # Add median line.
+                            rug = FALSE,                      # Add marginal rug
+                            color = "signif_lab",
+                            fill = "signif_lab",
+                            palette = "jco"
+) +
+  ggtitle(plotTit, subtitle = mySub)+
+  labs(color=paste0(legTitle),fill=paste0(legTitle), y="Density"))
+
+outFile <- file.path(outFolder, paste0(paste0(plot_var, "_signif_notSignif_dist_density."), plotTypeGG))
+ggsave(p, file=outFile, height=ggHeight, width=ggWidth*1.5)
+cat(paste0("... written: ", outFile, "\n"))
+
+
+
+
+
+
+
 # just for check
-tmp1 <- aggregate(nInClust ~ region + hicds + exprds, data=clust_merged_dt, FUN=sum)
+tmp0 <- clust_merged_dt
+tmp0$nInClust[is.na(tmp0$nInClust)] <- 0
+tmp1 <- aggregate(nInClust ~ region + hicds + exprds, data=tmp0, FUN=sum)
 x1 <- setNames(tmp1$nInClust, tmp1$region)
 x2 <- setNames(agg_merged_dt$CTCF_totCount, agg_merged_dt$region)
 stopifnot(setequal(x1,x2))
 stopifnot(setequal(names(x1),names(x2)))
 
 ratioMax_dt <- merge(maxClust_tad_dt,agg_merged_dt, by=intersect(colnames(maxClust_tad_dt), colnames(agg_merged_dt)), all=T )
+ratioMax_dt <- ratioMax_dt[ratioMax_dt$CTCF_totCount > 0,]   ### RETAIN ONLY DOMAINS THAT HAVE CTCF
 ratioMax_dt$ratioMaxClust <- ratioMax_dt$max_nInClust/ ratioMax_dt$CTCF_totCount
 stopifnot(ratioMax_dt$ratioMaxClust <= 1)
-  
+
+ratioMax_dt$signif_lab <- ifelse(ratioMax_dt$adjPvalComb <= signifThresh, "signif.", "not signif.")
+
+
+################### DENSPLOT ratioMaxClust
+
 xvar <- "ratioMaxClust"
 all_yvars <-  c("meanCorr", "meanLogFC", "adjPvalComb_log10")
 yvar <- "adjPvalComb_log10"
@@ -277,3 +570,32 @@ for(yvar in all_yvars){
   foo <- dev.off()
   cat(paste0("... written: ", outFile,"\n"))
 }
+
+################### DENSITY signif not signif ratioMaxClust
+
+totSignif <- table(ratioMax_dt$signif_lab)
+
+plot_var <- "ratioMaxClust"
+plotTit <- paste0(plot_var, " dist.")
+mySub <- paste0("#", names(totSignif), "=", totSignif, collapse="; ")
+legTitle <- ""
+
+p <- plot_density(ggdensity(ratioMax_dt,
+                x = plot_var,
+                y = "..density..",
+                # combine = TRUE,                  # Combine the 3 plots
+                xlab = plot_var,
+                # add = "median",                  # Add median line.
+                rug = FALSE,                      # Add marginal rug
+                color = "signif_lab",
+                fill = "signif_lab",
+                palette = "jco"
+) +
+  ggtitle(plotTit, subtitle = mySub)+
+  labs(color=paste0(legTitle),fill=paste0(legTitle), y="Density"))
+
+outFile <- file.path(outFolder, paste0(paste0(plot_var, "_signif_notSignif_dist_density."), plotTypeGG))
+ggsave(p, file=outFile, height=ggHeight, width=ggWidth*1.5)
+cat(paste0("... written: ", outFile, "\n"))
+
+
