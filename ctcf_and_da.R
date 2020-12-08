@@ -271,6 +271,68 @@ outFile <- file.path(outFolder, paste0("CTCF_totCount_byTAD_bySignif_ratio_barpl
 ggsave(p, filename=outFile, height=ggHeight, width=ggWidth)
 cat(paste0("... written: ", outFile,  "\n"))
 
+################### BARPLOT CTCF count by orientation
+
+tmp <- merged_dt
+tmp$signif_lab <- ifelse(tmp$adjPvalComb <= signifThresh, "signif.", "not signif.")
+class_agg_dt_tmp <- aggregate(chr ~ signif_lab + Triplet_class, FUN=length, data=tmp)
+colnames(class_agg_dt_tmp)[colnames(class_agg_dt_tmp) == "chr"] <- "CTCF_Count"
+
+tmp2 <- aggregate(region~signif_lab, data=tmp, FUN=length)
+totSignif <- setNames(tmp2$region, tmp2$signif_lab)
+
+plot_dt <- class_agg_dt_tmp
+plot_dt$count_ratio <- plot_dt$CTCF_Count/totSignif[plot_dt$signif_lab]
+stopifnot(plot_dt$count_ratio <= 1 & plot_dt$count_ratio >= 0)
+stopifnot(!is.na(plot_dt$count_ratio))
+
+plotTit <- "Ratio motifs by class and signif."
+subTit <- paste0("# in", names(totSignif), "=", totSignif, collapse="; ")
+
+p <- ggbarplot(plot_dt, x="signif_lab", y="count_ratio", fill="Triplet_class", 
+               xlab = "", ylab = "Ratio of motifs")+
+  scale_fill_nejm() + 
+  labs(fill="Triplet_class") + 
+  ggtitle(plotTit, subtitle=subTit)+
+  theme(
+    plot.title = element_text(size=16, face = "bold", hjust=0.5),
+    plot.subtitle = element_text(size=14, face = "italic", hjust=0.5)
+  )
+
+outFile <- file.path(outFolder, paste0("CTCF_totCount_byTripletClass_bySignif_ratio_barplot.", plotTypeGG))
+ggsave(p, filename=outFile, height=ggHeight, width=ggWidth)
+cat(paste0("... written: ", outFile,  "\n"))
+
+################### DENSITY CTCF TAD dist
+dist_dt <- merged_dt
+dist_dt$midPosDist <- abs(((merged_dt$start+merged_dt$end)/2) - ((merged_dt$tad_start+merged_dt$tad_end)/2))
+dist_dt$midPosDist_log10 <- log10(dist_dt$midPosDist)
+dist_dt$signif_lab <- ifelse(dist_dt$adjPvalComb <= signifThresh, "signif.", "not signif.")
+
+totSignif <- table(dist_dt$signif_lab)
+
+plot_var <- "midPosDist_log10"
+plotTit <- paste0(plot_var, " dist.")
+mySub <- paste0("#", names(totSignif), "=", totSignif, collapse="; ")
+legTitle <- ""
+
+p <- plot_density(ggdensity(dist_dt,
+                            x = plot_var,
+                            y = "..density..",
+                            # combine = TRUE,                  # Combine the 3 plots
+                            xlab = plot_var,
+                            # add = "median",                  # Add median line.
+                            rug = FALSE,                      # Add marginal rug
+                            color = "signif_lab",
+                            fill = "signif_lab",
+                            palette = "jco"
+) +
+  ggtitle(plotTit, subtitle = mySub)+
+  labs(color=paste0(legTitle),fill=paste0(legTitle), y="Density"))
+
+outFile <- file.path(outFolder, paste0(paste0(plot_var, "_signif_notSignif_dist_density."), plotTypeGG))
+ggsave(p, file=outFile, height=ggHeight, width=ggWidth*1.5)
+cat(paste0("... written: ", outFile, "\n"))
 
 #############################################################################
 # look by cluster
@@ -335,8 +397,8 @@ for(yvar in all_yvars){
 
 ################### BARPLOT nConvergent
 
-plot(density(tad_conv_dt$nConvergent))
-range(tad_conv_dt$nConvergent)
+# plot(density(tad_conv_dt$nConvergent))
+# range(tad_conv_dt$nConvergent)
 
 tad_conv_dt$signif_lab <- ifelse(tad_conv_dt$adjPvalComb <= signifThresh, "signif.", "not signif.")
 
