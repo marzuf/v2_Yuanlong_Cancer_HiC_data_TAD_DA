@@ -187,7 +187,7 @@ stopifnot(agg_merged_dt$CTCF_count.reverse + agg_merged_dt$CTCF_count.forward ==
 
 
 ### RETRIEVE THE REGION WITH 0 CTCF
-agg_merged_dt2 <- merge(ds_final_dt[,c("region", "meanCorr", "meanLogFC", "adjPvalComb")], 
+agg_merged_dt2 <- merge(ds_final_dt[,c("hicds", "exprds", "region", "meanCorr", "meanLogFC", "adjPvalComb")], 
                         agg_merged_dt, all.x=T, all.y=T, by=c("region", "meanCorr", "meanLogFC", "adjPvalComb"))
 agg_merged_dt2$CTCF_count.forward[is.na(agg_merged_dt2$CTCF_count.forward)] <- 0
 agg_merged_dt2$CTCF_count.reverse[is.na(agg_merged_dt2$CTCF_count.reverse)] <- 0
@@ -270,6 +270,37 @@ p <- ggbarplot(plot_dt, x="signif_lab", y="region_ratio", fill="CTCF_totCount_la
 outFile <- file.path(outFolder, paste0("CTCF_totCount_byTAD_bySignif_ratio_barplot.", plotTypeGG))
 ggsave(p, filename=outFile, height=ggHeight, width=ggWidth)
 cat(paste0("... written: ", outFile,  "\n"))
+
+################### DENSITY CTCFtotcount
+count_dt <- agg_merged_dt
+count_dt$signif_lab <- ifelse(count_dt$adjPvalComb <= signifThresh, "signif.", "not signif.")
+
+totSignif <- table(count_dt$signif_lab)
+
+plot_var <- "CTCF_totCount"
+plotTit <- paste0(plot_var, " dist.")
+mySub <- paste0("#", names(totSignif), "=", totSignif, collapse="; ")
+legTitle <- ""
+
+p <- plot_density(ggdensity(count_dt,
+                            x = plot_var,
+                            y = "..density..",
+                            # combine = TRUE,                  # Combine the 3 plots
+                            xlab = plot_var,
+                            # add = "median",                  # Add median line.
+                            rug = FALSE,                      # Add marginal rug
+                            color = "signif_lab",
+                            fill = "signif_lab",
+                            palette = "jco"
+) +
+  ggtitle(plotTit, subtitle = mySub)+
+  labs(color=paste0(legTitle),fill=paste0(legTitle), y="Density"))
+
+outFile <- file.path(outFolder, paste0(paste0(plot_var, "_signif_notSignif_dist_density."), plotTypeGG))
+ggsave(p, file=outFile, height=ggHeight, width=ggWidth*1.5)
+cat(paste0("... written: ", outFile, "\n"))
+
+
 
 ################### BARPLOT CTCF count by orientation
 

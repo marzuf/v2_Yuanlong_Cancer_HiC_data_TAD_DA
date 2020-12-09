@@ -57,7 +57,7 @@ registerDoMC(ifelse(SSHFS, 2, 80))
 
 buildTable <- F
 
-fontFamily <- "Hershey"
+fontFamily <- "Arial"
 
 myHeight <- 400 
 myWidth <- 400
@@ -380,6 +380,9 @@ mySub <- paste0(paste0(names(table(curr_dt$cond_id)), ": ", as.numeric(table(cur
 require(ggpubr)
 
 legTitle <- ""
+
+save(curr_dt, file=file.path(outFolder, "curr_dt.Rdata"), version=2)
+# stop("-ok\n")
 
 p2 <- ggdensity(curr_dt,
                 x = "purity",
