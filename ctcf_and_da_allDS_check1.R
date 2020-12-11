@@ -19,7 +19,11 @@ all_obs_hicds <- all_hicds[! (grepl("RANDOM", all_hicds) | grepl("PERMUT", all_h
 all_obs_exprds <- sapply(all_obs_hicds, function(x) list.files(file.path(pipFolder, x)))
 
 all_obs_hicds <- "ENCSR444WCZ_A549_40kb"
+# all_obs_hicds <- "ENCSR489OCU_NCI-H460_40kb"
 all_obs_exprds <- "TCGAluad_mutKRAS_mutEGFR"
+outFolder <- file.path("CTCF_AND_DA_ALLDS_CHECK1")
+# outFolder <- file.path("CTCF_AND_DA_ALLDS_CHECK1_NCI-H460")
+dir.create(outFolder, recursive = TRUE)
 
 
 registerDoMC(40)
@@ -81,14 +85,13 @@ runFolder <- "."
 
 
 final_dt <- get(load("CREATE_FINAL_TABLE/all_result_dt.Rdata"))
-ds_final_dt <- final_dt
+ds_final_dt <- final_dt[final_dt$hicds %in% all_obs_hicds & final_dt$exprds %in% all_obs_exprds,  ]
+
 # ds_final_dt <- final_dt[final_dt$hicds == hicds & final_dt$exprds == exprds, ]
 # stopifnot(nrow(ds_final_dt) > 0)
 
 buildTable <- TRUE
 
-outFolder <- file.path("CTCF_AND_DA_ALLDS_CHECK1")
-dir.create(outFolder, recursive = TRUE)
 
 init_ctcf_dt <- read_excel("13059_2020_2108_MOESM2_ESM.xlsx", sheet="CTCFs")
 init_ctcf_dt <- as.data.frame(init_ctcf_dt)
@@ -164,6 +167,8 @@ cat(paste0("# of CTCF BS out of TADs:\t",sum(is.na(ctcf2tad_dt$region)), "\n"))
 colnames(ds_final_dt)[colnames(ds_final_dt) == "start"] <- "tad_start"
 colnames(ds_final_dt)[colnames(ds_final_dt) == "end"] <- "tad_end"
 
+stopifnot(setequal(file.path(ds_final_dt$hicds),file.path(ctcf2tad_dt$hicds) ))
+
 merged_dt <- merge(ds_final_dt[,c("hicds", "exprds", "region", "meanLogFC", "meanCorr", "adjPvalComb", "tad_start", "tad_end")],
                    ctcf2tad_dt,
                    by=c("region", "hicds"), all=FALSE)
@@ -194,6 +199,9 @@ wide_aggByOrientation_dt <- reshape(aggByOrientation_dt[,c("hicds", "exprds","re
 agg_dt <- aggregate(chr ~ hicds + exprds + region + meanCorr + meanLogFC + adjPvalComb, FUN=length, data=merged_dt)
 colnames(agg_dt)[colnames(agg_dt) == "chr"] <- "CTCF_totCount"
 
+stopifnot(setequal(file.path(wide_aggByOrientation_dt$hicds, wide_aggByOrientation_dt$exprds),
+                   file.path(agg_dt$hicds, agg_dt$exprds) ))
+
 agg_merged_dt <- merge(wide_aggByOrientation_dt, agg_dt, by=c("hicds", "exprds", "region"), all=TRUE)
 
 agg_merged_dt$CTCF_count.forward[is.na(agg_merged_dt$CTCF_count.forward)] <- 0
@@ -203,6 +211,9 @@ stopifnot(agg_merged_dt$CTCF_count.reverse + agg_merged_dt$CTCF_count.forward ==
 
 
 ### RETRIEVE THE REGION WITH 0 CTCF
+stopifnot(setequal(file.path(ds_final_dt$hicds, ds_final_dt$exprds),
+                   file.path(agg_merged_dt$hicds, agg_merged_dt$exprds) ))
+
 agg_merged_dt2 <- merge(ds_final_dt[,c("hicds", "exprds", "region", "meanCorr", "meanLogFC", "adjPvalComb")], 
                         agg_merged_dt, all.x=T, all.y=T, by=c("hicds", "exprds", "region", "meanCorr", "meanLogFC", "adjPvalComb"))
 agg_merged_dt2$CTCF_count.forward[is.na(agg_merged_dt2$CTCF_count.forward)] <- 0
@@ -268,13 +279,13 @@ plot_dt$region_ratio <- plot_dt$region/totSignif[plot_dt$signif_lab]
 stopifnot(!is.na(plot_dt$region_ratio))
 
 
-plotTit <- "Ratio domains by # of CTCT_totCount"
+plotTit <- "Ratio domains by # of CTCF_totCount"
 subTit <- paste0("#", names(totSignif), "=", totSignif, collapse="; ")
 
 p <- ggbarplot(plot_dt, x="signif_lab", y="region_ratio", fill="CTCF_totCount_lab", 
                     xlab = "", ylab = "Ratio of domains")+
   scale_fill_nejm() + 
-  labs(fill="CTCT_totCount") + 
+  labs(fill="CTCF_totCount") + 
   ggtitle(plotTit, subtitle=subTit)+
   theme(
     plot.title = element_text(size=16, face = "bold", hjust=0.5),
@@ -416,6 +427,9 @@ if(buildTable) {
   clustByTAD_dt <- get(load(outFile))
 }
 # load("CTCF_AND_DA/ENCSR444WCZ_A549_40kb/TCGAluad_mutKRAS_mutEGFR/clustByTAD_dt.Rdata")
+
+stopifnot(setequal(file.path(ds_final_dt$hicds, ds_final_dt$exprds),
+                   file.path(clustByTAD_dt$hicds, clustByTAD_dt$exprds) ))
 
 clust_merged_dt <- merge(ds_final_dt[,c("hicds", "exprds", "region", "meanLogFC", "meanCorr", "adjPvalComb", "tad_start", "tad_end")],
                    clustByTAD_dt,
@@ -665,6 +679,13 @@ x1 <- setNames(tmp1$nInClust, tmp1$region)
 x2 <- setNames(agg_merged_dt$CTCF_totCount, agg_merged_dt$region)
 stopifnot(setequal(x1,x2))
 stopifnot(setequal(names(x1),names(x2)))
+
+paste0("colnames(maxClust_tad_dt", "\n", colnames(maxClust_tad_dt), "\n")
+paste0("colnames(agg_merged_dt", "\n", colnames(agg_merged_dt), "\n")
+
+stopifnot(setequal(file.path(maxClust_tad_dt$hicds, maxClust_tad_dt$exprds),
+                   file.path(agg_merged_dt$hicds, agg_merged_dt$exprds) ))
+
 
 ratioMax_dt <- merge(maxClust_tad_dt,agg_merged_dt, by=intersect(colnames(maxClust_tad_dt), colnames(agg_merged_dt)), all=T )
 ratioMax_dt <- ratioMax_dt[ratioMax_dt$CTCF_totCount > 0,]   ### RETAIN ONLY DOMAINS THAT HAVE CTCF
