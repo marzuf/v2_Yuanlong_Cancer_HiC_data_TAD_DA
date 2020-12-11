@@ -1,5 +1,5 @@
 
-# Rscript ctcf_and_da_allDS.R
+# Rscript ctcf_and_da_allDS_check1.R
 
 library("readxl")
 library(doMC)
@@ -17,6 +17,10 @@ all_hicds <- list.files(pipFolder)
 all_exprds <- sapply(all_hicds, function(x) list.files(file.path(pipFolder, x)))
 all_obs_hicds <- all_hicds[! (grepl("RANDOM", all_hicds) | grepl("PERMUT", all_hicds))]
 all_obs_exprds <- sapply(all_obs_hicds, function(x) list.files(file.path(pipFolder, x)))
+
+all_obs_hicds <- "ENCSR444WCZ_A549_40kb"
+all_obs_exprds <- "TCGAluad_mutKRAS_mutEGFR"
+
 
 registerDoMC(40)
 # runFolder <- "../v2_Yuanlong_Cancer_HiC_data_TAD_DA_GM12878" #PIPELINE/OUTPUT_FOLDER/GM12878_40kb/TCGAluad_norm_luad/11sameNbr_runEmpPvalCombined/"
@@ -81,9 +85,9 @@ ds_final_dt <- final_dt
 # ds_final_dt <- final_dt[final_dt$hicds == hicds & final_dt$exprds == exprds, ]
 # stopifnot(nrow(ds_final_dt) > 0)
 
-buildTable <- F
+buildTable <- TRUE
 
-outFolder <- file.path("CTCF_AND_DA_ALLDS")
+outFolder <- file.path("CTCF_AND_DA_ALLDS_CHECK1")
 dir.create(outFolder, recursive = TRUE)
 
 init_ctcf_dt <- read_excel("13059_2020_2108_MOESM2_ESM.xlsx", sheet="CTCFs")
