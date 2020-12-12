@@ -1,5 +1,7 @@
 
-# Rscript ctcf_and_da_allDS.R
+stop("-- not corrected for barplot not use\n")
+
+# Rscript ctcf_and_da_allDS_check1.R
 
 library("readxl")
 library(doMC)
@@ -18,6 +20,14 @@ all_exprds <- sapply(all_hicds, function(x) list.files(file.path(pipFolder, x)))
 all_obs_hicds <- all_hicds[! (grepl("RANDOM", all_hicds) | grepl("PERMUT", all_hicds))]
 all_obs_exprds <- sapply(all_obs_hicds, function(x) list.files(file.path(pipFolder, x)))
 
+all_obs_hicds <- "ENCSR444WCZ_A549_40kb"
+# all_obs_hicds <- "ENCSR489OCU_NCI-H460_40kb"
+all_obs_exprds <- "TCGAluad_mutKRAS_mutEGFR"
+outFolder <- file.path("CTCF_AND_DA_ALLDS_CHECK1")
+# outFolder <- file.path("CTCF_AND_DA_ALLDS_CHECK1_NCI-H460")
+dir.create(outFolder, recursive = TRUE)
+
+
 registerDoMC(40)
 # runFolder <- "../v2_Yuanlong_Cancer_HiC_data_TAD_DA_GM12878" #PIPELINE/OUTPUT_FOLDER/GM12878_40kb/TCGAluad_norm_luad/11sameNbr_runEmpPvalCombined/"
 # hicds <- "GM12878_40kb"
@@ -33,22 +43,57 @@ ggWidth <- 5
 
 fontFamily <- "Hershey"
 
+do_densplot_withCorr <- function(xvar, yvar, plot_dt) {
+  my_x <- plot_dt[,paste0(xvar)]
+  my_y <- plot_dt[,paste0(yvar)]
+  densplot(
+    x=my_x,
+    y=my_y,
+    xlab=paste0(xvar),
+    ylab=paste0(yvar),
+    cex.main=plotCex,
+    cex.axis=plotCex,
+    cex.lab = plotCex,
+    pch=16
+  )
+  addCorr(x=my_x, y=my_y, bty="n")
+}
+
+
+plot_density <- function(p) {
+  p2 <- p+  
+    guides(color=FALSE)+
+    scale_y_continuous(breaks = scales::pretty_breaks(n = 10))+
+    scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
+    theme(
+      text = element_text(family=fontFamily),
+      panel.grid.major.y =  element_line(colour = "grey", size = 0.5, linetype=1),
+      panel.grid.minor.y =  element_line(colour = "grey", size = 0.5, linetype=1),
+      panel.background = element_rect(fill = "transparent"),
+      panel.grid.major.x =  element_blank(),
+      panel.grid.minor.x =  element_blank(),
+      axis.title.x = element_text(size=14, hjust=0.5, vjust=0.5),
+      axis.title.y = element_text(size=14, hjust=0.5, vjust=0.5),
+      axis.text.y = element_text(size=12, hjust=0.5, vjust=0.5),
+      axis.text.x = element_text(size=12, hjust=0.5, vjust=0.5),
+      plot.title = element_text(hjust=0.5, size = 16, face="bold"),
+      plot.subtitle = element_text(hjust=0.5, size = 14, face="italic"),
+      legend.title = element_text(face="bold")
+    )
+  return(p2)
+}
 
 runFolder <- "." 
 
 
-source("ctcf_da_utils.R")
-
 final_dt <- get(load("CREATE_FINAL_TABLE/all_result_dt.Rdata"))
-ds_final_dt <- final_dt
-ds_final_dt <- final_dt[final_dt$hicds %in% unlist(all_obs_hicds) & final_dt$exprds %in% unlist(all_obs_exprds),  ]
+ds_final_dt <- final_dt[final_dt$hicds %in% all_obs_hicds & final_dt$exprds %in% all_obs_exprds,  ]
+
 # ds_final_dt <- final_dt[final_dt$hicds == hicds & final_dt$exprds == exprds, ]
 # stopifnot(nrow(ds_final_dt) > 0)
 
 buildTable <- TRUE
 
-outFolder <- file.path("CTCF_AND_DA_ALLDS")
-dir.create(outFolder, recursive = TRUE)
 
 init_ctcf_dt <- read_excel("13059_2020_2108_MOESM2_ESM.xlsx", sheet="CTCFs")
 init_ctcf_dt <- as.data.frame(init_ctcf_dt)
@@ -124,14 +169,7 @@ cat(paste0("# of CTCF BS out of TADs:\t",sum(is.na(ctcf2tad_dt$region)), "\n"))
 colnames(ds_final_dt)[colnames(ds_final_dt) == "start"] <- "tad_start"
 colnames(ds_final_dt)[colnames(ds_final_dt) == "end"] <- "tad_end"
 
-tmpx <- unique(file.path(ds_final_dt$hicds))
-tmpy <- unique(file.path(ctcf2tad_dt$hicds))
-
-cat(tmpy[!tmpy%in%tmpx], "\n")
-cat(tmpx[!tmpx%in%tmpy], "\n")
-
 stopifnot(setequal(file.path(ds_final_dt$hicds),file.path(ctcf2tad_dt$hicds) ))
-
 
 merged_dt <- merge(ds_final_dt[,c("hicds", "exprds", "region", "meanLogFC", "meanCorr", "adjPvalComb", "tad_start", "tad_end")],
                    ctcf2tad_dt,
@@ -223,23 +261,12 @@ agg_merged_dt$CTCF_totCount_lab <- ifelse(agg_merged_dt$CTCF_totCount == 0, "0",
                                                                       ifelse(agg_merged_dt$CTCF_totCount > 20, ">20", NA))))))
 
 stopifnot(!is.na(agg_merged_dt$CTCF_totCount_lab))
-stopifnot(sum(table(agg_merged_dt$CTCF_totCount_lab)) == nrow(agg_merged_dt))
 
-CTCF_totCount_breaks <- c(0,5,10,15,20)
-# cat(paste0("... running get_fract_lab2\n"))
-check_labs <- get_fract_lab2(vect_values=agg_merged_dt$CTCF_totCount, range_levels = CTCF_totCount_breaks)
-stopifnot(gsub("<=0", "0",check_labs) == agg_merged_dt$CTCF_totCount_lab)
-# cat(paste0("... running get_fract_lab0\n"))
-# check_labs <- get_fract_lab0(vect_values=agg_merged_dt$CTCF_totCount, range_levels = CTCF_totCount_breaks)
-# stopifnot(gsub("<=0", "0",check_labs) == agg_merged_dt$CTCF_totCount_lab)
-# # CTCFcount_levels <- c("0", ">0 & <=5", ">5 & <=10", ">10 & <=15", ">15 & <=20", ">20")
-CTCFcount_levels <- gsub("<=0", "0",get_level_labs(CTCF_totCount_breaks))
+CTCFcount_levels <- c("0", ">0 & <=5", ">5 & <=10", ">10 & <=15", ">15 & <=20", ">20")
 
 plot_dt <- aggregate(region ~ CTCF_totCount_lab+signif_lab, data=agg_merged_dt, FUN=length)
 plot_dt$CTCF_totCount_lab <- factor(plot_dt$CTCF_totCount_lab, levels=rev(CTCFcount_levels))
 stopifnot(!is.na(plot_dt$CTCF_totCount_lab))
-
-# stop("---ok\n")
 
 tmp <- aggregate(region~signif_lab, data=plot_dt, FUN=sum)
 
@@ -414,12 +441,6 @@ clust_merged_dt$chr <- gsub("(.+)_.+", "\\1", as.character(clust_merged_dt$regio
 stopifnot(clust_merged_dt$chr %in% paste0("chr", 1:22))
 
 
-#############************************************************************
-#############*#############************************************************************ nConvergent
-#############************************************************************
-
-
-
 tad_conv_dt <- clust_merged_dt
 tad_conv_dt$nInClust <- tad_conv_dt$orientation <- NULL
 tad_conv_dt <- unique(tad_conv_dt)
@@ -455,23 +476,13 @@ tad_conv_dt$signif_lab <- ifelse(tad_conv_dt$adjPvalComb <= signifThresh, "signi
 
 tad_conv_dt$nConvergent_lab <- ifelse(tad_conv_dt$nConvergent == 0, "0",
                                           ifelse(tad_conv_dt$nConvergent > 0 & tad_conv_dt$nConvergent <= 3, ">0 & <=3",
-                                                 ifelse(tad_conv_dt$nConvergent > 3 & tad_conv_dt$nConvergent <= 6, ">3 & <=6",
-                                                        ifelse(tad_conv_dt$nConvergent > 6 & tad_conv_dt$nConvergent <= 9, ">6 & <=9",
+                                                 ifelse(tad_conv_dt$nConvergent > 3 & tad_conv_dt$nConvergent <= 10, ">3 & <=6",
+                                                        ifelse(tad_conv_dt$nConvergent > 6 & tad_conv_dt$nConvergent <= 15, ">6 & <=9",
                                                                ifelse(tad_conv_dt$nConvergent > 9, ">9", NA)))))
 
 stopifnot(!is.na(tad_conv_dt$nConvergent_lab))
-stopifnot(sum(table(tad_conv_dt$nConvergent_lab)) == nrow(tad_conv_dt))
 
-nConvergent_breaks <- c(0,3,6,9)
-# cat(paste0("... running get_fract_lab2\n"))
-check_labs <- get_fract_lab2(vect_values=tad_conv_dt$nConvergent, range_levels = nConvergent_breaks)
-stopifnot(gsub("<=0", "0",check_labs) == tad_conv_dt$nConvergent_lab)
-# cat(paste0("... running get_fract_lab0\n"))
-# check_labs <- get_fract_lab0(vect_values=tad_conv_dt$nConvergent, range_levels = nConvergent_breaks)
-# stopifnot(gsub("<=0", "0",check_labs) == tad_conv_dt$nConvergent_lab)
-# # nConvergent_levels <- c("0", ">0 & <=3", ">3 & <=6", ">6 & <=9", ">9")
-nConvergent_levels <- gsub("<=0", "0",get_level_labs(nConvergent_breaks))
-
+nConvergent_levels <- c("0", ">0 & <=3", ">3 & <=6", ">6 & <=9", ">9")
 
 plot_dt <- aggregate(region ~ nConvergent_lab+signif_lab, data=tad_conv_dt, FUN=length)
 plot_dt$nConvergent_lab <- factor(plot_dt$nConvergent_lab, levels=rev(nConvergent_levels))
@@ -503,12 +514,14 @@ p <- ggbarplot(plot_dt, x="signif_lab", y="region_ratio", fill="nConvergent_lab"
     plot.subtitle = element_text(size=14, face = "italic", hjust=0.5)
   )
 
+
+
 outFile <- file.path(outFolder, paste0("nConvergent_byTAD_bySignif_ratio_barplot.", plotTypeGG))
 ggsave(p, filename=outFile, height=ggHeight, width=ggWidth)
 cat(paste0("... written: ", outFile,  "\n"))
 
 
-################### DENSITY signif not signif nConvergent 
+################### DENSITY signif not signif ratioMaxClust
 
 totSignif <- table(tad_conv_dt$signif_lab)
 
@@ -537,146 +550,66 @@ cat(paste0("... written: ", outFile, "\n"))
 
 
 
+tmp_dt <- clust_merged_dt
+tmp_dt$orientation <- tmp_dt$nConvergent <- NULL
+stopifnot(is.numeric(tmp_dt$nInClust))
+tmp_dt$nInClust[is.na(tmp_dt$nInClust)] <- 0
+maxClust_tad_dt <- aggregate(nInClust~ ., data = tmp_dt, FUN=max)
+colnames(maxClust_tad_dt) [colnames(maxClust_tad_dt) == "nInClust"] <- "max_nInClust"
+
+ntot <- nrow(maxClust_tad_dt)
+nDS <- length(unique(file.path(maxClust_tad_dt$hicds, maxClust_tad_dt$exprds)))
 
 
-#############************************************************************
-#############*#############************************************************************ Singletons
-#############************************************************************
-#############*
-##### singleton: ratio
+maxClust_tad_dt$adjPvalComb_log10 <- -log10(maxClust_tad_dt$adjPvalComb)
 
-tad_ratioSing_dt <- aggregate(nInClust ~ hicds + exprds + region+meanLogFC+meanCorr+adjPvalComb, data =clust_merged_dt, FUN=function(x) mean(x == 1))
-colnames(tad_ratioSing_dt)[colnames(tad_ratioSing_dt) == "nInClust"] <- "ratioSingleton"
-stopifnot(!duplicated(file.path(tad_ratioSing_dt$hicds, tad_ratioSing_dt$exprds, tad_ratioSing_dt$region)))
-stopifnot(!is.na(tad_ratioSing_dt$nSingleton))
+stopifnot(!duplicated(file.path(maxClust_tad_dt$hicds, maxClust_tad_dt$exprds, maxClust_tad_dt$region)))
 
-tad_ratioSing_dt$adjPvalComb_log10 <- -log10(tad_ratioSing_dt$adjPvalComb)
 
-################### DENSPLOT ratioSingletons
 
-save(tad_ratioSing_dt, file="tad_ratioSing_dt.Rdata", version=2)
 
-xvar <- "ratioSingleton"
+
+################### DENSPLOT max_nInClust
+
+xvar <- "max_nInClust"
 all_yvars <-  c("meanCorr", "meanLogFC", "adjPvalComb_log10")
-yvar <- "adjPvalComb_log10"
+yvar <- "meanCorr"
 for(yvar in all_yvars){
   outFile <- file.path(outFolder, paste0(xvar, "_vs_", yvar, "densplot.", plotType))
   do.call(plotType, list(outFile, height=myHeight, width=myWidth))
-  do_densplot_withCorr(xvar, yvar,tad_ratioSing_dt )
+  do_densplot_withCorr(xvar, yvar,maxClust_tad_dt )
   mtext(side=3, text = paste0("n=", ntot, "; nDS=", nDS))
   title(main = paste0(yvar, " vs. ", xvar))
   foo <- dev.off()
   cat(paste0("... written: ", outFile,"\n"))
 }
 
-################### DENSITY signif not signif ratioSingleton 
-tad_ratioSing_dt$signif_lab <- ifelse(tad_ratioSing_dt$adjPvalComb <= signifThresh, "signif.", "not signif.")
-totSignif <- table(tad_ratioSing_dt$signif_lab)
+################### BARPLOT max_nInClust
 
-plot_var <- "ratioSingleton"
-plotTit <- paste0(plot_var, " dist.")
-mySub <- paste0("#", names(totSignif), "=", totSignif, collapse="; ")
-legTitle <- ""
+plot(density(maxClust_tad_dt$max_nInClust))
+range(maxClust_tad_dt$max_nInClust)
 
-p <- plot_density(ggdensity(tad_ratioSing_dt,
-                            x = plot_var,
-                            y = "..density..",
-                            # combine = TRUE,                  # Combine the 3 plots
-                            xlab = plot_var,
-                            # add = "median",                  # Add median line.
-                            rug = FALSE,                      # Add marginal rug
-                            color = "signif_lab",
-                            fill = "signif_lab",
-                            palette = "jco"
-) +
-  ggtitle(plotTit, subtitle = mySub)+
-  labs(color=paste0(legTitle),fill=paste0(legTitle), y="Density"))
+maxClust_tad_dt$signif_lab <- ifelse(maxClust_tad_dt$adjPvalComb <= signifThresh, "signif.", "not signif.")
 
-outFile <- file.path(outFolder, paste0(paste0(plot_var, "_signif_notSignif_dist_density."), plotTypeGG))
-ggsave(p, file=outFile, height=ggHeight, width=ggWidth*1.5)
-cat(paste0("... written: ", outFile, "\n"))
+maxClust_tad_dt$max_nInClust_lab <- ifelse(maxClust_tad_dt$max_nInClust == 0, "0",
+                                      ifelse(maxClust_tad_dt$max_nInClust > 0 & maxClust_tad_dt$max_nInClust <= 3, ">0 & <=3",
+                                             ifelse(maxClust_tad_dt$max_nInClust > 3 & maxClust_tad_dt$max_nInClust <= 10, ">3 & <=6",
+                                                    ifelse(maxClust_tad_dt$max_nInClust > 6 & maxClust_tad_dt$max_nInClust <= 15, ">6 & <=9",
+                                                           ifelse(maxClust_tad_dt$max_nInClust > 9, ">9", NA)))))
 
+stopifnot(!is.na(maxClust_tad_dt$max_nInClust_lab))
 
+maxClust_levels <- c("0", ">0 & <=3", ">3 & <=6", ">6 & <=9", ">9")
 
-
-
-
-##### singleton: number 
-
-# clust_merged_dt <- merge(ds_final_dt[,c("hicds", "exprds", "region", "meanLogFC", "meanCorr", "adjPvalComb", "tad_start", "tad_end")],
-#                          clustByTAD_dt,
-#                          by=c("hicds", "exprds", "region"), all.x=TRUE, all.y=FALSE)
-# clust_merged_dt$chr <- gsub("(.+)_.+", "\\1", as.character(clust_merged_dt$region))
-# # stopifnot(clust_merged_dt$chr %in% tad_dt$chromo)
-# stopifnot(clust_merged_dt$chr %in% paste0("chr", 1:22))
-
-
-tad_nbrSing_dt <- clust_merged_dt
-tad_nbrSing_dt$nInClust[is.na(tad_nbrSing_dt$nInClust)] <- 0  # for the actual number -> replace number by 0 [not done for ratio !!!]
-tad_nbrSing_dt <-  aggregate(nInClust ~ hicds + exprds + region+meanLogFC+meanCorr+adjPvalComb, data =tad_nbrSing_dt, FUN=function(x) sum(x == 1))
-colnames(tad_nbrSing_dt)[colnames(tad_nbrSing_dt) == "nInClust"] <- "nSingleton"
-stopifnot(!duplicated(file.path(tad_nbrSing_dt$hicds, tad_nbrSing_dt$exprds, tad_nbrSing_dt$region)))
-stopifnot(!is.na(tad_nbrSing_dt$nSingleton))
-
-tad_nbrSing_dt$adjPvalComb_log10 <- -log10(tad_nbrSing_dt$adjPvalComb)
-
-stopifnot(setequal(file.path(tad_nbrSing_dt$hicds, tad_nbrSing_dt$exprds, tad_nbrSing_dt$region),
-file.path(ds_final_dt$hicds, ds_final_dt$exprds, ds_final_dt$region)))
-
-################### DENSPLOT nSingletons
-
-xvar <- "nSingleton"
-all_yvars <-  c("meanCorr", "meanLogFC", "adjPvalComb_log10")
-yvar <- "adjPvalComb_log10"
-for(yvar in all_yvars){
-  outFile <- file.path(outFolder, paste0(xvar, "_vs_", yvar, "densplot.", plotType))
-  do.call(plotType, list(outFile, height=myHeight, width=myWidth))
-  do_densplot_withCorr(xvar, yvar,tad_nbrSing_dt )
-  mtext(side=3, text = paste0("n=", ntot, "; nDS=", nDS))
-  title(main = paste0(yvar, " vs. ", xvar))
-  foo <- dev.off()
-  cat(paste0("... written: ", outFile,"\n"))
-}
-
-
-
-################### BARPLOT nSingleton
-
-# plot(density(tad_nbrSing_dt$nSingleton))
-# range(tad_nbrSing_dt$nSingleton) # 0-21
-
-tad_nbrSing_dt$signif_lab <- ifelse(tad_nbrSing_dt$adjPvalComb <= signifThresh, "signif.", "not signif.")
-
-tad_nbrSing_dt$nSingleton_lab <- ifelse(tad_nbrSing_dt$nSingleton == 0, "0",
-                                      ifelse(tad_nbrSing_dt$nSingleton > 0 & tad_nbrSing_dt$nSingleton <= 5, ">0 & <=5",
-                                             ifelse(tad_nbrSing_dt$nSingleton > 5 & tad_nbrSing_dt$nSingleton <= 10, ">5 & <=10",
-                                                    ifelse(tad_nbrSing_dt$nSingleton > 10 & tad_nbrSing_dt$nSingleton <= 15, ">10 & <=15",
-                                                           ifelse(tad_nbrSing_dt$nSingleton > 10, ">15", NA)))))
-
-stopifnot(!is.na(tad_nbrSing_dt$nSingleton_lab))
-stopifnot(sum(table(tad_nbrSing_dt$nSingleton_lab)) == nrow(tad_nbrSing_dt))
-
-nSingleton_breaks <- c(0,5,10,15)
-# cat(paste0("... running get_fract_lab2\n"))
-check_labs <- get_fract_lab2(vect_values=tad_nbrSing_dt$nSingleton, range_levels = nSingleton_breaks)
-stopifnot(gsub("<=0", "0",check_labs) == tad_nbrSing_dt$nSingleton_lab)
-# cat(paste0("... running get_fract_lab0\n"))
-# check_labs <- get_fract_lab0(vect_values=tad_nbrSing_dt$nSingleton, range_levels = nSingleton_breaks)
-# stopifnot(gsub("<=0", "0",check_labs) == tad_nbrSing_dt$nSingleton_lab)
-# nSingleton_levels <- c("0", ">0 & <=5", ">5 & <=10", ">10 & <=15", ">15")
-nSingleton_levels <- gsub("<=0", "0",get_level_labs(nSingleton_breaks))
-
-
-plot_dt <- aggregate(region ~ nSingleton_lab+signif_lab, data=tad_nbrSing_dt, FUN=length)
-plot_dt$nSingleton_lab <- factor(plot_dt$nSingleton_lab, levels=rev(nSingleton_levels))
-stopifnot(!is.na(plot_dt$nSingleton_lab))
+plot_dt <- aggregate(region ~ max_nInClust_lab+signif_lab, data=maxClust_tad_dt, FUN=length)
+plot_dt$max_nInClust_lab <- factor(plot_dt$max_nInClust_lab, levels=rev(nConvergent_levels))
+stopifnot(!is.na(plot_dt$max_nInClust_lab))
 
 tmp <- aggregate(region~signif_lab, data=plot_dt, FUN=sum)
 
 totSignif <- setNames(tmp$region, tmp$signif_lab)
 
-save(tad_nbrSing_dt, file="tad_nbrSing_dt.Rdata", version=2)
-stopifnot(sum(ds_final_dt$adjPvalComb <= signifThresh) == totSignif[ "signif."])  #### NEEEED TO CHECK !!!!!!!!!!!!!!!!!!!
+stopifnot(sum(ds_final_dt$adjPvalComb <= signifThresh) == totSignif[ "signif."])
 stopifnot(sum(ds_final_dt$adjPvalComb > signifThresh) == totSignif["not signif."])
 
 plot_dt$signif_lab <- as.character(plot_dt$signif_lab)
@@ -685,33 +618,38 @@ plot_dt$region_ratio <- plot_dt$region/totSignif[plot_dt$signif_lab]
 stopifnot(!is.na(plot_dt$region_ratio))
 
 
-plotTit <- "Ratio domains by # of nSingleton"
+plotTit <- "Ratio domains by # of max_nInClust"
 subTit <- paste0("#", names(totSignif), "=", totSignif, collapse="; ")
 
-p <- ggbarplot(plot_dt, x="signif_lab", y="region_ratio", fill="nSingleton_lab", 
+p <- ggbarplot(plot_dt, x="signif_lab", y="region_ratio", fill="max_nInClust_lab", 
                xlab = "", ylab = "Ratio of domains")+
   scale_fill_nejm() + 
-  labs(fill="nSingleton") + 
+  labs(fill="max_nInClust") + 
   ggtitle(plotTit, subtitle=subTit)+
   theme(
     plot.title = element_text(size=16, face = "bold", hjust=0.5),
     plot.subtitle = element_text(size=14, face = "italic", hjust=0.5)
   )
 
-outFile <- file.path(outFolder, paste0("nSingleton_byTAD_bySignif_ratio_barplot.", plotTypeGG))
+
+
+outFile <- file.path(outFolder, paste0("max_nInClust_byTAD_bySignif_ratio_barplot.", plotTypeGG))
 ggsave(p, filename=outFile, height=ggHeight, width=ggWidth)
 cat(paste0("... written: ", outFile,  "\n"))
 
-################### DENSITY signif not signif nbrSingleton 
-tad_nbrSing_dt$signif_lab <- ifelse(tad_nbrSing_dt$adjPvalComb <= signifThresh, "signif.", "not signif.")
-totSignif <- table(tad_nbrSing_dt$signif_lab)
 
-plot_var <- "nSingleton"
+
+
+################### DENSITY signif not signif ratioMaxClust
+
+totSignif <- table(maxClust_tad_dt$signif_lab)
+
+plot_var <- "max_nInClust"
 plotTit <- paste0(plot_var, " dist.")
 mySub <- paste0("#", names(totSignif), "=", totSignif, collapse="; ")
 legTitle <- ""
 
-p <- plot_density(ggdensity(tad_nbrSing_dt,
+p <- plot_density(ggdensity(maxClust_tad_dt,
                             x = plot_var,
                             y = "..density..",
                             # combine = TRUE,                  # Combine the 3 plots
@@ -728,171 +666,6 @@ p <- plot_density(ggdensity(tad_nbrSing_dt,
 outFile <- file.path(outFolder, paste0(paste0(plot_var, "_signif_notSignif_dist_density."), plotTypeGG))
 ggsave(p, file=outFile, height=ggHeight, width=ggWidth*1.5)
 cat(paste0("... written: ", outFile, "\n"))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#############************************************************************
-#############*#############************************************************************ max/mean InClust
-#############************************************************************
-
-
-
-
-tmp_dt <- clust_merged_dt
-tmp_dt$orientation <- tmp_dt$nConvergent <- NULL
-stopifnot(is.numeric(tmp_dt$nInClust))
-tmp_dt$nInClust[is.na(tmp_dt$nInClust)] <- 0
-
-all_agg_funs <- c("max", "mean")  # >>>> do for maxInClust and meanInClust
-
-for(agg_fun in all_agg_funs) {
-  
-  funClust_tad_dt <- aggregate(nInClust~ ., data = tmp_dt, FUN=agg_fun)
-  colnames(funClust_tad_dt) [colnames(funClust_tad_dt) == "nInClust"] <- paste0(agg_fun, "_nInClust")
-  
-  ntot <- nrow(funClust_tad_dt)
-  nDS <- length(unique(file.path(funClust_tad_dt$hicds, funClust_tad_dt$exprds)))
-  
-  
-  funClust_tad_dt$adjPvalComb_log10 <- -log10(funClust_tad_dt$adjPvalComb)
-  
-  stopifnot(!duplicated(file.path(funClust_tad_dt$hicds, funClust_tad_dt$exprds, funClust_tad_dt$region)))
-  
-  ################### DENSPLOT max_nInClust
-  
-  xvar <- paste0(agg_fun, "_nInClust")
-  all_yvars <-  c("meanCorr", "meanLogFC", "adjPvalComb_log10")
-  yvar <- "meanCorr"
-  for(yvar in all_yvars){
-    outFile <- file.path(outFolder, paste0(xvar, "_vs_", yvar, "densplot.", plotType))
-    do.call(plotType, list(outFile, height=myHeight, width=myWidth))
-    do_densplot_withCorr(xvar, yvar,funClust_tad_dt )
-    mtext(side=3, text = paste0("n=", ntot, "; nDS=", nDS))
-    title(main = paste0(yvar, " vs. ", xvar))
-    foo <- dev.off()
-    cat(paste0("... written: ", outFile,"\n"))
-  }
-  
-  ################### BARPLOT max_nInClust
-  
-  plot(density(funClust_tad_dt[,paste0(agg_fun, "_nInClust")]))
-  range(funClust_tad_dt[,paste0(agg_fun, "_nInClust")])
-  
-  cat(paste0("range(funClust_tad_dt[",agg_fun, "_nInClust)]", "\t=", range(funClust_tad_dt[,paste0(agg_fun, "_nInClust")]), "\n"))
-
-  if(agg_fun=="mean") save(funClust_tad_dt, file="funClust_tad_dt.Rdata", version=2)
-    
-  funClust_tad_dt$signif_lab <- ifelse(funClust_tad_dt$adjPvalComb <= signifThresh, "signif.", "not signif.")
-  
-  funClust_tad_dt[,paste0(agg_fun, "_nInClust_lab")] <- ifelse(funClust_tad_dt[,paste0(agg_fun, "_nInClust")] == 0, "0",
-                                             ifelse(funClust_tad_dt[,paste0(agg_fun, "_nInClust")] > 0 & funClust_tad_dt[,paste0(agg_fun, "_nInClust")] <= 3, ">0 & <=3",
-                                                    ifelse(funClust_tad_dt[,paste0(agg_fun, "_nInClust")] > 3 & funClust_tad_dt[,paste0(agg_fun, "_nInClust")] <= 6, ">3 & <=6",
-                                                           ifelse(funClust_tad_dt[,paste0(agg_fun, "_nInClust")] > 6 & funClust_tad_dt[,paste0(agg_fun, "_nInClust")] <= 9, ">6 & <=9",
-                                                                  ifelse(funClust_tad_dt[,paste0(agg_fun, "_nInClust")] > 9, ">9", NA)))))
-  stopifnot(!is.na(funClust_tad_dt[,paste0(agg_fun, "_nInClust_lab")]))
-  stopifnot(sum(table(funClust_tad_dt[,paste0(agg_fun, "_nInClust_lab")])) == nrow(funClust_tad_dt))
-  
-  
-  maxClust_breaks <- c(0,3,6,9) # same for inClust
-  cat(paste0("... running get_fract_lab2\n"))
-  check_labs <- get_fract_lab2(vect_values=funClust_tad_dt[,paste0(agg_fun, "_nInClust")] , range_levels = maxClust_breaks)
-  stopifnot(gsub("<=0", "0",check_labs) ==   funClust_tad_dt[,paste0(agg_fun, "_nInClust_lab")] )
-  # cat(paste0("... running get_fract_lab0\n"))
-  # check_labs <- get_fract_lab0(vect_values=agg_merged_dt$CTCF_totCount, range_levels = CTCF_totCount_breaks)
-  # stopifnot(gsub("<=0", "0",check_labs) == agg_merged_dt$CTCF_totCount_lab)
-  #   maxClust_levels <- c("0", ">0 & <=3", ">3 & <=6", ">6 & <=9", ">9")
-  maxClust_levels <- gsub("<=0", "0",get_level_labs(maxClust_breaks))
-  
-  
-  plot_dt <- aggregate(as.formula(paste0("region ~ ", agg_fun, "_nInClust_lab + signif_lab")), data=funClust_tad_dt, FUN=length)
-  plot_dt[,paste0(agg_fun, "_nInClust_lab")] <- factor(plot_dt[,paste0(agg_fun, "_nInClust_lab")], levels=rev(maxClust_levels))
-  stopifnot(!is.na(plot_dt[,paste0(agg_fun, "_nInClust_lab")]))
-  
-  tmp <- aggregate(region~signif_lab, data=plot_dt, FUN=sum)
-  
-  totSignif <- setNames(tmp$region, tmp$signif_lab)
-  
-  stopifnot(sum(ds_final_dt$adjPvalComb <= signifThresh) == totSignif[ "signif."])
-  stopifnot(sum(ds_final_dt$adjPvalComb > signifThresh) == totSignif["not signif."])
-  
-  plot_dt$signif_lab <- as.character(plot_dt$signif_lab)
-  plot_dt$region_ratio <- plot_dt$region/totSignif[plot_dt$signif_lab]
-  
-  stopifnot(!is.na(plot_dt$region_ratio))
-  
-  
-  plotTit <- paste0("Ratio domains by # of ", agg_fun, "_nInClust")
-  subTit <- paste0("#", names(totSignif), "=", totSignif, collapse="; ")
-  
-  p <- ggbarplot(plot_dt, x="signif_lab", y="region_ratio", fill=paste0(agg_fun, "_nInClust_lab"), 
-                 xlab = "", ylab = "Ratio of domains")+
-    scale_fill_nejm() + 
-    labs(fill=paste0(agg_fun, "_nInClust")) + 
-    ggtitle(plotTit, subtitle=subTit)+
-    theme(
-      plot.title = element_text(size=16, face = "bold", hjust=0.5),
-      plot.subtitle = element_text(size=14, face = "italic", hjust=0.5)
-    )
-  
-  
-  
-  outFile <- file.path(outFolder, paste0(agg_fun, "_nInClust_byTAD_bySignif_ratio_barplot.", plotTypeGG))
-  ggsave(p, filename=outFile, height=ggHeight, width=ggWidth)
-  cat(paste0("... written: ", outFile,  "\n"))
-  
-  
-  
-  
-  ################### DENSITY signif not signif ratioMaxClust
-  
-  totSignif <- table(funClust_tad_dt$signif_lab)
-  
-  plot_var <- paste0(agg_fun, "_nInClust")
-  plotTit <- paste0(plot_var, " dist.")
-  mySub <- paste0("#", names(totSignif), "=", totSignif, collapse="; ")
-  legTitle <- ""
-  
-  p <- plot_density(ggdensity(funClust_tad_dt,
-                              x = plot_var,
-                              y = "..density..",
-                              # combine = TRUE,                  # Combine the 3 plots
-                              xlab = plot_var,
-                              # add = "median",                  # Add median line.
-                              rug = FALSE,                      # Add marginal rug
-                              color = "signif_lab",
-                              fill = "signif_lab",
-                              palette = "jco"
-  ) +
-    ggtitle(plotTit, subtitle = mySub)+
-    labs(color=paste0(legTitle),fill=paste0(legTitle), y="Density"))
-  
-  outFile <- file.path(outFolder, paste0(paste0(plot_var, "_signif_notSignif_dist_density."), plotTypeGG))
-  ggsave(p, file=outFile, height=ggHeight, width=ggWidth*1.5)
-  cat(paste0("... written: ", outFile, "\n"))
-  
-  if(agg_fun == "max") 
-    maxClust_tad_dt <- funClust_tad_dt
-  
-}
-
 
 
 
@@ -909,14 +682,11 @@ x2 <- setNames(agg_merged_dt$CTCF_totCount, agg_merged_dt$region)
 stopifnot(setequal(x1,x2))
 stopifnot(setequal(names(x1),names(x2)))
 
+paste0("colnames(maxClust_tad_dt", "\n", colnames(maxClust_tad_dt), "\n")
+paste0("colnames(agg_merged_dt", "\n", colnames(agg_merged_dt), "\n")
+
 stopifnot(setequal(file.path(maxClust_tad_dt$hicds, maxClust_tad_dt$exprds),
                    file.path(agg_merged_dt$hicds, agg_merged_dt$exprds) ))
-
-
-#############************************************************************
-#############*#############************************************************************ ratioMaxClust
-#############************************************************************
-
 
 
 ratioMax_dt <- merge(maxClust_tad_dt,agg_merged_dt, by=intersect(colnames(maxClust_tad_dt), colnames(agg_merged_dt)), all=T )
@@ -969,88 +739,4 @@ outFile <- file.path(outFolder, paste0(paste0(plot_var, "_signif_notSignif_dist_
 ggsave(p, file=outFile, height=ggHeight, width=ggWidth*1.5)
 cat(paste0("... written: ", outFile, "\n"))
 
-
-
-#############************************************************************
-#############*#############************************************************************ scores
-#############************************************************************
-
-current_score <- c("MotifScore")
-agg_fun <- "sum"
-
-all_scores <- c("MotifScore", "ChipSeqScore")
-all_agg_funs <- c("sum", "mean")
-
-
-merged_dt <- merge(ds_final_dt[,c("hicds", "exprds", "region", "meanLogFC", "meanCorr", "adjPvalComb", "tad_start", "tad_end")],
-                   ctcf2tad_dt,
-                   by=c("region", "hicds"), all=FALSE)
-tmp <- merged_dt$region
-tmp <- gsub("(.+)_.+", "\\1", tmp)
-stopifnot(tmp == merged_dt$chr)
-
-merged_dt <- merged_dt[order(merged_dt$chr, merged_dt$start, merged_dt$end ),]
-# stopifnot(diff(merged_dt$start) >= 0) # not true because multiple chromo
-merged_dt$region <- as.character(merged_dt$region)
-
-
-for(current_score in all_scores) {
-  
-  
-  
-  
-  
-  for(agg_fun in all_agg_funs) {
-    newCol <- paste0(agg_fun, "_", current_score)
-    
-    agg_score_dt <- aggregate(as.formula(paste0(current_score, " ~ region + hicds+exprds+meanLogFC+meanCorr+adjPvalComb")), data=merged_dt, FUN=agg_fun)
-    agg_score_dt$adjPvalComb_log10 <- -log10(agg_score_dt$adjPvalComb)
-    colnames(agg_score_dt)[ colnames(agg_score_dt) == current_score] <- newCol
-    
-    xvar <- newCol
-    all_yvars <-  c("meanCorr", "meanLogFC", "adjPvalComb_log10")
-    yvar <- "adjPvalComb_log10"
-    for(yvar in all_yvars){
-      outFile <- file.path(outFolder, paste0(xvar, "_vs_", yvar, "densplot.", plotType))
-      do.call(plotType, list(outFile, height=myHeight, width=myWidth))
-      do_densplot_withCorr(xvar, yvar,agg_score_dt )
-      mtext(side=3, text = paste0("n=", ntot, "; nDS=", nDS))
-      title(main = paste0(yvar, " vs. ", xvar))
-      foo <- dev.off()
-      cat(paste0("... written: ", outFile,"\n"))
-    }
-    
-    
-    ################### DENSITY signif not signif score aggfun
-    
-    agg_score_dt$signif_lab <- ifelse(agg_score_dt$adjPvalComb <= signifThresh, "signif.", "not signif.")
-    
-    totSignif <- table(agg_score_dt$signif_lab)
-    
-    plot_var <- newCol
-    plotTit <- paste0(plot_var, " dist.")
-    mySub <- paste0("#", names(totSignif), "=", totSignif, collapse="; ")
-    legTitle <- ""
-    
-    p <- plot_density(ggdensity(agg_score_dt,
-                                x = plot_var,
-                                y = "..density..",
-                                # combine = TRUE,                  # Combine the 3 plots
-                                xlab = plot_var,
-                                # add = "median",                  # Add median line.
-                                rug = FALSE,                      # Add marginal rug
-                                color = "signif_lab",
-                                fill = "signif_lab",
-                                palette = "jco"
-    ) +
-      ggtitle(plotTit, subtitle = mySub)+
-      labs(color=paste0(legTitle),fill=paste0(legTitle), y="Density"))
-    
-    outFile <- file.path(outFolder, paste0(paste0(plot_var, "_signif_notSignif_dist_density."), plotTypeGG))
-    ggsave(p, file=outFile, height=ggHeight, width=ggWidth*1.5)
-    cat(paste0("... written: ", outFile, "\n"))
-    
-    
-  }
-}
 
