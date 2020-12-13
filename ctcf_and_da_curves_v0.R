@@ -1,5 +1,5 @@
 
-# Rscript ctcf_and_da_curves.R
+# Rscript ctcf_and_da_curves_v0.R
 
 
 ################# AJOUTER LE # TOT DANS LA LEGENDE !!!
@@ -30,7 +30,7 @@ plotTypeGG <- "svg"
 ggHeight <- 5
 ggWidth <- 6
 
-outFolder <- file.path("CTCF_AND_DA_CURVES")
+outFolder <- file.path("CTCF_AND_DA_CURVES_v0")
 dir.create(outFolder, recursive = TRUE)
 
 inFile <- file.path(inFolder, "ctcf2tad_dt.Rdata")
@@ -55,13 +55,12 @@ both_dt$relative_position <- (both_dt$ctcf_midpos - both_dt$tad_start)/(both_dt$
 stopifnot(both_dt$relative_position >= 0)
 stopifnot(both_dt$relative_position <= 1)
 
-# rel_pos_breaks <- seq(from=0, to = 1, length.out=nBreaks)
-# rel_pos_labs <- get_fract_lab0(vect_values=both_dt$relative_position, range_levels = rel_pos_breaks)
-# rel_pos_levels <- gsub("^<=0$", "0",get_level_labs(rel_pos_breaks))
-# both_dt$rel_pos_lab <- rel_pos_labs
-
-both_dt$rel_pos_lab <- both_dt$relative_position %/% step_breaks
-both_dt$rel_pos_lab <- factor(both_dt$rel_pos_lab, levels=0:nBreaks)
+rel_pos_breaks <- seq(from=0, to = 1, length.out=nBreaks)
+rel_pos_labs <- get_fract_lab0(vect_values=both_dt$relative_position, range_levels = rel_pos_breaks)
+rel_pos_levels <- gsub("^<=0$", "0",get_level_labs(rel_pos_breaks))
+both_dt$rel_pos_lab <- rel_pos_labs
+# both_dt$rel_pos_lab <- both_dt$relative_position %/% step_breaks
+# both_dt$rel_pos_lab <- factor(both_dt$rel_pos_lab, levels=0:nBreaks)
 stopifnot(!is.na(both_dt$rel_pos_lab))
 
 
@@ -159,33 +158,6 @@ for(i in 1:length(all_to_plot)) {
   outFile <- file.path(outFolder, paste0(curr_col, "_aggBy_", curr_fun, "_along_relPosInTAD_byTripletClass_lineplot.", plotTypeGG))
   ggsave(p2, filename=outFile, height=ggHeight, width=ggWidth)
   cat(paste0("... written: ", outFile,  "\n"))
-  
-  ########### by orientation
-  
-  agg_byTAD_dt <- aggregate(as.formula(paste0(curr_col, " ~ hicds + exprds + region + rel_pos_lab + orientation")), data = both_dt, FUN=curr_fun)
-  
-  col_leg <- paste0(names(table(agg_byTAD_dt$orientation)), "\n", as.numeric(table(agg_byTAD_dt$orientation)))
-  
-  
-  myTit <- paste0("# DS = ", length(unique(file.path(agg_byTAD_dt$hicds,agg_byTAD_dt$exprds))), 
-                  "; # TADs = ", length(unique(file.path(agg_byTAD_dt$hicds,agg_byTAD_dt$exprds, agg_byTAD_dt$region ))))
-  
-  agg_all_dt <- aggregate(as.formula(paste0(curr_col, " ~ rel_pos_lab + orientation")), data=agg_byTAD_dt, FUN = "mean")
-  
-  p2 <- ggplot(data = agg_all_dt, aes_string(x="rel_pos_lab", y = paste0(curr_col), color="orientation", group="orientation")) + 
-    labs(x="relative position in TAD", y=paste0(curr_fun, " agg. ", curr_col), color="")+
-    ggtitle(myTit) +
-    scale_color_d3(labels = col_leg)+
-    geom_line() + 
-    geom_smooth(method = "loess")+
-    scale_y_continuous(breaks=scales::pretty_breaks(n = 10))+
-    my_theme
-  
-  
-  outFile <- file.path(outFolder, paste0(curr_col, "_aggBy_", curr_fun, "_along_relPosInTAD_byOrientation_lineplot.", plotTypeGG))
-  ggsave(p2, filename=outFile, height=ggHeight, width=ggWidth)
-  cat(paste0("... written: ", outFile,  "\n"))
-  
   
 }
 
