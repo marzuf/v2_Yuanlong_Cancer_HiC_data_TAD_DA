@@ -54,15 +54,21 @@ cat(paste0("... gap_threshold\t=\t", gap_threshold, "\n"))
 cat(paste0("... binSize\t=\t", binSize, "\n"))
 cat(paste0("... binSizeKb\t=\t", binSizeKb, "\n"))
 
+cat(all_ds[grepl("460", all_ds)], "\n")
+
+#stop("ok\n")
 
 ds = all_ds[1]
 # all_ds=all_ds[1]
+
+all_ds="mega_ENCSR489OCU_NCI-H460"
+
 foo <- foreach(ds = all_ds) %dopar% {
   
   cat(paste0("... start DS: ", ds, "\n"))
   stopifnot(ds %in% names(folder_names))
   folderName <- folder_names[paste0(ds)]
-  outFolder <- file.path(paste0(folderName, "_",binSizeKb , "kb"), "FINAL_DOMAINS")
+  outFolder <- file.path(paste0(folderName, "_",binSizeKb , "kb_CHECK141220"), "FINAL_DOMAINS")
   dir.create(outFolder, recursive = TRUE)
   
   logFile <- file.path(outFolder, "extract_domains_logfile.txt")
