@@ -55,7 +55,7 @@ hox_final_dt <- ds_final_dt[grepl("^HOX", ds_final_dt$region_genes),]
 
 hox_tads <- as.character(hox_final_dt$region)
 # add the hoxD tad
-hox_tads <- c(hox_tads, "chr2_TAD643") # chr2_TAD643 chr7_TAD114 chr17_TAD162
+hox_tads <- c(hox_tads, "chr2_TAD643") # HOXD:chr2_TAD643 HOXA:chr7_TAD114 HOXB:chr17_TAD162
 
 hox_ctcf_dt <- ctcf2tad_dt[ctcf2tad_dt$region %in% hox_tads &
               ctcf2tad_dt$hicds == hicds,
@@ -81,13 +81,13 @@ meanChipSeqScore <- aggregate(ChipSeqScore ~ hicds + region, FUN=mean, data=hox_
 colnames(meanChipSeqScore)[colnames(meanChipSeqScore) == "ChipSeqScore"] <- "meanChipSeqScore"
 meanChipSeqScore
 
-nMotifs <- aggregate(MotifScore ~ hicds + region+ orientation, FUN=length, data=hox_ctcf_dt)
-colnames(nMotifs)[colnames(nMotifs) == "MotifScore"] <- "nMotifs"
-nMotifs
+nMotifs_byOrientation <- aggregate(MotifScore ~ hicds + region+ orientation, FUN=length, data=hox_ctcf_dt)
+colnames(nMotifs_byOrientation)[colnames(nMotifs_byOrientation) == "MotifScore"] <- "nMotifs"
+nMotifs_byOrientation
 
-nMotifs <- aggregate(MotifScore ~ hicds + region+ Triplet_class, FUN=length, data=hox_ctcf_dt)
-colnames(nMotifs)[colnames(nMotifs) == "MotifScore"] <- "nMotifs"
-nMotifs
+nMotifs_byTC <- aggregate(MotifScore ~ hicds + region+ Triplet_class, FUN=length, data=hox_ctcf_dt)
+colnames(nMotifs_byTC)[colnames(nMotifs_byTC) == "MotifScore"] <- "nMotifs"
+nMotifs_byTC
 
 
 inFile <- file.path(inFolder, "clustByTAD_dt.Rdata")
@@ -96,7 +96,7 @@ hox_clust_dt <- clust_dt[clust_dt$region %in% hox_tads &
                           clust_dt$hicds == hicds &
                           clust_dt$exprds == exprds,]
 
-unique(hox_clust_dt[,c("hicds", "exprds", "nConvergent")])
+unique(hox_clust_dt[,c("hicds", "exprds", "region", "nConvergent")])
 
 maxInClust <- aggregate(nInClust~hicds+exprds+region, data = hox_clust_dt, FUN=max)
 colnames(maxInClust)[colnames(maxInClust) == "nInClust"] <- "maxInClust"
