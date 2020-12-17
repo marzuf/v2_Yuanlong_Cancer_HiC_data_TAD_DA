@@ -11,7 +11,7 @@ library(ggsci)
 require(ggpubr)
 
 all_patterns <- c("RANDOMMIDPOS", "RANDOMMIDPOSDISC", "RANDOMMIDPOSSTRICT")
-all_patterns="RANDOMMIDPOSDISC"
+# all_patterns="RANDOMMIDPOSDISC"
 
 for(randompatt in all_patterns) {
   
@@ -44,6 +44,8 @@ for(randompatt in all_patterns) {
   inFile <- file.path(inFolder, "ctcf2tad_dt.Rdata")
   ctcf2tad_dt <- get(load(inFile))
   stopifnot(ctcf2tad_dt$hicds %in% all_obs_hicds)
+  # discussion with Luca 16.12.20 - remove the "T" triplet class (There are terminal)
+  ctcf2tad_dt <- ctcf2tad_dt[ctcf2tad_dt$Triplet_class != "T",]
   
   inFile <- file.path("CREATE_FINAL_TABLE_RANDOM/all_result_dt.Rdata")
   final_dt <- get(load(inFile))
