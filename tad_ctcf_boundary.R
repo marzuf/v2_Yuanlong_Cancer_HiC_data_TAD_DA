@@ -35,7 +35,7 @@ pthresh <- 0.01
 
 fontFamily <- "Hershey"
 
-buildTable <- FALSE
+buildTable <- TRUE
 
 runFolder <- "." 
 outFolder <- file.path("TAD_CTCF_BOUNDARY")
