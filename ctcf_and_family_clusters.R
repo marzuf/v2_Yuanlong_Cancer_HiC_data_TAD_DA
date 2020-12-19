@@ -17,7 +17,7 @@ plotTypeGG <- "svg"
 
 chromoSize_dt <- read.delim("CTCF_CLUSTER/hg19_chromo_sizes.txt", stringsAsFactors=FALSE, col.names=c("chromo", "size"), header=F)
 
-nPermut <- 1000
+nPermut <- 10
 
 ctcf_clustSize <- 4000
 family_clustSize <- 260000
@@ -64,6 +64,7 @@ agg_ctcf_cluster_dt$midPos <- (agg_ctcf_cluster_dt$minPos+agg_ctcf_cluster_dt$ma
 outFile <- file.path(outFolder, "agg_ctcf_cluster_dt.Rdata")
 save(agg_ctcf_cluster_dt, file=outFile, version=2)
 cat(paste0("... written: ", outFile, "\n"))
+# load("CTCF_AND_FAMILY_CLUSTERS/ctcf4000_family260000/agg_ctcf_cluster_dt.Rdata")
 
 ###########################
 # prep family data
@@ -81,8 +82,16 @@ system(mycmd)
 family_cluster_dt <- read.delim(family_clustFile, header=FALSE,
                                 stringsAsFactors = FALSE, 
                                 col.names = c("chromo", "start", "end", "entrezID", "symbol", "family", "clusterID"))
-family_cluster_dt$clusterID <- paste0("cluster", family_cluster_dt$clusterID)
 
+
+commonChromo <- intersect(family_cluster_dt$chromo, agg_ctcf_cluster_dt$chromo)
+stopifnot(commonChromo %in% paste0("chr", c(1:22, "X")))
+
+family_cluster_dt <- family_cluster_dt[family_cluster_dt$chromo %in% commonChromo,]
+stopifnot(nrow(family_cluster_dt) > 0)
+
+agg_ctcf_cluster_dt <- agg_ctcf_cluster_dt[agg_ctcf_cluster_dt$chromo %in% commonChromo,]
+stopifnot(nrow(agg_ctcf_cluster_dt) > 0)
 
 # for each family, for each gene cluster -> cluster size and midposition
 # fam = unique(family_cluster_dt$family)[1]
@@ -91,7 +100,7 @@ all_fams_agg_cluster_dt <- foreach(fam = unique(family_cluster_dt$family), .comb
   subFamCluster_dt <- family_cluster_dt[family_cluster_dt$family == fam,]
   stopifnot(nrow(subFamCluster_dt) > 0)
   
-  # for each gene cluster -> cluster size and midposition
+  # for each gene cluster -> cluster size, minpos, maxpos and midposition
   aggSize_subFamCluster_dt <- aggregate(family~clusterID+chromo, FUN=length, data=subFamCluster_dt)
   colnames(aggSize_subFamCluster_dt)[colnames(aggSize_subFamCluster_dt) == "family"] <- "clusterSize"
   
@@ -112,6 +121,7 @@ all_fams_agg_cluster_dt <- foreach(fam = unique(family_cluster_dt$family), .comb
 outFile <- file.path(outFolder, "all_fams_agg_cluster_dt.Rdata")
 save(all_fams_agg_cluster_dt, file=outFile, version=2)
 cat(paste0("... written: ", outFile, "\n"))
+#  load("CTCF_AND_FAMILY_CLUSTERS/ctcf4000_family260000/all_fams_agg_cluster_dt.Rdata")
 
 nrow(all_fams_agg_cluster_dt) # 11228
 sum(all_fams_agg_cluster_dt$clusterSize > 1) # 1744
@@ -119,9 +129,11 @@ sum(all_fams_agg_cluster_dt$clusterSize > 1) # 1744
 stopifnot(!duplicated(file.path(all_fams_agg_cluster_dt$family,all_fams_agg_cluster_dt$clusterID)))
 stopifnot(!duplicated(file.path(agg_ctcf_cluster_dt$clusterID)))
 
+#### take only "real clusters" i.e. > 1
+
 final_fams_cluster_dt <- all_fams_agg_cluster_dt[all_fams_agg_cluster_dt$clusterSize > 1,]
 final_ctcf_cluster_dt <- agg_ctcf_cluster_dt[agg_ctcf_cluster_dt$clusterSize > 1,]
-
+final_ctcf_cluster_dt$clusterID_full <- paste0("CTCF_", final_ctcf_cluster_dt$clusterID)
 i=1
 
 final_fams_cluster_dt$minDist_CTCFclust <- NA
@@ -129,122 +141,380 @@ final_fams_cluster_dt$closest_CTCFclust <- NA
 
 final_fams_cluster_dt$clusterLength <- final_fams_cluster_dt$maxPos - final_fams_cluster_dt$minPos + 1
 
-obsAndPermut_closest_clusters_dt <- foreach(i = 1:nrow(final_fams_cluster_dt)) %dopar% {
-  
-  curr_chromo <- final_fams_cluster_dt$chromo[i]
-  curr_midpos <- final_fams_cluster_dt$midPos[i]
-  
-  curr_length <- final_fams_cluster_dt$clusterLength[i]
-  
-  sub_ctcf_dt <- final_ctcf_cluster_dt[final_ctcf_cluster_dt$chromo == curr_chromo,]
-  
+              obsAndPermut_closest_clusters_dt <- foreach(i = 1:nrow(final_fams_cluster_dt)) %dopar% {
 
-  i_minDist <- which.min(abs(curr_midpos - sub_ctcf_dt$midPos))
+                curr_chromo <- final_fams_cluster_dt$chromo[i]
+                curr_midpos <- final_fams_cluster_dt$midPos[i]
+
+                curr_length <- final_fams_cluster_dt$clusterLength[i]
+
+                sub_ctcf_dt <- final_ctcf_cluster_dt[final_ctcf_cluster_dt$chromo == curr_chromo,]
+
+
+                i_minDist <- which.min(abs(curr_midpos - sub_ctcf_dt$midPos))
+
+                # final_fams_cluster_dt$closest_CTCFclust[i] <- paste0("CTCF_", sub_ctcf_dt$clusterID[i_minDist])
+                final_fams_cluster_dt$closest_CTCFclust[i] <- sub_ctcf_dt$clusterID_full[i_minDist]
+                final_fams_cluster_dt$minDist_CTCFclust[i] <- min(abs(curr_midpos - sub_ctcf_dt$midPos))
+                obs_final_fams_cluster_dt <- final_fams_cluster_dt[i,]
+                
+                stopifnot(  final_fams_cluster_dt$closest_CTCFclust[i]  %in% final_ctcf_cluster_dt$clusterID_full)
+                
+                maxSize <- chromoSize_dt$size[chromoSize_dt==curr_chromo]
+                stopifnot(length(maxSize) == 1)
+                stopifnot(is.numeric(maxSize))
+
+                permut_minDist <- foreach(i_permut=1:nPermut, .combine='cbind') %do% {
+
+                  # for a chromo of size 11, and length of 5
+                  # last position can be 11-5+1=7 (7-8-9-10-11)
+                  randomStartPos <- sample(1:(maxSize-curr_length+1), size=1)
+                  # if randomStartPos is 5; randomEndPos is 7+5-1
+                  randomEndPos <- randomStartPos + curr_length - 1
+                  random_midpos <- (randomStartPos+randomEndPos)/2
+                  i_random_minDist <- which.min(abs(random_midpos - sub_ctcf_dt$midPos))
+                  random_closest  <- sub_ctcf_dt$clusterID_full[i_random_minDist]
+                  
+                  stopifnot(  random_closest  %in% final_ctcf_cluster_dt$clusterID_full)
+                  
+                  
+                  random_minDist <- min(abs(random_midpos - sub_ctcf_dt$midPos))
+                  t(data.frame(
+                    random_closest=random_closest,
+                    random_minDist=random_minDist,
+                     stringsAsFactors=FALSE
+                  ))
+                }
+                list(
+                  obs_final_fams_cluster_dt=obs_final_fams_cluster_dt,
+                  permut_minDist = permut_minDist
+                )
+              }
+
+
+              outFile <- file.path(outFolder, "obsAndPermut_closest_clusters_dt.Rdata")
+              save(obsAndPermut_closest_clusters_dt, file=outFile, version=2)
+              cat(paste0("... written: ", outFile, "\n"))
+
+# load("CTCF_AND_FAMILY_CLUSTERS/ctcf4000_family260000/obsAndPermut_closest_clusters_dt.Rdata")
+
+
+# load("CTCF_AND_FAMILY_CLUSTERS/obsAndPermut_closest_clusters_dt.Rdata")
+
+all_obs_dt <- do.call('rbind', lapply(obsAndPermut_closest_clusters_dt, function(x) x[["obs_final_fams_cluster_dt"]]))
+all_permutDist <- unlist(lapply(obsAndPermut_closest_clusters_dt, function(x) x[["permut_minDist"]]["random_minDist",]))
+all_permutDist <- as.numeric(all_permutDist)
+stopifnot(!is.na(all_permutDist))
+all_permutClosest <- unlist(lapply(obsAndPermut_closest_clusters_dt, function(x) x[["permut_minDist"]]["random_closest",]))
+all_permutClosest <- as.character(all_permutClosest)
+stopifnot(!is.na(all_permutClosest))
+stopifnot(length(all_permutDist) == length(all_permutClosest))
+
+all(all_obs_dt %in% final_ctcf_cluster_dt$clusterID_full)
+
+
+################################################################################################
+######################### clust size and dist of the of the closest ctcf, + filter max dist
+################################################################################################
+
+
+agg_ctcf_cluster_dt$CTCFid <- paste0("CTCF_", agg_ctcf_cluster_dt$clusterID)
+
+random_match_dt <- data.frame(
+  CTCFid = all_permutClosest,
+  minDist_CTCFclust = as.numeric(all_permutDist),
+  stringsAsFactors=FALSE
+)
+stopifnot(!is.na(random_match_dt))
+mean(random_match_dt$minDist_CTCFclust)
+stopifnot(random_match_dt$CTCFid %in% final_ctcf_cluster_dt$clusterID_full)
+
+merged_random_dt <- merge(random_match_dt, agg_ctcf_cluster_dt, by="CTCFid", all.x=TRUE, all.y=FALSE, suffixes = c("", "_CTCF"))
+stopifnot(!is.na(merged_random_dt))
+
+mean(all_obs_dt$minDist_CTCFclust)
+all_obs_dt$CTCFid <- all_obs_dt$closest_CTCFclust
+merged_obs_dt <- merge(all_obs_dt, agg_ctcf_cluster_dt, by="CTCFid", all.x=TRUE, all.y=FALSE, suffixes = c("", "_CTCF"))
+stopifnot(!is.na(merged_obs_dt))
+
+plot_dt <- data.frame(
+  dataType=c(rep("observed", nrow(merged_obs_dt)), rep("random", nrow(merged_random_dt))),
+  closestSize = c(merged_obs_dt$clusterSize_CTCF, merged_random_dt$clusterSize_CTCF),
+  closestDist = c(merged_obs_dt$minDist_CTCFclust, merged_random_dt$minDist_CTCFclust),
+  stringsAsFactors = FALSE
+)
+plot_dt$closestDist_log10 <- log10(plot_dt$closestDist)
   
-  final_fams_cluster_dt$closest_CTCFclust[i] <- paste0("CTCF_", sub_ctcf_dt$clusterID[i_minDist])
-  final_fams_cluster_dt$minDist_CTCFclust[i] <- min(abs(curr_midpos - sub_ctcf_dt$midPos))
-  obs_final_fams_cluster_dt <- final_fams_cluster_dt[i,]
+plot_vars <- c("closestSize", "closestDist", "closestDist_log10")
+
+distThresh <- 4000
+
+for(plot_var in plot_vars) {
   
-  maxSize <- chromoSize_dt$size[chromoSize_dt==curr_chromo]
-  stopifnot(length(maxSize) == 1)
-  stopifnot(is.numeric(maxSize))
+  plotTit <- paste0(plot_var, " - closest CTCF cluster")
+  subTit <- paste0("# ", names(table(plot_dt$dataType)), "=", as.numeric(table(plot_dt$dataType)), collapse="; ") 
+    #"family cluster's closest CTCF cluster size" #paste0("# permut = ", nPermut, "; # family clusters = ", nrow(all_obs_dt), " (# fam. = ", length(unique(all_obs_dt$family)), ")") 
   
-  permut_minDist <- foreach(i_permut=1:nPermut, .combine='c') %do% {
-    
-    # for a chromo of size 11, and length of 5
-    # last position can be 11-5+1=7 (7-8-9-10-11)
-    randomStartPos <- sample(1:(maxSize-curr_length+1), size=1)
-    # if randomStartPos is 5; randomEndPos is 7+5-1
-    randomEndPos <- randomStartPos + curr_length - 1
-    random_midpos <- (randomStartPos+randomEndPos)/2
-    random_minDist <- min(abs(random_midpos - sub_ctcf_dt$midPos))
-    random_minDist
-  }
-  list(
-    obs_final_fams_cluster_dt=obs_final_fams_cluster_dt,
-    permut_minDist = permut_minDist
-  )
+  p <- ggdensity(plot_dt,
+                 x = paste0(plot_var),
+                 y = "..density..",
+                 # combine = TRUE,                  # Combine the 3 plots
+                 xlab = paste0(plot_var, " - closest CTCF cluster"),
+                 # add = "median",                  # Add median line.
+                 rug = FALSE,                      # Add marginal rug
+                 color = "dataType",
+                 fill = "dataType",
+                 palette = "d3"
+  )+ labs(color="", fill="") + ggtitle(plotTit, subtitle=subTit)+
+    theme(plot.title=element_text(face="bold"),
+          plot.subtitle=element_text(face="italic")
+    )
+  outFile <- file.path(outFolder, paste0(plot_var, "_closestCTCF_obsPermut_densityplot.", plotTypeGG))
+  ggsave(p, filename=outFile, height=ggHeight, width=ggWidth)
+  cat(paste0("... written: ", outFile,  "\n"))
+  
+  
+  p <- ggboxplot(plot_dt,
+                 x = paste0("dataType"),
+                 y = paste0(plot_var),
+                 # combine = TRUE,                  # Combine the 3 plots
+                 ylab = paste0(plot_var, " - closest CTCF cluster"),
+                 xlab = "",
+                 add = "jitter",                  # Add median line.
+                 rug = FALSE,                      # Add marginal rug
+                 color = "dataType",
+                 # fill = "dataType",
+                 palette = "d3"
+  )+ labs(color="", fill="") + ggtitle(plotTit, subtitle=subTit)+
+    theme(plot.title=element_text(face="bold"),
+          plot.subtitle=element_text(face="italic")
+    )
+  outFile <- file.path(outFolder, paste0(plot_var, "_closestCTCF_obsPermut_boxplot.", plotTypeGG))
+  ggsave(p, filename=outFile, height=ggHeight, width=ggWidth)
+  cat(paste0("... written: ", outFile,  "\n"))
+  
+  
+  
+  
+  
+  plotTit <- paste0(plot_var, " - closest CTCF  (max dist. ", distThresh, ")")
+  subTit <- paste0("# ", names(table(plot_dt$dataType)), "=", as.numeric(table(plot_dt$dataType)), collapse="; ") 
+  #"family cluster's closest CTCF cluster size" #paste0("# permut = ", nPermut, "; # family clusters = ", nrow(all_obs_dt), " (# fam. = ", length(unique(all_obs_dt$family)), ")") 
+  
+  p <- ggdensity(plot_dt[plot_dt$closestDist <= distThresh,],
+                 x = paste0(plot_var),
+                 y = "..density..",
+                 # combine = TRUE,                  # Combine the 3 plots
+                 xlab = paste0(plot_var, " - closest CTCF cluster"),
+                 # add = "median",                  # Add median line.
+                 rug = FALSE,                      # Add marginal rug
+                 color = "dataType",
+                 # fill = "dataType",
+                 palette = "d3"
+  )+ labs(color="", fill="") + ggtitle(plotTit, subtitle=subTit)+
+    theme(plot.title=element_text(face="bold"),
+          plot.subtitle=element_text(face="italic")
+    )
+  outFile <- file.path(outFolder, paste0(plot_var, "_closestCTCF_obsPermut_maxDist", distThresh, "_densityplot.", plotTypeGG))
+  ggsave(p, filename=outFile, height=ggHeight, width=ggWidth)
+  cat(paste0("... written: ", outFile,  "\n"))
+  
+  p <- ggboxplot(plot_dt[plot_dt$closestDist <= distThresh,],
+                 y = paste0(plot_var),
+                 x = "dataType",
+                 # combine = TRUE,                  # Combine the 3 plots
+                 xlab ="",
+                 ylab = paste0(plot_var, " - closest CTCF cluster"),
+                 add = "jitter",                  # Add median line.
+                 rug = FALSE,                      # Add marginal rug
+                 color = "dataType",
+                 # fill = "dataType",
+                 palette = "d3"
+  )+ labs(color="", fill="") + ggtitle(plotTit, subtitle=subTit)+
+    theme(plot.title=element_text(face="bold"),
+          plot.subtitle=element_text(face="italic")
+    )
+  outFile <- file.path(outFolder, paste0(plot_var, "_closestCTCF_obsPermut_maxDist", distThresh, "_boxplot.", plotTypeGG))
+  ggsave(p, filename=outFile, height=ggHeight, width=ggWidth)
+  cat(paste0("... written: ", outFile,  "\n"))
+  
+  
 }
 
 
-outFile <- file.path(outFolder, "obsAndPermut_closest_clusters_dt.Rdata")
-save(obsAndPermut_closest_clusters_dt, file=outFile, version=2)
-cat(paste0("... written: ", outFile, "\n"))
 
-# load("CTCF_AND_FAMILY_CLUSTERS/obsAndPermut_closest_clusters_dt.Rdata")
-# plot # clust per family; mean clust size
 
-all_obs_dt <- do.call('rbind', lapply(obsAndPermut_closest_clusters_dt, function(x) x[["obs_final_fams_cluster_dt"]]))
-all_permut_dt <- unlist(lapply(obsAndPermut_closest_clusters_dt, function(x) x[["permut_minDist"]]))
+#########################
+######################### desc family and ctcf clusters
+#########################
 
-plot_dt <- data.frame(
-  dataType=c(rep("observed", nrow(all_obs_dt)), rep("random", length(all_permut_dt))),
-  minDist = c(all_obs_dt$minDist_CTCFclust, all_permut_dt),
-  stringsAsFactors=FALSE
-)
+agg_ctcf_cluster_dt$clusterLength <- agg_ctcf_cluster_dt$maxPos-agg_ctcf_cluster_dt$midPos+1
+agg_ctcf_cluster_dt$clusterLength_log10 <- log10(agg_ctcf_cluster_dt$clusterLength)
+agg_ctcf_cluster_dt$clusterSize_log10 <- log10(agg_ctcf_cluster_dt$clusterSize)
+
+all_fams_agg_cluster_dt$clusterLength <- all_fams_agg_cluster_dt$maxPos-all_fams_agg_cluster_dt$midPos+1
+all_fams_agg_cluster_dt$clusterLength_log10 <- log10(all_fams_agg_cluster_dt$clusterLength)
+all_fams_agg_cluster_dt$clusterSize_log10 <- log10(all_fams_agg_cluster_dt$clusterSize)
+
+
+plot_vars <- c("clusterSize", "clusterSize_log10", "clusterLength", "clusterLength_log10")
+
+for(feature in c("Family", "CTCF")) {
+  
+  if(feature == "Family") {
+    plot_dt <- all_fams_agg_cluster_dt
+    subTit <- paste0("# ", feature, " clusters = ", length(unique(file.path(plot_dt$clusterID, plot_dt$family))),
+                     " (# fam. = ", length(unique(plot_dt$family)), ")") 
+    plot_big1_dt <- plot_dt[plot_dt$clusterSize > 1,]
+    stopifnot(nrow(plot_big1_dt) > 0)
+    subTit2 <- paste0("# ", feature, " clusters = ", length(unique(file.path(plot_big1_dt$clusterID, plot_big1_dt$family))),
+                      " (# fam. = ", length(unique(plot_big1_dt$family)), ")") 
+    
+    
+  } else if(feature=="CTCF"){
+    plot_dt <- agg_ctcf_cluster_dt
+    subTit <- paste0("# ", feature, " clusters = ", length(unique(file.path(plot_dt$clusterID))))
+    plot_big1_dt <- plot_dt[plot_dt$clusterSize > 1,]
+    stopifnot(nrow(plot_big1_dt) > 0)
+    subTit2 <- paste0("# ", feature, " clusters = ", length(unique(file.path(plot_big1_dt$clusterID))))
+    
+  }else{
+    stop("invalid\n")
+  }
+  
+  
+  for(plot_var in plot_vars){
+    
+    plotTit <- paste0(feature, " cluster size")
+    
+    
+    p <- ggdensity(plot_dt,
+                   x = paste0(plot_var),
+                   y = "..density..",
+                   # combine = TRUE,                  # Combine the 3 plots
+                   xlab = paste0(feature, " ", plot_var),
+                   # add = "median",                  # Add median line.
+                   rug = FALSE,                      # Add marginal rug
+                   # color = "dataType",
+                   # fill = "dataType",
+                   palette = "d3"
+    )+ labs(color="", fill="") + ggtitle(plotTit, subtitle=subTit)+
+      theme(plot.title=element_text(face="bold"),
+            plot.subtitle=element_text(face="italic")
+      )
+    outFile <- file.path(outFolder, paste0(feature, "_", plot_var, "_densityplot.", plotTypeGG))
+    ggsave(p, filename=outFile, height=ggHeight, width=ggWidth)
+    cat(paste0("... written: ", outFile,  "\n"))
+    
+    plotTit <- paste0(feature, " cluster size")
+    
+    p <- ggdensity(plot_big1_dt,
+                   x = paste0(plot_var),
+                   y = "..density..",
+                   # combine = TRUE,                  # Combine the 3 plots
+                   xlab = paste0(feature, " ", plot_var),
+                   # add = "median",                  # Add median line.
+                   rug = FALSE,                      # Add marginal rug
+                   # color = "dataType",
+                   # fill = "dataType",
+                   palette = "d3"
+    )+ labs(color="", fill="") + ggtitle(plotTit, subtitle=subTit2)+
+      theme(plot.title=element_text(face="bold"),
+            plot.subtitle=element_text(face="italic")
+      )
+    outFile <- file.path(outFolder, paste0(feature, "_", plot_var, "_bigger1_densityplot.", plotTypeGG))
+    ggsave(p, filename=outFile, height=ggHeight, width=ggWidth)
+    cat(paste0("... written: ", outFile,  "\n"))
+  }
+  
+  
+  
+  
+}
+
+
+
+
 # 
-plot_dt$minDist_log10 <- log10(plot_dt$minDist)
+# plotTit <- "size of closest CTCF cluster"
+# subTit <- "family cluster's closest CTCF cluster size" #paste0("# permut = ", nPermut, "; # family clusters = ", nrow(all_obs_dt), " (# fam. = ", length(unique(all_obs_dt$family)), ")") 
+# 
+# p <- ggdensity(plot_dt,
+#                x = paste0("closestSize"),
+#                y = "..density..",
+#                # combine = TRUE,                  # Combine the 3 plots
+#                xlab = paste0("closest CTCF cluster size"),
+#                # add = "median",                  # Add median line.
+#                rug = FALSE,                      # Add marginal rug
+#                color = "dataType",
+#                fill = "dataType",
+#                palette = "d3"
+# )+ labs(color="", fill="") + ggtitle(plotTit, subtitle=subTit)+
+#   theme(plot.title=element_text(face="bold"),
+#         plot.subtitle=element_text(face="italic")
+#   )
+# outFile <- file.path(outFolder, paste0("sizeClosestCTCF_byFamilyClust_obsPermut_densityplot.", plotTypeGG))
+# ggsave(p, filename=outFile, height=ggHeight, width=ggWidth)
+# cat(paste0("... written: ", outFile,  "\n"))
+# 
+# 
+# 
+# distThresh <- 2000
+# 
+# plot_dt <- plot_dt[plot_dt$closestDist <= distThresh,]
+# plotTit <- paste0("size of closest CTCF cluster (dist. <= ", distThresh, ")")
+# subTit <- "family cluster's closest CTCF cluster size" #paste0("# permut = ", nPermut, "; # family clusters = ", nrow(all_obs_dt), " (# fam. = ", length(unique(all_obs_dt$family)), ")") 
+# 
+# p <- ggdensity(plot_dt,
+#                x = paste0("closestSize"),
+#                y = "..density..",
+#                # combine = TRUE,                  # Combine the 3 plots
+#                xlab = paste0("closest CTCF cluster size"),
+#                # add = "median",                  # Add median line.
+#                rug = FALSE,                      # Add marginal rug
+#                color = "dataType",
+#                fill = "dataType",
+#                palette = "d3"
+# )+ labs(color="", fill="") + ggtitle(plotTit, subtitle=subTit)+
+#   theme(plot.title=element_text(face="bold"),
+#         plot.subtitle=element_text(face="italic")
+#   )
+# outFile <- file.path(outFolder, paste0("sizeClosestCTCF_byFamilyClust_obsPermut_densityplot.", plotTypeGG))
+# ggsave(p, filename=outFile, height=ggHeight, width=ggWidth)
+# cat(paste0("... written: ", outFile,  "\n"))
+# 
+# # plot # clust per family; mean clust size
+# 
+# plot_dt <- data.frame(
+#   dataType=c(rep("observed", nrow(all_obs_dt)), rep("random", length(all_permutDist))),
+#   minDist = c(all_obs_dt$minDist_CTCFclust, all_permutDist),
+#   stringsAsFactors=FALSE
+# )
+# # 
+# plot_dt$minDist_log10 <- log10(plot_dt$minDist)
+# 
+# plotTit <- "min dist. to CTCF cluster"
+# subTit <- paste0("# permut = ", nPermut, "; # family clusters = ", nrow(all_obs_dt), " (# fam. = ", length(unique(all_obs_dt$family)), ")") 
+# 
+# p <- ggdensity(plot_dt,
+#                x = paste0("minDist_log10"),
+#                y = "..density..",
+#                # combine = TRUE,                  # Combine the 3 plots
+#                xlab = paste0("minDist to CTCF cluster [log10]"),
+#                # add = "median",                  # Add median line.
+#                rug = FALSE,                      # Add marginal rug
+#                color = "dataType",
+#                fill = "dataType",
+#                palette = "d3"
+# )+ labs(color="", fill="") + ggtitle(plotTit, subtitle=subTit)+
+#   theme(plot.title=element_text(face="bold"),
+#         plot.subtitle=element_text(face="italic")
+#   )
+# outFile <- file.path(outFolder, paste0("minDist_toCTCFcluster_obsPermut_densityplot.", plotTypeGG))
+# ggsave(p, filename=outFile, height=ggHeight, width=ggWidth)
+# cat(paste0("... written: ", outFile,  "\n"))
+# 
 
-plotTit <- "min dist. to CTCF cluster"
-subTit <- paste0("# permut = ", nPermut, "; # family clusters = ", nrow(all_obs_dt), " (# fam. = ", length(unique(all_obs_dt$family)), ")") 
-
-p <- ggdensity(plot_dt,
-               x = paste0("minDist_log10"),
-               y = "..density..",
-               # combine = TRUE,                  # Combine the 3 plots
-               xlab = paste0("minDist to CTCF cluster [log10]"),
-               # add = "median",                  # Add median line.
-               rug = FALSE,                      # Add marginal rug
-               color = "dataType",
-               fill = "dataType",
-               palette = "d3"
-)+ labs(color="", fill="") + ggtitle(plotTit, subtitle=subTit)+
-  theme(plot.title=element_text(face="bold"),
-        plot.subtitle=element_text(face="italic")
-        )
-outFile <- file.path(outFolder, paste0("minDist_toCTCFcluster_obsPermut_densityplot.", plotTypeGG))
-ggsave(p, filename=outFile, height=ggHeight, width=ggWidth)
-cat(paste0("... written: ", outFile,  "\n"))
-
-
-plotTit <- "Family cluster size"
-subTit <- paste0("# family clusters = ", nrow(all_obs_dt), " (# fam. = ", length(unique(all_obs_dt$family)), ")") 
-
-p <- ggdensity(all_fams_agg_cluster_dt,
-               x = paste0("clusterSize"),
-               y = "..density..",
-               # combine = TRUE,                  # Combine the 3 plots
-               xlab = paste0("minDist to CTCF cluster [log10]"),
-               # add = "median",                  # Add median line.
-               rug = FALSE,                      # Add marginal rug
-               # color = "dataType",
-               # fill = "dataType",
-               palette = "d3"
-)+ labs(color="", fill="") + ggtitle(plotTit, subtitle=subTit)+
-  theme(plot.title=element_text(face="bold"),
-        plot.subtitle=element_text(face="italic")
-  )
-outFile <- file.path(outFolder, paste0("minDist_toCTCFcluster_obsPermut_densityplot.", plotTypeGG))
-ggsave(p, filename=outFile, height=ggHeight, width=ggWidth)
-cat(paste0("... written: ", outFile,  "\n"))
-
-p <- ggdensity(all_fams_agg_cluster_dt[all_fams_agg_cluster_dt$clusterSize>1,],
-               x = paste0("clusterSize"),
-               y = "..density..",
-               # combine = TRUE,                  # Combine the 3 plots
-               xlab = paste0("minDist to CTCF cluster [log10]"),
-               # add = "median",                  # Add median line.
-               rug = FALSE,                      # Add marginal rug
-               # color = "dataType",
-               # fill = "dataType",
-               palette = "d3"
-)+ labs(color="", fill="") + ggtitle(plotTit, subtitle=subTit)+
-  theme(plot.title=element_text(face="bold"),
-        plot.subtitle=element_text(face="italic")
-  )
-outFile <- file.path(outFolder, paste0("minDist_toCTCFcluster_obsPermut_densityplot.", plotTypeGG))
-ggsave(p, filename=outFile, height=ggHeight, width=ggWidth)
-cat(paste0("... written: ", outFile,  "\n"))
 
 
 # for each family cluster -> min dist to next ctcf cluster
