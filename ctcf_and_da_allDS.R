@@ -33,6 +33,8 @@ ggWidth <- 5
 
 fontFamily <- "Hershey"
 
+signifThresh <- 0.01
+
 
 runFolder <- "." 
 
@@ -209,7 +211,6 @@ for(yvar in all_yvars){
   cat(paste0("... written: ", outFile,"\n"))
 }
 
-signifThresh <- 0.01
 
 ################### BARPLOT CTCF count
 

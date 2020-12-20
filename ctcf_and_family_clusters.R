@@ -3,6 +3,7 @@
 
 # Rscript ctcf_and_family_clusters.R
 
+
 require(doMC)
 require(foreach)
 registerDoMC(40)
@@ -17,7 +18,7 @@ plotTypeGG <- "svg"
 
 chromoSize_dt <- read.delim("CTCF_CLUSTER/hg19_chromo_sizes.txt", stringsAsFactors=FALSE, col.names=c("chromo", "size"), header=F)
 
-nPermut <- 10
+nPermut <- 100
 
 ctcf_clustSize <- 4000
 family_clustSize <- 260000
@@ -26,6 +27,8 @@ family_clustSize <- 260000
 outFolder <- file.path("CTCF_AND_FAMILY_CLUSTERS", paste0("ctcf", ctcf_clustSize, "_family", family_clustSize))
 dir.create(outFolder, recursive = TRUE)
                        
+tmpFolder <- file.path(outFolder, "TMP")
+dir.create(tmpFolder, recursive = TRUE)
 
 ###########################
 # prep CTCF data
@@ -70,18 +73,64 @@ cat(paste0("... written: ", outFile, "\n"))
 # prep family data
 ###########################
 
+all_family_bed <- read.delim("CTCF_CLUSTER/gene2family.bed", header=FALSE,
+                             stringsAsFactors = FALSE, 
+                             col.names = c("chromo", "start", "end", "entrezID", "symbol", "family"))
+allfams <- unique(all_family_bed$family)
 
-family_clustFile <- file.path(outFolder, paste0("gene2family_cluster", family_clustSize, "bp.bed"))
+fam=allfams[28]
+i_fam=185
 
-mycmd <- paste0("./bedtools cluster -i CTCF_CLUSTER/gene2family.bed -d ", family_clustSize, 
-                " > ", family_clustFile)
-cat(paste0("> ", mycmd, "\n"))
-system(mycmd)
+family_cluster_dt <- foreach(i_fam=1:length(allfams), .combine='rbind') %dopar% {
+  
+  fam <- allfams[i_fam]
+  
+  sub_family_bed <- all_family_bed[all_family_bed$family == fam,]
+  stopifnot(nrow(sub_family_bed) > 0)
+  
+  sub_family_file <- file.path(tmpFolder, paste0(gsub(" ", "_", gsub("/", "_", gsub("\\(", "", gsub("\\)", "", gsub("'", "", fam))))),
+                                                 "_gene2family.bed"))
+  write.table(sub_family_bed, file=sub_family_file, col.names=F, row.names=F, sep="\t")
+  cat(paste0("... written: ", sub_family_file, "\n"))
+  
+  mycmd <- paste0("./bedtools cluster -i ", sub_family_file, " -d ", family_clustSize)
+                  # " > ", family_clustFile)
+  cat(paste0("> ", mycmd, "\n"))
+  sub_family_cluster_dt <-  read.table(textConnection(system(mycmd, intern=TRUE)), header=FALSE,
+                                       col.names = c("chromo", "start", "end", "entrezID", "symbol", "family", "clusterID"))
+  sub_family_cluster_dt$clusterID <- paste0("family", i_fam, "_",sub_family_cluster_dt$clusterID )
+  sub_family_cluster_dt
+}
 
+outFile <- file.path(outFolder, "family_cluster_dt.Rdata")
+save(family_cluster_dt, file=outFile, version=2)
+cat(paste0("... written: ", outFile, "\n"))
 
-family_cluster_dt <- read.delim(family_clustFile, header=FALSE,
-                                stringsAsFactors = FALSE, 
-                                col.names = c("chromo", "start", "end", "entrezID", "symbol", "family", "clusterID"))
+xx <- table(family_cluster_dt$clusterID)
+length(xx)
+# [1] 12465
+nrow(family_cluster_dt)
+# [1] 17244
+xx2 <- xx[xx > 1]
+length(xx2)
+# 1380
+# range(xx2)
+# [1]   2 171
+
+# stop("-ok\n")
+
+# WRONG VERSION
+# family_clustFile <- file.path(outFolder, paste0("gene2family_cluster", family_clustSize, "bp.bed"))
+# 
+# mycmd <- paste0("./bedtools cluster -i CTCF_CLUSTER/gene2family.bed -d ", family_clustSize, 
+#                 " > ", family_clustFile)
+# cat(paste0("> ", mycmd, "\n"))
+# system(mycmd)
+# 
+# 
+# family_cluster_dt <- read.delim(family_clustFile, header=FALSE,
+#                                 stringsAsFactors = FALSE, 
+#                                 col.names = c("chromo", "start", "end", "entrezID", "symbol", "family", "clusterID"))
 
 
 commonChromo <- intersect(family_cluster_dt$chromo, agg_ctcf_cluster_dt$chromo)
@@ -160,10 +209,11 @@ final_fams_cluster_dt$clusterLength <- final_fams_cluster_dt$maxPos - final_fams
                 
                 stopifnot(  final_fams_cluster_dt$closest_CTCFclust[i]  %in% final_ctcf_cluster_dt$clusterID_full)
                 
-                maxSize <- chromoSize_dt$size[chromoSize_dt==curr_chromo]
+                maxSize <- chromoSize_dt$size[as.character(chromoSize_dt$chromo)==as.character(curr_chromo)]
                 stopifnot(length(maxSize) == 1)
                 stopifnot(is.numeric(maxSize))
 
+                i_permut=1
                 permut_minDist <- foreach(i_permut=1:nPermut, .combine='cbind') %do% {
 
                   # for a chromo of size 11, and length of 5
@@ -199,8 +249,6 @@ final_fams_cluster_dt$clusterLength <- final_fams_cluster_dt$maxPos - final_fams
 # load("CTCF_AND_FAMILY_CLUSTERS/ctcf4000_family260000/obsAndPermut_closest_clusters_dt.Rdata")
 
 
-# load("CTCF_AND_FAMILY_CLUSTERS/obsAndPermut_closest_clusters_dt.Rdata")
-
 all_obs_dt <- do.call('rbind', lapply(obsAndPermut_closest_clusters_dt, function(x) x[["obs_final_fams_cluster_dt"]]))
 all_permutDist <- unlist(lapply(obsAndPermut_closest_clusters_dt, function(x) x[["permut_minDist"]]["random_minDist",]))
 all_permutDist <- as.numeric(all_permutDist)
@@ -210,7 +258,7 @@ all_permutClosest <- as.character(all_permutClosest)
 stopifnot(!is.na(all_permutClosest))
 stopifnot(length(all_permutDist) == length(all_permutClosest))
 
-all(all_obs_dt %in% final_ctcf_cluster_dt$clusterID_full)
+stopifnot(all_obs_dt$closest_CTCFclust %in% final_ctcf_cluster_dt$clusterID_full)
 
 
 ################################################################################################
@@ -231,20 +279,29 @@ stopifnot(random_match_dt$CTCFid %in% final_ctcf_cluster_dt$clusterID_full)
 
 merged_random_dt <- merge(random_match_dt, agg_ctcf_cluster_dt, by="CTCFid", all.x=TRUE, all.y=FALSE, suffixes = c("", "_CTCF"))
 stopifnot(!is.na(merged_random_dt))
+mean(merged_random_dt$clusterSize)
 
+mean(all_obs_dt$clusterSize)
 mean(all_obs_dt$minDist_CTCFclust)
 all_obs_dt$CTCFid <- all_obs_dt$closest_CTCFclust
 merged_obs_dt <- merge(all_obs_dt, agg_ctcf_cluster_dt, by="CTCFid", all.x=TRUE, all.y=FALSE, suffixes = c("", "_CTCF"))
 stopifnot(!is.na(merged_obs_dt))
 
+
 plot_dt <- data.frame(
   dataType=c(rep("observed", nrow(merged_obs_dt)), rep("random", nrow(merged_random_dt))),
-  closestSize = c(merged_obs_dt$clusterSize_CTCF, merged_random_dt$clusterSize_CTCF),
+  closestSize = c(merged_obs_dt$clusterSize_CTCF, merged_random_dt$clusterSize),
   closestDist = c(merged_obs_dt$minDist_CTCFclust, merged_random_dt$minDist_CTCFclust),
   stringsAsFactors = FALSE
 )
 plot_dt$closestDist_log10 <- log10(plot_dt$closestDist)
   
+mean(plot_dt$closestSize[plot_dt$dataType=="observed"])
+mean(merged_obs_dt$clusterSize_CTCF)
+
+mean(plot_dt$closestSize[plot_dt$dataType=="random"])
+mean(merged_random_dt$clusterSize)
+
 plot_vars <- c("closestSize", "closestDist", "closestDist_log10")
 
 distThresh <- 4000
@@ -341,8 +398,44 @@ for(plot_var in plot_vars) {
   
 }
 
+source("ctcf_da_utils.R")
+sizeBreaks <- c(2,4,6)
+# cat(paste0("... running get_fract_lab2\n"))
+
+save(plot_dt, file="plot_dt.Rdata", version=2)
+
+barplot_dt <- plot_dt
+barplot_dt$closestSize_labs <- get_fract_lab2(vect_values=barplot_dt$closestSize, range_levels = sizeBreaks)
+
+agg_barplot_dt <- aggregate(closestDist~dataType+closestSize, data=barplot_dt, FUN=length)
 
 
+agg_barplot_dt <- aggregate(closestDist~dataType+closestSize_labs, data=barplot_dt, FUN=length)
+colnames(agg_barplot_dt)[colnames(agg_barplot_dt)=="closestDist"] <- "totCount"
+range(agg_barplot_dt$closestSize)
+# 2-7
+totType <- table(plot_dt$dataType)
+
+
+agg_barplot_dt$totRatio <- agg_barplot_dt$totCount/as.numeric(totType[agg_barplot_dt$dataType])
+
+plotTit <- "Ratio domains by closest CTCF cluster size"
+subTit <- paste0("#", names(totType), "=", totType, collapse="; ")
+
+p <- ggbarplot(agg_barplot_dt, x="dataType", y="totRatio", fill="closestSize_labs", 
+               xlab = "", ylab = "Ratio of domains")+
+  scale_fill_nejm() + 
+  labs(fill="size closest CTCF cluster") + 
+  ggtitle(plotTit, subtitle=subTit)+
+  theme(
+    plot.title = element_text(size=16, face = "bold", hjust=0.5),
+    plot.subtitle = element_text(size=14, face = "italic", hjust=0.5)
+  )
+
+
+outFile <- file.path(outFolder, paste0("closestCTCFclustSize_byObsPermut_ratio_barplot.", plotTypeGG))
+ggsave(p, filename=outFile, height=ggHeight, width=ggWidth)
+cat(paste0("... written: ", outFile,  "\n"))
 
 #########################
 ######################### desc family and ctcf clusters

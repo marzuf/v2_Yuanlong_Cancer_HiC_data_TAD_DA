@@ -22,6 +22,8 @@ registerDoMC(40)
 # hicds <- "GM12878_40kb"
 
 source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
+source("ctcf_da_utils.R")
+
 plotType <- "png"
 myHeight <- myWidth <- 400
 plotCex <- 1.2
@@ -34,7 +36,7 @@ pthresh <- 0.01
 
 fontFamily <- "Hershey"
 
-buildTable <- T
+buildTable <- F
 
 runFolder <- "." 
 outFolder <- file.path("TAD_CTCF_DIST")
@@ -116,6 +118,7 @@ if(buildTable) {
 }
 
 ctcf_bd_dist_dt$signif_lab <- ifelse(ctcf_bd_dist_dt$adjPvalComb <= pthresh, "signif.", "not signif.")
+ctcf_bd_dist_dt$adjPvalComb_log10 <- -log10(ctcf_bd_dist_dt$adjPvalComb)
 
 all_cols <- c("tadStart_closestAll", "tadEnd_closestAll", "tadStart_closestForward", "tadEnd_closestReverse")
 all_metrics <- c("_dist", "_MotifScore", "_ChipSeqScore")
@@ -144,6 +147,19 @@ for(metrics in all_metrics)  {
       ggsave(p, filename=outFile, height=ggHeight, width=ggWidth)
       cat(paste0("... written: ", outFile,  "\n"))
       
+      yvar <- paste0(curr_col, "_log10")
+      xvar <- paste0("adjPvalComb_log10")
+      
+      outFile <- file.path(outFolder, paste0(xvar, "_vs_", yvar, "_", "log10_densplot.", plotType))
+      do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+      do_densplot_withCorr(xvar, yvar, ctcf_bd_dist_dt)
+      mtext(side=3, text = paste0("nSignif=", sum(ctcf_bd_dist_dt$signif_lab=="signif."), 
+                                  "; nNotSignif=", sum(ctcf_bd_dist_dt$signif_lab=="not signif."), 
+                                  "; nDS=", length(unique(ctcf_bd_dist_dt$hicds, ctcf_bd_dist_dt$exprds))))
+      title(main = paste0(yvar, " vs. ", xvar))
+      foo <- dev.off()
+      cat(paste0("... written: ", outFile,"\n"))
+      
     }
     
     p <- ggdensity(ctcf_bd_dist_dt,
@@ -161,6 +177,18 @@ for(metrics in all_metrics)  {
     ggsave(p, filename=outFile, height=ggHeight, width=ggWidth)
     cat(paste0("... written: ", outFile,  "\n"))
     
+    yvar <- paste0(curr_col)
+    xvar <- paste0("adjPvalComb_log10")
+    
+    outFile <- file.path(outFolder, paste0(xvar, "_vs_", yvar, "_densplot.", plotType))
+    do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+    do_densplot_withCorr(xvar, yvar, ctcf_bd_dist_dt)
+    mtext(side=3, text = paste0("nSignif=", sum(ctcf_bd_dist_dt$signif_lab=="signif."), 
+                                "; nNotSignif=", sum(ctcf_bd_dist_dt$signif_lab=="not signif."), 
+                                "; nDS=", length(unique(ctcf_bd_dist_dt$hicds, ctcf_bd_dist_dt$exprds))))
+    title(main = paste0(yvar, " vs. ", xvar))
+    foo <- dev.off()
+    cat(paste0("... written: ", outFile,"\n"))
     
     
   }

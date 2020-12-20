@@ -7,7 +7,7 @@ get_fract_lab2 <- function(vect_values, range_levels) {
   stopifnot(is.numeric(vect_values))
   stopifnot(is.numeric(range_levels))
   range_levels <- sort(range_levels)
-  my_cmd_first <- paste0("ifelse(vect_values <= ", range_levels[1], ",\"<=0\",")
+  my_cmd_first <- paste0("ifelse(vect_values <= ", range_levels[1], ",\"<=", range_levels[1], "\",")
   my_cmd_last <- paste0("ifelse(vect_values > ", range_levels[length(range_levels)], ",\">",range_levels[length(range_levels)],"\",NA")
   my_cmd_end <- paste0(rep(")", length(range_levels)+1), collapse="")
   my_cmd_mid <- paste0("ifelse(vect_values >",range_levels[1:(length(range_levels)-1)], " & vect_values <=", range_levels[2:(length(range_levels))],
