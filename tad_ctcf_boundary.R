@@ -177,6 +177,9 @@ pip_dt$signif_lab <- ifelse(pip_dt$adjPvalComb <= pthresh, "signif.", "not signi
 
 pip_dt$adjPvalComb_log10 <- -log10(pip_dt$adjPvalComb)
 
+pip_dt$meanHighestMotifScore <- (pip_dt$leftHighestMotifScore + pip_dt$rightHighestMotifScore)/2
+pip_dt$meanHighestChipSeqScore <- (pip_dt$leftHighestChipSeqScore + pip_dt$rightHighestChipSeqScore)/2
+
 plot_cols <- colnames(pip_dt)[grepl("Score", colnames(pip_dt))]
 
 plot_col="leftHighestMotifScore"
