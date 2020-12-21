@@ -980,7 +980,7 @@ current_score <- c("MotifScore")
 agg_fun <- "sum"
 
 all_scores <- c("MotifScore", "ChipSeqScore")
-all_agg_funs <- c("sum", "mean")
+all_agg_funs <- c("sum", "mean", "max")
 
 
 merged_dt <- merge(ds_final_dt[,c("hicds", "exprds", "region", "meanLogFC", "meanCorr", "adjPvalComb", "tad_start", "tad_end")],
