@@ -1,9 +1,9 @@
 
-# Rscript signif_ctcf_logo.R
+# Rscript signif_ctcf_logo_seq.R
 
 set.seed(21122020)
 
-outFolder <- file.path("SIGNIF_CTCF_LOGO")
+outFolder <- file.path("SIGNIF_CTCF_LOGO_FREQ")
 dir.create(outFolder, recursive = TRUE)
 
 # source("http://bioconductor.org/biocLite.R")
@@ -58,6 +58,94 @@ all_ctcf2tad_dt$chromo <- gsub("(chr.+)_.+", "\\1", all_ctcf2tad_dt$region)
 stopifnot(all_ctcf2tad_dt$chromo %in% paste0("chr", 1:22))
 all_ctcf2tad_dt <- all_ctcf2tad_dt[order(all_ctcf2tad_dt$chromo, all_ctcf2tad_dt$start_CTCF, all_ctcf2tad_dt$end_CTCF),]
 
+motif_agg_dt <- aggregate(orientation~hicds + exprds + region + adjPvalComb, data=all_ctcf2tad_dt, FUN=function(x) paste0(x, collapse=""))
+motif_agg_dt$regionID <- file.path(motif_agg_dt$hicds, motif_agg_dt$exprds, motif_agg_dt$region)
+stopifnot(!duplicated(motif_agg_dt$regionID))
+nrow(motif_agg_dt)
+
+signif_motif_agg_dt <- motif_agg_dt[motif_agg_dt$adjPvalComb <= pthresh,]
+signif_motif_freqDT <- data.frame(table(signif_motif_agg_dt$orientation))
+colnames(signif_motif_freqDT)[1] <- "Motif"
+signif_motif_freqDT <- signif_motif_freqDT[order(signif_motif_freqDT$Freq, decreasing=T),]
+signif_motif_freqDT$FreqRatio <- signif_motif_freqDT$Freq/sum(signif_motif_freqDT$Freq)
+head(signif_motif_freqDT)
+  
+nonsignif_motif_agg_dt <- motif_agg_dt[motif_agg_dt$adjPvalComb > pthresh,]
+nonsignif_motif_freqDT <- data.frame(table(nonsignif_motif_agg_dt$orientation))
+colnames(nonsignif_motif_freqDT)[1] <- "Motif"
+nonsignif_motif_freqDT <- nonsignif_motif_freqDT[order(nonsignif_motif_freqDT$Freq, decreasing=T),]
+nonsignif_motif_freqDT$FreqRatio <- nonsignif_motif_freqDT$Freq/sum(nonsignif_motif_freqDT$Freq)
+head(nonsignif_motif_freqDT)
+
+
+
+seqmotif_agg_dt <- aggregate(orientation~hicds + exprds + region + adjPvalComb, data=all_ctcf2tad_dt, FUN=function(x)  paste0(rle(x)$values, collapse=""))
+seqmotif_agg_dt$regionID <- file.path(seqmotif_agg_dt$hicds, seqmotif_agg_dt$exprds, seqmotif_agg_dt$region)
+stopifnot(!duplicated(seqmotif_agg_dt$regionID))
+nrow(seqmotif_agg_dt)
+
+
+signif_seqmotif_agg_dt <- seqmotif_agg_dt[seqmotif_agg_dt$adjPvalComb <= pthresh,]
+signif_seqmotif_freqDT <- data.frame(table(signif_seqmotif_agg_dt$orientation))
+colnames(signif_seqmotif_freqDT)[1] <- "Motif"
+signif_seqmotif_freqDT <- signif_seqmotif_freqDT[order(signif_seqmotif_freqDT$Freq, decreasing=T),]
+signif_seqmotif_freqDT$FreqRatio <- signif_seqmotif_freqDT$Freq/sum(signif_seqmotif_freqDT$Freq)
+head(signif_seqmotif_freqDT)
+
+
+
+
+nonsignif_seqmotif_agg_dt <- seqmotif_agg_dt[seqmotif_agg_dt$adjPvalComb > pthresh,]
+nonsignif_seqmotif_freqDT <- data.frame(table(nonsignif_seqmotif_agg_dt$orientation))
+colnames(nonsignif_seqmotif_freqDT)[1] <- "Motif"
+nonsignif_seqmotif_freqDT <- nonsignif_seqmotif_freqDT[order(nonsignif_seqmotif_freqDT$Freq, decreasing=T),]
+nonsignif_seqmotif_freqDT$FreqRatio <- nonsignif_seqmotif_freqDT$Freq/sum(nonsignif_seqmotif_freqDT$Freq)
+head(nonsignif_seqmotif_freqDT)
+
+
+# iterate for each # of motifs
+# do the MSA 
+# 
+in_dt <- signif_motif_agg_dt
+in_dt$nSites <- str_count(in_dt$orientation)
+
+all_nsites <- unique(in_dt$nSites)
+nsites  = all_nsites[1]
+sub_dt=in_dt[in_dt$nSites==nsites,]
+
+
+out_dt <- foreach(nsites = all_nsites, .combine='rbind') %do% {
+  
+  sub_dt <- in_dt[in_dt$nSites==nsites,,drop=FALSE]
+  if(nrow(sub_dt) == 1 | nsites==1) {
+    aligned_ctcf_seqs <- sub_dt$orientation
+    
+  } else {
+    ctcf_seqs <- sub_dt$orientation
+    ctcf_seqs_hack <- gsub("<", "T", gsub(">", "A", ctcf_seqs))
+    dnaSet <- DNAStringSet(ctcf_seqs_hack)
+    res_aligned_seqs <- msa(dnaSet,method="ClustalOmega")
+    print(res_aligned_seqs)
+    aligned_ctcf_seqs_hack <- as.character(res_aligned_seqs)
+    # logomaker(aligned_ctcf_sequences, type = "Logo")
+    aligned_ctcf_seqs <- gsub("T", "<", gsub("A", ">", aligned_ctcf_seqs_hack))
+    
+  }
+  
+  msa_freqDT <- data.frame(table(aligned_ctcf_seqs))
+  colnames(msa_freqDT)[1] <- "Motif"
+  msa_freqDT <- msa_freqDT[order(msa_freqDT$Freq, decreasing=T),]
+  msa_freqDT$FreqRatio <- msa_freqDT$Freq/sum(msa_freqDT$Freq)
+  head(msa_freqDT)
+  msa_freqDT$nSites <- nsites
+  msa_freqDT
+}
+out_dt <- out_dt[order(out_dt$Freq, out_dt$FreqRatio, decreasing=T),]
+
+
+
+
+
 all_agg_dt <- aggregate(orientation~hicds + exprds + region + adjPvalComb, data=all_ctcf2tad_dt, FUN=length)
 all_agg_dt$regionID <- file.path(all_agg_dt$hicds, all_agg_dt$exprds, all_agg_dt$region)
 nrow(all_agg_dt)
@@ -66,9 +154,9 @@ colnames(all_agg_dt)[colnames(all_agg_dt) == "orientation"] <- "nBS"
 signif_agg_dt <- all_agg_dt[all_agg_dt$adjPvalComb <= pthresh,]
 nonsignif_agg_dt <- all_agg_dt[all_agg_dt$adjPvalComb > pthresh,]
 
-motif_agg_dt <- aggregate(orientation~hicds + exprds + region, data=all_ctcf2tad_dt, FUN=function(x) paste0(x, collapse=""))
-motif_agg_dt$regionID <- file.path(motif_agg_dt$hicds, motif_agg_dt$exprds, motif_agg_dt$region)
-nrow(motif_agg_dt)
+
+
+
 
 all_sizes_dt <- aggregate(region~nBS, data=signif_agg_dt, FUN=length)
 stopifnot(!duplicated(all_sizes_dt$nBS))

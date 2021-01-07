@@ -54,6 +54,12 @@ init_ctcf_dt <- as.data.frame(init_ctcf_dt)
 init_ctcf_dt <- init_ctcf_dt[, 1:7]
 init_ctcf_dt$chr <- as.character(init_ctcf_dt$chr)
 init_ctcf_dt$midpos <- (init_ctcf_dt$start+init_ctcf_dt$end)/2
+
+stopifnot(is.numeric(init_ctcf_dt$start))
+stopifnot(is.numeric(init_ctcf_dt$end))
+init_ctcf_dt <- init_ctcf_dt[order(init_ctcf_dt$chr, init_ctcf_dt$start, init_ctcf_dt$end),]
+
+
 forward_dt <- init_ctcf_dt[init_ctcf_dt$orientation == ">",]
 reverse_dt <- init_ctcf_dt[init_ctcf_dt$orientation == "<",]
 stopifnot(nrow(forward_dt) + nrow(reverse_dt) == nrow(init_ctcf_dt))
@@ -121,13 +127,14 @@ if(buildTable) {
         leftHighestChipSeqScore <- max(subLeft_ctcf_dt$ChipSeqScore)
         leftHighestMotifScoreForward <- max(subLeft_ctcf_dt$MotifScore[subLeft_ctcf_dt$orientation == ">"])
         leftHighestChipSeqScoreForward <- max(subLeft_ctcf_dt$ChipSeqScore[subLeft_ctcf_dt$orientation == ">"])
+        nConvergentLeft <- str_count(paste0(subLeft_ctcf_dt$orientation, collapse=""), "><")
         
         # find highest peaks - RIGHT
         rightHighestMotifScore <- max(subRight_ctcf_dt$MotifScore)
         rightHighestChipSeqScore <- max(subRight_ctcf_dt$ChipSeqScore)
         rightHighestMotifScoreForward <- max(subRight_ctcf_dt$MotifScore[subRight_ctcf_dt$orientation == "<"])
         rightHighestChipSeqScoreForward <- max(subRight_ctcf_dt$ChipSeqScore[subRight_ctcf_dt$orientation == "<"])
-        
+        nConvergentRight <- str_count(paste0(subRight_ctcf_dt$orientation, collapse=""), "><")
         
         
         data.frame(
@@ -140,13 +147,14 @@ if(buildTable) {
           leftHighestChipSeqScore =ifelse(is.infinite(leftHighestChipSeqScore), NA,leftHighestChipSeqScore ),
           leftHighestMotifScoreForward = ifelse(is.infinite(leftHighestMotifScoreForward), NA, leftHighestMotifScoreForward),
           leftHighestChipSeqScoreForward = ifelse(is.infinite(leftHighestChipSeqScoreForward), NA, leftHighestChipSeqScoreForward),
+          nConvergentLeft = nConvergentLeft,
           
           # find highest peaks - RIGHT
           rightHighestMotifScore = ifelse(is.infinite(rightHighestMotifScore), NA,rightHighestMotifScore ),
           rightHighestChipSeqScore = ifelse(is.infinite(rightHighestChipSeqScore), NA,rightHighestChipSeqScore ),
           rightHighestMotifScoreForward= ifelse(is.infinite(rightHighestMotifScoreForward), NA,rightHighestMotifScoreForward ),
           rightHighestChipSeqScoreForward = ifelse(is.infinite(rightHighestChipSeqScoreForward), NA, rightHighestChipSeqScoreForward),
-          
+          nConvergentRight = nConvergentRight,
           
           stringsAsFactors = FALSE
         )
@@ -181,6 +189,8 @@ pip_dt$meanHighestMotifScore <- (pip_dt$leftHighestMotifScore + pip_dt$rightHigh
 pip_dt$meanHighestChipSeqScore <- (pip_dt$leftHighestChipSeqScore + pip_dt$rightHighestChipSeqScore)/2
 
 plot_cols <- colnames(pip_dt)[grepl("Score", colnames(pip_dt))]
+
+plot_cols <- c("nConvergentLeft", "nConvergentRight")
 
 plot_col="leftHighestMotifScore"
 

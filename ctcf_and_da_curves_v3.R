@@ -118,78 +118,127 @@ for(i in 1:length(all_to_plot)) {
   curr_col <- all_to_plot[[i]][[1]]
   curr_fun <- all_to_plot[[i]][[2]]
   
-  ########### by signif
+                # ########### by signif
+                # 
+                # agg_byTAD_dt <- aggregate(as.formula(paste0(curr_col, " ~ hicds + exprds + region + rel_pos_lab + signif_lab")), data = both_dt, FUN=curr_fun)
+                # 
+                # col_leg <- paste0(names(table(agg_byTAD_dt$signif_lab)), "\n", as.numeric(table(agg_byTAD_dt$signif_lab)))
+                # 
+                # myTit <- paste0("# DS = ", length(unique(file.path(agg_byTAD_dt$hicds,agg_byTAD_dt$exprds))),
+                #                 "; # TADs = ", length(unique(file.path(agg_byTAD_dt$hicds,agg_byTAD_dt$exprds, agg_byTAD_dt$region ))))
+                # 
+                # agg_all_dt <- aggregate(as.formula(paste0(curr_col, " ~ rel_pos_lab + signif_lab")), data=agg_byTAD_dt, FUN = curr_fun2)
+                # 
+                # tmp_agg_dt <- unique(agg_byTAD_dt[,c("hicds", "exprds", "region", "signif_lab")])
+                # col_leg <- paste0(names(table(tmp_agg_dt$signif_lab)), "\n", as.numeric(table(tmp_agg_dt$signif_lab)))
+                # 
+                # agg_all_dt[,paste0(curr_col, "_rescaled")] <-  agg_all_dt[,paste0(curr_col)]/table(tmp_agg_dt$signif_lab)[agg_all_dt$signif_lab]
+                # 
+                # p1 <- ggplot(data = agg_all_dt, aes_string(x="rel_pos_lab", y = paste0(curr_col, ""), color="signif_lab", group="signif_lab")) +
+                #   labs(x="relative position in TAD", y=paste0(curr_fun, " agg. ", curr_col), color="")+
+                #   scale_color_d3(labels = col_leg)+
+                #   ggtitle(myTit) +
+                #   geom_line() +
+                #   geom_smooth(method = "loess")+
+                #   scale_y_continuous(breaks=scales::pretty_breaks(n = 10)) +
+                #   my_theme
+                # 
+                # outFile <- file.path(outFolder, paste0(curr_col, "_aggBy_", curr_fun, "_along_relPosInTAD_bySignif_lineplot.", plotTypeGG))
+                # ggsave(p1, filename=outFile, height=ggHeight, width=ggWidth)
+                # cat(paste0("... written: ", outFile,  "\n"))
+                # 
+                # p1 <- ggplot(data = agg_all_dt, aes_string(x="rel_pos_lab", y = paste0(curr_col, "_rescaled"), color="signif_lab", group="signif_lab")) +
+                #   labs(x="relative position in TAD", y=paste0(curr_fun, " agg. ", curr_col, "(resc.)"), color="")+
+                #   scale_color_d3(labels = col_leg)+
+                #   ggtitle(myTit) +
+                #   geom_line() +
+                #   geom_smooth(method = "loess")+
+                #   scale_y_continuous(breaks=scales::pretty_breaks(n = 10)) +
+                #   my_theme
+                # 
+                # outFile <- file.path(outFolder, paste0(curr_col, "_aggBy_", curr_fun, "_along_relPosInTAD_bySignif_lineplot_rescaled.", plotTypeGG))
+                # ggsave(p1, filename=outFile, height=ggHeight, width=ggWidth)
+                # cat(paste0("... written: ", outFile,  "\n"))
+                # 
+                # 
+                # density_dt <-  both_dt
+                # 
+                # p1b <- ggdensity(density_dt,
+                #                  x = paste0(curr_col),
+                #                  y = "..density..",
+                #                  # combine = TRUE,                  # Combine the 3 plots
+                #                  xlab = paste0(curr_col),
+                #                  # add = "median",                  # Add median line.
+                #                  rug = FALSE,                      # Add marginal rug
+                #                  color = "signif_lab",
+                #                  fill = "signif_lab",
+                #                  palette = "d3"
+                # )
+                # outFile <- file.path(outFolder, paste0(curr_col, "_along_relPosInTAD_bySignif_densityplot.", plotTypeGG))
+                # ggsave(p1b, filename=outFile, height=ggHeight, width=ggWidth)
+                # cat(paste0("... written: ", outFile,  "\n"))
+                # 
+                # 
+                # 
+                # 
+                # ########### by triplet class
+                # 
+                # agg_byTAD_dt <- aggregate(as.formula(paste0(curr_col, " ~ hicds + exprds + region + rel_pos_lab + Triplet_class")),
+                #                           data = both_dt, FUN=curr_fun)
+                # 
+                # col_leg <- paste0(names(table(agg_byTAD_dt$Triplet_class)), "\n", as.numeric(table(agg_byTAD_dt$Triplet_class)))
+                # 
+                # 
+                # myTit <- paste0("# DS = ", length(unique(file.path(agg_byTAD_dt$hicds,agg_byTAD_dt$exprds))),
+                #                 "; # TADs = ", length(unique(file.path(agg_byTAD_dt$hicds,agg_byTAD_dt$exprds, agg_byTAD_dt$region ))))
+                # 
+                # agg_all_dt <- aggregate(as.formula(paste0(curr_col, " ~ rel_pos_lab + Triplet_class")), data=agg_byTAD_dt, FUN = curr_fun2)
+                # 
+                # tmp_agg_dt <- unique(agg_byTAD_dt[,c("hicds", "exprds", "region", "Triplet_class")])
+                # col_leg <- paste0(names(table(tmp_agg_dt$Triplet_class)), "\n", as.numeric(table(tmp_agg_dt$Triplet_class)))
+                # 
+                # agg_all_dt[,paste0(curr_col, "_rescaled")] <-  agg_all_dt[,paste0(curr_col)]/table(tmp_agg_dt$Triplet_class)[agg_all_dt$Triplet_class]
+                # 
+                # 
+                # p2 <- ggplot(data = agg_all_dt, aes_string(x="rel_pos_lab", y = paste0(curr_col,"_rescaled"), color="Triplet_class", group="Triplet_class")) +
+                #   labs(x="relative position in TAD", y=paste0(curr_fun, " agg. ", curr_col, " (resc.)"), color="")+
+                #   ggtitle(myTit) +
+                #   scale_color_d3(labels = col_leg)+
+                #   geom_line() +
+                #   geom_smooth(method = "loess")+
+                #   scale_y_continuous(breaks=scales::pretty_breaks(n = 10))+
+                #   my_theme
+                # 
+                # outFile <- file.path(outFolder, paste0(curr_col, "_aggBy_", curr_fun, "_along_relPosInTAD_byTripletClass_lineplot_rescaled.", plotTypeGG))
+                # ggsave(p2, filename=outFile, height=ggHeight, width=ggWidth)
+                # cat(paste0("... written: ", outFile,  "\n"))
+                # 
+                # p2 <- ggplot(data = agg_all_dt, aes_string(x="rel_pos_lab", y = paste0(curr_col,""), color="Triplet_class", group="Triplet_class")) +
+                #   labs(x="relative position in TAD", y=paste0(curr_fun, " agg. ", curr_col, ""), color="")+
+                #   ggtitle(myTit) +
+                #   scale_color_d3(labels = col_leg)+
+                #   geom_line() +
+                #   geom_smooth(method = "loess")+
+                #   scale_y_continuous(breaks=scales::pretty_breaks(n = 10))+
+                #   my_theme
+                # 
+                # outFile <- file.path(outFolder, paste0(curr_col, "_aggBy_", curr_fun, "_along_relPosInTAD_byTripletClass_lineplot.", plotTypeGG))
+                # ggsave(p2, filename=outFile, height=ggHeight, width=ggWidth)
+                # cat(paste0("... written: ", outFile,  "\n"))
+
   
-  agg_byTAD_dt <- aggregate(as.formula(paste0(curr_col, " ~ hicds + exprds + region + rel_pos_lab + signif_lab")), data = both_dt, FUN=curr_fun)
   
-  col_leg <- paste0(names(table(agg_byTAD_dt$signif_lab)), "\n", as.numeric(table(agg_byTAD_dt$signif_lab)))
+  ########### by triplet class only signif
   
-  myTit <- paste0("# DS = ", length(unique(file.path(agg_byTAD_dt$hicds,agg_byTAD_dt$exprds))), 
-                  "; # TADs = ", length(unique(file.path(agg_byTAD_dt$hicds,agg_byTAD_dt$exprds, agg_byTAD_dt$region ))))
+  both_dt2 <- both_dt[both_dt$signif_lab == "signif.",]
   
-  agg_all_dt <- aggregate(as.formula(paste0(curr_col, " ~ rel_pos_lab + signif_lab")), data=agg_byTAD_dt, FUN = curr_fun2)
-  
-  tmp_agg_dt <- unique(agg_byTAD_dt[,c("hicds", "exprds", "region", "signif_lab")])
-  col_leg <- paste0(names(table(tmp_agg_dt$signif_lab)), "\n", as.numeric(table(tmp_agg_dt$signif_lab)))
-  
-  agg_all_dt[,paste0(curr_col, "_rescaled")] <-  agg_all_dt[,paste0(curr_col)]/table(tmp_agg_dt$signif_lab)[agg_all_dt$signif_lab] 
-  
-  p1 <- ggplot(data = agg_all_dt, aes_string(x="rel_pos_lab", y = paste0(curr_col, ""), color="signif_lab", group="signif_lab")) + 
-    labs(x="relative position in TAD", y=paste0(curr_fun, " agg. ", curr_col), color="")+
-    scale_color_d3(labels = col_leg)+
-    ggtitle(myTit) +
-    geom_line() + 
-    geom_smooth(method = "loess")+
-    scale_y_continuous(breaks=scales::pretty_breaks(n = 10)) +
-    my_theme
-  
-  outFile <- file.path(outFolder, paste0(curr_col, "_aggBy_", curr_fun, "_along_relPosInTAD_bySignif_lineplot.", plotTypeGG))
-  ggsave(p1, filename=outFile, height=ggHeight, width=ggWidth)
-  cat(paste0("... written: ", outFile,  "\n"))
-  
-  p1 <- ggplot(data = agg_all_dt, aes_string(x="rel_pos_lab", y = paste0(curr_col, "_rescaled"), color="signif_lab", group="signif_lab")) + 
-    labs(x="relative position in TAD", y=paste0(curr_fun, " agg. ", curr_col, "(resc.)"), color="")+
-    scale_color_d3(labels = col_leg)+
-    ggtitle(myTit) +
-    geom_line() + 
-    geom_smooth(method = "loess")+
-    scale_y_continuous(breaks=scales::pretty_breaks(n = 10)) +
-    my_theme
-  
-  outFile <- file.path(outFolder, paste0(curr_col, "_aggBy_", curr_fun, "_along_relPosInTAD_bySignif_lineplot_rescaled.", plotTypeGG))
-  ggsave(p1, filename=outFile, height=ggHeight, width=ggWidth)
-  cat(paste0("... written: ", outFile,  "\n"))
-  
-  
-  density_dt <-  both_dt
-  
-  p1b <- ggdensity(density_dt,
-                   x = paste0(curr_col),
-                   y = "..density..",
-                   # combine = TRUE,                  # Combine the 3 plots
-                   xlab = paste0(curr_col),
-                   # add = "median",                  # Add median line.
-                   rug = FALSE,                      # Add marginal rug
-                   color = "signif_lab",
-                   fill = "signif_lab",
-                   palette = "d3"
-  ) 
-  outFile <- file.path(outFolder, paste0(curr_col, "_along_relPosInTAD_bySignif_densityplot.", plotTypeGG))
-  ggsave(p1b, filename=outFile, height=ggHeight, width=ggWidth)
-  cat(paste0("... written: ", outFile,  "\n"))
-  
-  
-  
-  
-  ########### by triplet class
-  
-  agg_byTAD_dt <- aggregate(as.formula(paste0(curr_col, " ~ hicds + exprds + region + rel_pos_lab + Triplet_class")), 
-                            data = both_dt, FUN=curr_fun)
+  agg_byTAD_dt <- aggregate(as.formula(paste0(curr_col, " ~ hicds + exprds + region + rel_pos_lab + Triplet_class")),
+                            data = both_dt2, FUN=curr_fun)
   
   col_leg <- paste0(names(table(agg_byTAD_dt$Triplet_class)), "\n", as.numeric(table(agg_byTAD_dt$Triplet_class)))
   
   
-  myTit <- paste0("# DS = ", length(unique(file.path(agg_byTAD_dt$hicds,agg_byTAD_dt$exprds))), 
+  myTit <- paste0("# DS = ", length(unique(file.path(agg_byTAD_dt$hicds,agg_byTAD_dt$exprds))),
                   "; # TADs = ", length(unique(file.path(agg_byTAD_dt$hicds,agg_byTAD_dt$exprds, agg_byTAD_dt$region ))))
   
   agg_all_dt <- aggregate(as.formula(paste0(curr_col, " ~ rel_pos_lab + Triplet_class")), data=agg_byTAD_dt, FUN = curr_fun2)
@@ -197,100 +246,219 @@ for(i in 1:length(all_to_plot)) {
   tmp_agg_dt <- unique(agg_byTAD_dt[,c("hicds", "exprds", "region", "Triplet_class")])
   col_leg <- paste0(names(table(tmp_agg_dt$Triplet_class)), "\n", as.numeric(table(tmp_agg_dt$Triplet_class)))
   
-  agg_all_dt[,paste0(curr_col, "_rescaled")] <-  agg_all_dt[,paste0(curr_col)]/table(tmp_agg_dt$Triplet_class)[agg_all_dt$Triplet_class] 
+  agg_all_dt[,paste0(curr_col, "_rescaled")] <-  agg_all_dt[,paste0(curr_col)]/table(tmp_agg_dt$Triplet_class)[agg_all_dt$Triplet_class]
   
   
-  p2 <- ggplot(data = agg_all_dt, aes_string(x="rel_pos_lab", y = paste0(curr_col,"_rescaled"), color="Triplet_class", group="Triplet_class")) + 
+  p2 <- ggplot(data = agg_all_dt, aes_string(x="rel_pos_lab", y = paste0(curr_col,"_rescaled"), color="Triplet_class", group="Triplet_class")) +
     labs(x="relative position in TAD", y=paste0(curr_fun, " agg. ", curr_col, " (resc.)"), color="")+
     ggtitle(myTit) +
     scale_color_d3(labels = col_leg)+
-    geom_line() + 
+    geom_line() +
     geom_smooth(method = "loess")+
     scale_y_continuous(breaks=scales::pretty_breaks(n = 10))+
     my_theme
   
-  outFile <- file.path(outFolder, paste0(curr_col, "_aggBy_", curr_fun, "_along_relPosInTAD_byTripletClass_lineplot_rescaled.", plotTypeGG))
+  outFile <- file.path(outFolder, paste0(curr_col, "_aggBy_", curr_fun, "_along_relPosInTAD_byTripletClassOnlySignif_lineplot_rescaled.", plotTypeGG))
   ggsave(p2, filename=outFile, height=ggHeight, width=ggWidth)
   cat(paste0("... written: ", outFile,  "\n"))
   
-  p2 <- ggplot(data = agg_all_dt, aes_string(x="rel_pos_lab", y = paste0(curr_col,""), color="Triplet_class", group="Triplet_class")) + 
+  p2 <- ggplot(data = agg_all_dt, aes_string(x="rel_pos_lab", y = paste0(curr_col,""), color="Triplet_class", group="Triplet_class")) +
     labs(x="relative position in TAD", y=paste0(curr_fun, " agg. ", curr_col, ""), color="")+
     ggtitle(myTit) +
     scale_color_d3(labels = col_leg)+
-    geom_line() + 
+    geom_line() +
     geom_smooth(method = "loess")+
     scale_y_continuous(breaks=scales::pretty_breaks(n = 10))+
     my_theme
   
-  outFile <- file.path(outFolder, paste0(curr_col, "_aggBy_", curr_fun, "_along_relPosInTAD_byTripletClass_lineplot.", plotTypeGG))
-  ggsave(p2, filename=outFile, height=ggHeight, width=ggWidth)
-  cat(paste0("... written: ", outFile,  "\n"))
-  
-  
-  ########### by orientation
-  
-  agg_byTAD_dt <- aggregate(as.formula(paste0(curr_col, " ~ hicds + exprds + region + rel_pos_lab + orientation")), data = both_dt, FUN=curr_fun)
-  
-  col_leg <- paste0(names(table(agg_byTAD_dt$orientation)), "\n", as.numeric(table(agg_byTAD_dt$orientation)))
-  
-  
-  myTit <- paste0("# DS = ", length(unique(file.path(agg_byTAD_dt$hicds,agg_byTAD_dt$exprds))), 
-                  "; # TADs = ", length(unique(file.path(agg_byTAD_dt$hicds,agg_byTAD_dt$exprds, agg_byTAD_dt$region ))))
-  
-  agg_all_dt <- aggregate(as.formula(paste0(curr_col, " ~ rel_pos_lab + orientation")), data=agg_byTAD_dt, FUN = curr_fun2)
-  
-  tmp_agg_dt <- unique(agg_byTAD_dt[,c("hicds", "exprds", "region", "orientation")])
-  col_leg <- paste0(names(table(tmp_agg_dt$orientation)), "\n", as.numeric(table(tmp_agg_dt$orientation)))
-  
-  agg_all_dt[,paste0(curr_col, "_rescaled")] <-  agg_all_dt[,paste0(curr_col)]/table(tmp_agg_dt$orientation)[agg_all_dt$orientation] 
-  
-  
-  p2 <- ggplot(data = agg_all_dt, aes_string(x="rel_pos_lab", y = paste0(curr_col), color="orientation", group="orientation")) + 
-    labs(x="relative position in TAD", y=paste0(curr_fun, " agg. ", curr_col), color="")+
-    ggtitle(myTit) +
-    scale_color_d3(labels = col_leg)+
-    geom_line() + 
-    geom_smooth(method = "loess")+
-    scale_y_continuous(breaks=scales::pretty_breaks(n = 10))+
-    my_theme
-  outFile <- file.path(outFolder, paste0(curr_col, "_aggBy_", curr_fun, "_along_relPosInTAD_byOrientation_lineplot.", plotTypeGG))
-  ggsave(p2, filename=outFile, height=ggHeight, width=ggWidth)
-  cat(paste0("... written: ", outFile,  "\n"))
-  
-  p2 <- ggplot(data = agg_all_dt, aes_string(x="rel_pos_lab", y = paste0(curr_col, "_rescaled"), color="orientation", group="orientation")) + 
-    labs(x="relative position in TAD", y=paste0(curr_fun, " agg. ", curr_col, " (resc.)"), color="")+
-    ggtitle(myTit) +
-    scale_color_d3(labels = col_leg)+
-    geom_line() + 
-    geom_smooth(method = "loess")+
-    scale_y_continuous(breaks=scales::pretty_breaks(n = 10))+
-    my_theme
-  outFile <- file.path(outFolder, paste0(curr_col, "_aggBy_", curr_fun, "_along_relPosInTAD_byOrientation_lineplot_rescaled.", plotTypeGG))
+  outFile <- file.path(outFolder, paste0(curr_col, "_aggBy_", curr_fun, "_along_relPosInTAD_byTripletClassOnlySignif_lineplot.", plotTypeGG))
   ggsave(p2, filename=outFile, height=ggHeight, width=ggWidth)
   cat(paste0("... written: ", outFile,  "\n"))
   
   
   
   
-  density_dt <-  both_dt
-  
-  p2b <- ggdensity(density_dt,
-                   x = paste0(curr_col),
-                   y = "..density..",
-                   # combine = TRUE,                  # Combine the 3 plots
-                   xlab = paste0(curr_col),
-                   # add = "median",                  # Add median line.
-                   rug = FALSE,                      # Add marginal rug
-                   color = "orientation",
-                   fill = "orientation",
-                   palette = "d3"
-  ) 
-  outFile <- file.path(outFolder, paste0(curr_col, "_along_relPosInTAD_byOrientation_densityplot.", plotTypeGG))
-  ggsave(p2b, filename=outFile, height=ggHeight, width=ggWidth)
-  cat(paste0("... written: ", outFile,  "\n"))
-  
-  
+                # 
+                # ########### by orientation
+                # 
+                # agg_byTAD_dt <- aggregate(as.formula(paste0(curr_col, " ~ hicds + exprds + region + rel_pos_lab + orientation")), data = both_dt, FUN=curr_fun)
+                # 
+                # col_leg <- paste0(names(table(agg_byTAD_dt$orientation)), "\n", as.numeric(table(agg_byTAD_dt$orientation)))
+                # 
+                # 
+                # myTit <- paste0("# DS = ", length(unique(file.path(agg_byTAD_dt$hicds,agg_byTAD_dt$exprds))),
+                #                 "; # TADs = ", length(unique(file.path(agg_byTAD_dt$hicds,agg_byTAD_dt$exprds, agg_byTAD_dt$region ))))
+                # 
+                # agg_all_dt <- aggregate(as.formula(paste0(curr_col, " ~ rel_pos_lab + orientation")), data=agg_byTAD_dt, FUN = curr_fun2)
+                # 
+                # tmp_agg_dt <- unique(agg_byTAD_dt[,c("hicds", "exprds", "region", "orientation")])
+                # col_leg <- paste0(names(table(tmp_agg_dt$orientation)), "\n", as.numeric(table(tmp_agg_dt$orientation)))
+                # 
+                # agg_all_dt[,paste0(curr_col, "_rescaled")] <-  agg_all_dt[,paste0(curr_col)]/table(tmp_agg_dt$orientation)[agg_all_dt$orientation]
+                # 
+                # 
+                # p2 <- ggplot(data = agg_all_dt, aes_string(x="rel_pos_lab", y = paste0(curr_col), color="orientation", group="orientation")) +
+                #   labs(x="relative position in TAD", y=paste0(curr_fun, " agg. ", curr_col), color="")+
+                #   ggtitle(myTit) +
+                #   scale_color_d3(labels = col_leg)+
+                #   geom_line() +
+                #   geom_smooth(method = "loess")+
+                #   scale_y_continuous(breaks=scales::pretty_breaks(n = 10))+
+                #   my_theme
+                # outFile <- file.path(outFolder, paste0(curr_col, "_aggBy_", curr_fun, "_along_relPosInTAD_byOrientation_lineplot.", plotTypeGG))
+                # ggsave(p2, filename=outFile, height=ggHeight, width=ggWidth)
+                # cat(paste0("... written: ", outFile,  "\n"))
+                # 
+                # p2 <- ggplot(data = agg_all_dt, aes_string(x="rel_pos_lab", y = paste0(curr_col, "_rescaled"), color="orientation", group="orientation")) +
+                #   labs(x="relative position in TAD", y=paste0(curr_fun, " agg. ", curr_col, " (resc.)"), color="")+
+                #   ggtitle(myTit) +
+                #   scale_color_d3(labels = col_leg)+
+                #   geom_line() +
+                #   geom_smooth(method = "loess")+
+                #   scale_y_continuous(breaks=scales::pretty_breaks(n = 10))+
+                #   my_theme
+                # outFile <- file.path(outFolder, paste0(curr_col, "_aggBy_", curr_fun, "_along_relPosInTAD_byOrientation_lineplot_rescaled.", plotTypeGG))
+                # ggsave(p2, filename=outFile, height=ggHeight, width=ggWidth)
+                # cat(paste0("... written: ", outFile,  "\n"))
+                # 
+                # 
+                # 
+                # 
+                # density_dt <-  both_dt
+                # 
+                # p2b <- ggdensity(density_dt,
+                #                  x = paste0(curr_col),
+                #                  y = "..density..",
+                #                  # combine = TRUE,                  # Combine the 3 plots
+                #                  xlab = paste0(curr_col),
+                #                  # add = "median",                  # Add median line.
+                #                  rug = FALSE,                      # Add marginal rug
+                #                  color = "orientation",
+                #                  fill = "orientation",
+                #                  palette = "d3"
+                # )
+                # outFile <- file.path(outFolder, paste0(curr_col, "_along_relPosInTAD_byOrientation_densityplot.", plotTypeGG))
+                # ggsave(p2b, filename=outFile, height=ggHeight, width=ggWidth)
+                # cat(paste0("... written: ", outFile,  "\n"))
+                # 
+                # 
+                # ########### by TripletClass and signif
+                # agg_byTAD_dt <- aggregate(as.formula(paste0(curr_col, " ~ hicds + exprds + region + rel_pos_lab + Triplet_class + signif_lab")), data = both_dt, FUN=curr_fun)
+                # 
+                # # col_leg <- paste0(names(table(agg_byTAD_dt$Triplet_class)), "\n", as.numeric(table(agg_byTAD_dt$Triplet_class)), collapse=";")
+                # col_leg <- ""
+                # agg_byTAD_dt$all_conds <- file.path(agg_byTAD_dt$Triplet_class, agg_byTAD_dt$signif_lab)
+                # subTit <- paste0(names(table(agg_byTAD_dt$all_conds)), "=", as.numeric(table(agg_byTAD_dt$all_conds)), collapse=";")
+                # 
+                # 
+                # myTit <- paste0("# DS = ", length(unique(file.path(agg_byTAD_dt$hicds,agg_byTAD_dt$exprds))), 
+                #                 "; # TADs = ", length(unique(file.path(agg_byTAD_dt$hicds,agg_byTAD_dt$exprds, agg_byTAD_dt$region ))))
+                # 
+                # agg_all_dt <- aggregate(as.formula(paste0(curr_col, " ~ rel_pos_lab + Triplet_class + signif_lab")), data=agg_byTAD_dt, FUN = curr_fun2)
+                # agg_all_dt$all_conds <- file.path(agg_all_dt$Triplet_class, agg_all_dt$signif_lab)
+                # 
+                # tmp_agg_dt <- unique(agg_byTAD_dt[,c("hicds", "exprds", "region", "Triplet_class", "signif_lab")])
+                # tmp_agg_dt$all_conds <- file.path(tmp_agg_dt$Triplet_class, tmp_agg_dt$signif_lab)
+                # # col_leg <- paste0(names(table(tmp_agg_dt$Triplet_class)), "\n", as.numeric(table(tmp_agg_dt$Triplet_class)))
+                # 
+                # agg_all_dt[,paste0(curr_col, "_rescaled")] <-  agg_all_dt[,paste0(curr_col)]/table(tmp_agg_dt$all_conds)[agg_all_dt$all_conds] 
+                # save(agg_all_dt, file="agg_all_dt.Rdata", version=2)
+                # 
+                # # p2 <- ggplot(data = agg_all_dt, aes_string(x="rel_pos_lab", y = paste0(curr_col),
+                # #                                            linetype="signif_lab", color="Triplet_class"))+#, group="Triplet_class")) + 
+                # #   labs(x="relative position in TAD", y=paste0(curr_fun, " agg. ", curr_col), color="", linetype="")+
+                # #   ggtitle(myTit, subtitle=subTit) +
+                # #   # scale_color_d3(labels = col_leg)+
+                # #   scale_color_d3()+
+                # #   geom_line(aes(group=interaction(signif_lab, Triplet_class))) +
+                # # geom_smooth(method = "loess")+
+                # #   scale_y_continuous(breaks=scales::pretty_breaks(n = 10))+
+                # #   my_theme
+                # # outFile <- file.path(outFolder, paste0(curr_col, "_aggBy_", curr_fun, "_along_relPosInTAD_byTriplet_classAndSignif_lineplot.", plotTypeGG))
+                # # ggsave(p2, filename=outFile, height=ggHeight, width=ggWidth)
+                # # cat(paste0("... written: ", outFile,  "\n"))
+                # 
+                # p2 <- ggplot(data = agg_all_dt, aes_string(x="rel_pos_lab", y = paste0(curr_col, "_rescaled"),
+                #                                            linetype="signif_lab", color="Triplet_class"))+
+                #                                            # linetype="signif_lab", color=interaction("Triplet_class", "signif_lab")))+#, group="Triplet_class")) + 
+                #   labs(x="relative position in TAD", y=paste0(curr_fun, " agg. ", curr_col, " (resc.)"), color="", linetype="")+
+                #   ggtitle(myTit, subtitle=subTit) +
+                #   # scale_color_d3(labels = col_leg)+
+                #   scale_color_d3()+
+                #   geom_line(aes(group=interaction(signif_lab, Triplet_class))) +
+                # geom_smooth(method = "loess")+
+                #   scale_y_continuous(breaks=scales::pretty_breaks(n = 10))+
+                #   my_theme + theme(plot.subtitle = element_text(size=7))
+                # outFile <- file.path(outFolder, paste0(curr_col, "_aggBy_", curr_fun, "_along_relPosInTAD_byTripletClassAndSignif_lineplot_rescaled.", plotTypeGG))
+                # ggsave(p2, filename=outFile, height=ggHeight, width=ggWidth)
+                # cat(paste0("... written: ", outFile,  "\n"))
+                # 
+                # ########### by orientation and signif
+                # agg_byTAD_dt <- aggregate(as.formula(paste0(curr_col, " ~ hicds + exprds + region + rel_pos_lab + orientation + signif_lab")), data = both_dt, FUN=curr_fun)
+                # 
+                # # col_leg <- paste0(names(table(agg_byTAD_dt$orientation)), "\n", as.numeric(table(agg_byTAD_dt$orientation)), collapse=";")
+                # col_leg <- ""
+                # agg_byTAD_dt$all_conds <- file.path(agg_byTAD_dt$orientation, agg_byTAD_dt$signif_lab)
+                # subTit <- paste0(names(table(agg_byTAD_dt$all_conds)), "=", as.numeric(table(agg_byTAD_dt$all_conds)), collapse=";")
+                # 
+                # 
+                # myTit <- paste0("# DS = ", length(unique(file.path(agg_byTAD_dt$hicds,agg_byTAD_dt$exprds))), 
+                #                 "; # TADs = ", length(unique(file.path(agg_byTAD_dt$hicds,agg_byTAD_dt$exprds, agg_byTAD_dt$region ))))
+                # 
+                # agg_all_dt <- aggregate(as.formula(paste0(curr_col, " ~ rel_pos_lab + orientation + signif_lab")), data=agg_byTAD_dt, FUN = curr_fun2)
+                # agg_all_dt$all_conds <- file.path(agg_all_dt$orientation, agg_all_dt$signif_lab)
+                # 
+                # tmp_agg_dt <- unique(agg_byTAD_dt[,c("hicds", "exprds", "region", "orientation", "signif_lab")])
+                # tmp_agg_dt$all_conds <- file.path(tmp_agg_dt$orientation, tmp_agg_dt$signif_lab)
+                # # col_leg <- paste0(names(table(tmp_agg_dt$orientation)), "\n", as.numeric(table(tmp_agg_dt$orientation)))
+                # 
+                # agg_all_dt[,paste0(curr_col, "_rescaled")] <-  agg_all_dt[,paste0(curr_col)]/table(tmp_agg_dt$all_conds)[agg_all_dt$all_conds] 
+                # save(agg_all_dt, file="agg_all_dt.Rdata", version=2)
+                # 
+                # # p2 <- ggplot(data = agg_all_dt, aes_string(x="rel_pos_lab", y = paste0(curr_col),
+                # #                                            linetype="signif_lab", color="orientation"))+#, group="orientation")) + 
+                # #   labs(x="relative position in TAD", y=paste0(curr_fun, " agg. ", curr_col), color="", linetype="")+
+                # #   ggtitle(myTit, subtitle=subTit) +
+                # #   # scale_color_d3(labels = col_leg)+
+                # #   scale_color_d3()+
+                # #   geom_line(aes(group=interaction(signif_lab, orientation))) +
+                # # geom_smooth(method = "loess")+
+                # #   scale_y_continuous(breaks=scales::pretty_breaks(n = 10))+
+                # #   my_theme
+                # # outFile <- file.path(outFolder, paste0(curr_col, "_aggBy_", curr_fun, "_along_relPosInTAD_byOrientationAndSignif_lineplot.", plotTypeGG))
+                # # ggsave(p2, filename=outFile, height=ggHeight, width=ggWidth)
+                # # cat(paste0("... written: ", outFile,  "\n"))
+                # 
+                # p2 <- ggplot(data = agg_all_dt, aes_string(x="rel_pos_lab", y = paste0(curr_col, "_rescaled"),
+                #                                            linetype="signif_lab", color="orientation"))+
+                #   # linetype="signif_lab", color=interaction("orientation", "signif_lab")))+#, group="orientation")) + 
+                #   labs(x="relative position in TAD", y=paste0(curr_fun, " agg. ", curr_col, " (resc.)"), color="", linetype="")+
+                #   ggtitle(myTit, subtitle=subTit) +
+                #   # scale_color_d3(labels = col_leg)+
+                #   scale_color_d3()+
+                #   geom_line(aes(group=interaction(signif_lab, orientation))) +
+                #   geom_smooth(method = "loess")+
+                #   scale_y_continuous(breaks=scales::pretty_breaks(n = 10))+
+                #   my_theme + theme(plot.subtitle = element_text(size=7))
+                # outFile <- file.path(outFolder, paste0(curr_col, "_aggBy_", curr_fun, "_along_relPosInTAD_byOrientationAndSignif_lineplot_rescaled.", plotTypeGG))
+                # ggsave(p2, filename=outFile, height=ggHeight, width=ggWidth)
+                # cat(paste0("... written: ", outFile,  "\n"))
+                # 
+                # 
+                # 
   
   
 }
-
+# ggplot(data = agg_all_dt, aes_string(x="rel_pos_lab", y = paste0(curr_col, "_rescaled"), color="orientation", group="orientation")) + 
+#     labs(x="relative position in TAD", y=paste0(curr_fun, " agg. ", curr_col, " (resc.)"), color="")+
+#     ggtitle(myTit) +
+#     scale_color_d3(labels = col_leg)+
+#     geom_line(linetype=signif_lab) +
+#     geom_smooth(method = "loess")+
+#     scale_y_continuous(breaks=scales::pretty_breaks(n = 10))+
+#     my_theme
+# 
+# ggplot(data = agg_all_dt, aes_string(x="rel_pos_lab", y ="ChipSeqScore_rescaled",
+#                                      linetype="signif_lab",
+#                                      color="orientation")) +
+#   geom_line(aes(group=interaction(signif_lab, orientation)))
