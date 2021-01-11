@@ -1,5 +1,5 @@
 
-# Rscript signif_ctcf_logo_seq.R
+# Rscript signif_ctcf_logo_freq.R
 
 set.seed(21122020)
 
@@ -15,7 +15,7 @@ library("ggseqlogo")
 require(ggplot2)
 library(grid)
 library(gridExtra)
-
+library(stringr)
 library(foreach)
 
 plotType <- "svg"
@@ -35,6 +35,10 @@ myWidthGG <- 6
 # logomaker(aligned_ctcf_sequences, type = "Logo")
 # aligned_ctcf_sequences_hack <- gsub("T", "<", gsub("A", ">", aligned_ctcf_sequences))
 # logomaker(aligned_ctcf_sequences_hack, type = "Logo")
+
+logFile <- file.path(outFolder, "signif_ctcf_logo_freq_logFile.txt")
+# system(paste0("rm -f ))
+sink(logFile)
 
 
 ctcf2tad_dt <- get(load("CTCF_AND_DA_ALLDS/ctcf2tad_dt.Rdata"))
@@ -67,15 +71,20 @@ signif_motif_agg_dt <- motif_agg_dt[motif_agg_dt$adjPvalComb <= pthresh,]
 signif_motif_freqDT <- data.frame(table(signif_motif_agg_dt$orientation))
 colnames(signif_motif_freqDT)[1] <- "Motif"
 signif_motif_freqDT <- signif_motif_freqDT[order(signif_motif_freqDT$Freq, decreasing=T),]
-signif_motif_freqDT$FreqRatio <- signif_motif_freqDT$Freq/sum(signif_motif_freqDT$Freq)
-head(signif_motif_freqDT)
+signif_motif_freqDT$FreqRatio <- round(signif_motif_freqDT$Freq/sum(signif_motif_freqDT$Freq),4)
+cat(paste0( "head(signif_motif_freqDT)", "\n"))
+# head(signif_motif_freqDT)
+write.table(signif_motif_freqDT[1:10,], quote=F, sep="\t", row.names=F)
+
   
 nonsignif_motif_agg_dt <- motif_agg_dt[motif_agg_dt$adjPvalComb > pthresh,]
 nonsignif_motif_freqDT <- data.frame(table(nonsignif_motif_agg_dt$orientation))
 colnames(nonsignif_motif_freqDT)[1] <- "Motif"
 nonsignif_motif_freqDT <- nonsignif_motif_freqDT[order(nonsignif_motif_freqDT$Freq, decreasing=T),]
-nonsignif_motif_freqDT$FreqRatio <- nonsignif_motif_freqDT$Freq/sum(nonsignif_motif_freqDT$Freq)
-head(nonsignif_motif_freqDT)
+nonsignif_motif_freqDT$FreqRatio <- round(nonsignif_motif_freqDT$Freq/sum(nonsignif_motif_freqDT$Freq),4)
+cat(paste0( "head(nonsignif_motif_freqDT)", "\n"))
+# head(nonsignif_motif_freqDT)
+write.table(nonsignif_motif_freqDT[1:10,], quote=F, sep="\t", row.names=F)
 
 
 
@@ -89,8 +98,10 @@ signif_seqmotif_agg_dt <- seqmotif_agg_dt[seqmotif_agg_dt$adjPvalComb <= pthresh
 signif_seqmotif_freqDT <- data.frame(table(signif_seqmotif_agg_dt$orientation))
 colnames(signif_seqmotif_freqDT)[1] <- "Motif"
 signif_seqmotif_freqDT <- signif_seqmotif_freqDT[order(signif_seqmotif_freqDT$Freq, decreasing=T),]
-signif_seqmotif_freqDT$FreqRatio <- signif_seqmotif_freqDT$Freq/sum(signif_seqmotif_freqDT$Freq)
-head(signif_seqmotif_freqDT)
+signif_seqmotif_freqDT$FreqRatio <- round(signif_seqmotif_freqDT$Freq/sum(signif_seqmotif_freqDT$Freq),4)
+cat(paste0( "head(signif_seqmotif_freqDT)", "\n"))
+# head(signif_seqmotif_freqDT)
+write.table(signif_seqmotif_freqDT[1:10,], quote=F, sep="\t", row.names=F)
 
 
 
@@ -99,48 +110,123 @@ nonsignif_seqmotif_agg_dt <- seqmotif_agg_dt[seqmotif_agg_dt$adjPvalComb > pthre
 nonsignif_seqmotif_freqDT <- data.frame(table(nonsignif_seqmotif_agg_dt$orientation))
 colnames(nonsignif_seqmotif_freqDT)[1] <- "Motif"
 nonsignif_seqmotif_freqDT <- nonsignif_seqmotif_freqDT[order(nonsignif_seqmotif_freqDT$Freq, decreasing=T),]
-nonsignif_seqmotif_freqDT$FreqRatio <- nonsignif_seqmotif_freqDT$Freq/sum(nonsignif_seqmotif_freqDT$Freq)
-head(nonsignif_seqmotif_freqDT)
+nonsignif_seqmotif_freqDT$FreqRatio <- round(nonsignif_seqmotif_freqDT$Freq/sum(nonsignif_seqmotif_freqDT$Freq),4)
+cat(paste0( "head(nonsignif_seqmotif_freqDT)", "\n"))
+# head(nonsignif_seqmotif_freqDT)
+write.table(nonsignif_seqmotif_freqDT[1:10,], quote=F, sep="\t", row.names=F)
 
+        # 
+        # # iterate for each # of motifs
+        # # do the MSA 
+        # # 
+        # in_dt <- signif_motif_agg_dt
+        # in_dt$nSites <- str_count(in_dt$orientation)
+        # 
+        # all_nsites <- unique(in_dt$nSites)
+        # nsites  = all_nsites[1]
+        # sub_dt=in_dt[in_dt$nSites==nsites,]
+        # 
+        # 
+        # out_dt <- foreach(nsites = all_nsites, .combine='rbind') %do% {
+        #   
+        #   sub_dt <- in_dt[in_dt$nSites==nsites,,drop=FALSE]
+        #   if(nrow(sub_dt) == 1 | nsites==1) {
+        #     aligned_ctcf_seqs <- sub_dt$orientation
+        #     
+        #   } else {
+        #     ctcf_seqs <- sub_dt$orientation
+        #     ctcf_seqs_hack <- gsub("<", "T", gsub(">", "A", ctcf_seqs))
+        #     dnaSet <- DNAStringSet(ctcf_seqs_hack)
+        #     res_aligned_seqs <- msa(dnaSet,method="ClustalOmega")
+        #     print(res_aligned_seqs)
+        #     aligned_ctcf_seqs_hack <- as.character(res_aligned_seqs)
+        #     # logomaker(aligned_ctcf_sequences, type = "Logo")
+        #     aligned_ctcf_seqs <- gsub("T", "<", gsub("A", ">", aligned_ctcf_seqs_hack))
+        #     
+        #   }
+        #   
+        #   msa_freqDT <- data.frame(table(aligned_ctcf_seqs))
+        #   colnames(msa_freqDT)[1] <- "Motif"
+        #   msa_freqDT <- msa_freqDT[order(msa_freqDT$Freq, decreasing=T),]
+        #   msa_freqDT$FreqRatio <- msa_freqDT$Freq/sum(msa_freqDT$Freq)
+        #   head(msa_freqDT)
+        #   msa_freqDT$nSites <- nsites
+        #   msa_freqDT
+        # }
+        # out_dt <- out_dt[order(out_dt$Freq, out_dt$FreqRatio, decreasing=T),]
+        # 
+        # 
 
-# iterate for each # of motifs
-# do the MSA 
-# 
+all_dts <- c("signif_seqmotif_agg_dt", "nonsignif_seqmotif_agg_dt", "signif_motif_agg_dt", "nonsignif_motif_agg_dt")
+
 in_dt <- signif_motif_agg_dt
-in_dt$nSites <- str_count(in_dt$orientation)
-
-all_nsites <- unique(in_dt$nSites)
-nsites  = all_nsites[1]
-sub_dt=in_dt[in_dt$nSites==nsites,]
-
-
-out_dt <- foreach(nsites = all_nsites, .combine='rbind') %do% {
+dt=all_dts[1]
+for(dt in all_dts) {
   
-  sub_dt <- in_dt[in_dt$nSites==nsites,,drop=FALSE]
-  if(nrow(sub_dt) == 1 | nsites==1) {
-    aligned_ctcf_seqs <- sub_dt$orientation
+  in_dt <- eval(parse(text = dt))
+  
+  in_dt$nSites <- str_count(in_dt$orientation)
+  
+  all_nsites <- sort(unique(in_dt$nSites))
+  nsites  = all_nsites[1]
+  sub_dt=in_dt[in_dt$nSites==nsites,]
+  
+  
+  out_dt <- foreach(nsites = all_nsites, .combine='rbind') %do% {
     
-  } else {
-    ctcf_seqs <- sub_dt$orientation
-    ctcf_seqs_hack <- gsub("<", "T", gsub(">", "A", ctcf_seqs))
-    dnaSet <- DNAStringSet(ctcf_seqs_hack)
-    res_aligned_seqs <- msa(dnaSet,method="ClustalOmega")
-    print(res_aligned_seqs)
-    aligned_ctcf_seqs_hack <- as.character(res_aligned_seqs)
-    # logomaker(aligned_ctcf_sequences, type = "Logo")
-    aligned_ctcf_seqs <- gsub("T", "<", gsub("A", ">", aligned_ctcf_seqs_hack))
+    sub_dt <- in_dt[in_dt$nSites==nsites,,drop=FALSE]
     
+    
+    sub_freqDT <- data.frame(table(sub_dt$orientation))
+    colnames(sub_freqDT)[1] <- "Motif"
+    sub_freqDT <- sub_freqDT[order(sub_freqDT$Freq, decreasing=T),]
+    sub_freqDT$FreqRatio <- round(sub_freqDT$Freq/sum(sub_freqDT$Freq),4)
+    cat(paste0( dt, " - ", nsites, " - ", "head(sub_freqDT)", "\n"))      # head(signif_seqmotif_freqDT)
+    write.table(sub_freqDT[1:10,], quote=F, sep="\t", row.names=F)
+    
+    sub_freqDT
   }
-  
-  msa_freqDT <- data.frame(table(aligned_ctcf_seqs))
-  colnames(msa_freqDT)[1] <- "Motif"
-  msa_freqDT <- msa_freqDT[order(msa_freqDT$Freq, decreasing=T),]
-  msa_freqDT$FreqRatio <- msa_freqDT$Freq/sum(msa_freqDT$Freq)
-  head(msa_freqDT)
-  msa_freqDT$nSites <- nsites
-  msa_freqDT
+  out_dt <- out_dt[order(out_dt$Freq, out_dt$FreqRatio, decreasing=T),]
 }
-out_dt <- out_dt[order(out_dt$Freq, out_dt$FreqRatio, decreasing=T),]
+
+
+sink()
+
+cat(paste0("... written: ", logFile, "\n"))
+
+stop("-ok\n")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
