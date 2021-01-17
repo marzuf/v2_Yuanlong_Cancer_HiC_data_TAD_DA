@@ -21,8 +21,8 @@ chromoSize_dt <- read.delim("CTCF_CLUSTER/hg19_chromo_sizes.txt", stringsAsFacto
 
 nPermut <- 100
 
-ctcf_clustSize <- 4000
-# ctcf_clustSize <- 10000
+# ctcf_clustSize <- 4000
+ctcf_clustSize <- 10000
 # ctcf_clustSize <- 20000
 family_clustSize <- 260000
 # family_clustSize <- 130000
@@ -109,6 +109,7 @@ family_cluster_dt <- foreach(i_fam=1:length(allfams), .combine='rbind') %dopar% 
 }
 
 outFile <- file.path(outFolder, "family_cluster_dt.Rdata")
+#load("CTCF_AND_FAMILY_CLUSTERS_RANDOMV3/ctcf4000_family260000/family_cluster_dt.Rdata")
 save(family_cluster_dt, file=outFile, version=2)
 cat(paste0("... written: ", outFile, "\n"))
 
@@ -350,7 +351,7 @@ final_fams_cluster_dt$clusterLength <- final_fams_cluster_dt$maxPos - final_fams
               save(obsAndPermut_closest_clusters_dt, file=outFile, version=2)
               cat(paste0("... written: ", outFile, "\n"))
 
-# load("CTCF_AND_FAMILY_CLUSTERS/ctcf4000_family260000/obsAndPermut_closest_clusters_dt.Rdata")
+# load("CTCF_AND_FAMILY_CLUSTERS_RANDOMV3/ctcf4000_family260000/obsAndPermut_closest_clusters_dt.Rdata")
 
 
 all_obs_dt <- do.call('rbind', lapply(obsAndPermut_closest_clusters_dt, function(x) x[["obs_final_fams_cluster_dt"]]))
