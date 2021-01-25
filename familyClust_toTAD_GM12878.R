@@ -22,6 +22,11 @@ dir.create(outFolder, recursive = TRUE)
 gm_tad_dt <- read.delim(file.path("../v2_Yuanlong_Cancer_HiC_data_TAD_DA_GM12878/GM12878_40kb/genes2tad/all_assigned_regions.txt"),
                         col.names = c("chromo", "region", "start", "end"), stringsAsFactors = FALSE, header=F)
 
+signifThresh <- 0.01
+signif_gm_dt <- get(load("../v2_Yuanlong_Cancer_HiC_data_TAD_DA_GM12878/PSEUDO_FINAL_TABLE/all_result_dt.Rdata"))
+signif_gm_dt$region <- as.character(signif_gm_dt$region)
+signif_tads <- signif_gm_dt$region[signif_gm_dt$adjPvalComb <= signifThresh]
+                    
 ctcf_clust_dt <- get(load(file.path(inFolder, paste0("ctcf", d_ctcfClust, "_family", d_famClust), "agg_ctcf_cluster_dt.Rdata")))
 stopifnot(!duplicated(ctcf_clust_dt$clusterID))
 all_ctcf_clustSize <- setNames(ctcf_clust_dt$clusterSize, paste0("CTCF_", ctcf_clust_dt$clusterID))
@@ -45,7 +50,21 @@ famClust_dt$chromo <- as.character(famClust_dt$chromo)
 famClust_dt <- famClust_dt[famClust_dt$chromo %in% gm_tad_dt$chromo,]
 stopifnot(nrow(famClust_dt) > 0)
 
-famClust_dt$nTADs <- foreach(i  = 1:nrow(famClust_dt), .combine='rbind') %dopar% {
+famClust_dt$nTADs <- foreach(i  = 1:nrow(famClust_dt), .combine='c') %dopar% {
+  i_min <- which(gm_tad_dt$chromo == famClust_dt$chromo[i] & 
+                   gm_tad_dt$start <= famClust_dt$minPos[i] & gm_tad_dt$end >= famClust_dt$minPos[i])
+  stopifnot(length(i_min) == 1)
+  i_max <- which(gm_tad_dt$chromo == famClust_dt$chromo[i] & 
+                   gm_tad_dt$start <= famClust_dt$maxPos[i] & gm_tad_dt$end >= famClust_dt$maxPos[i])
+  stopifnot(length(i_max) == 1)
+  nTADs <- i_max - i_min + 1
+  
+  stopifnot(nTADs >= 1)
+  nTADs
+}
+famClust_dt$nTADs_ratio <- famClust_dt$nTADs/famClust_dt$clusterSize
+
+famClust_dt$nSignifTADs <- foreach(i  = 1:nrow(famClust_dt), .combine='c') %dopar% {
   i_min <- which(gm_tad_dt$chromo == famClust_dt$chromo[i] & 
                    gm_tad_dt$start <= famClust_dt$minPos[i] & gm_tad_dt$end >= famClust_dt$minPos[i])
   stopifnot(length(i_min) == 1)
@@ -54,9 +73,8 @@ famClust_dt$nTADs <- foreach(i  = 1:nrow(famClust_dt), .combine='rbind') %dopar%
   stopifnot(length(i_max) == 1)
   nTADs <- i_max - i_min + 1
   stopifnot(nTADs >= 1)
-  nTADs
+  sum(gm_tad_dt$region[i_min:i_max] %in% signif_tads)
 }
-famClust_dt$nTADs_ratio <- famClust_dt$nTADs/famClust_dt$clusterSize
 
 
 all_obs_dt$chromo <- as.character(all_obs_dt$chromo)
@@ -64,7 +82,7 @@ all_obs_dt <- all_obs_dt[all_obs_dt$chromo %in% gm_tad_dt$chromo,]
 stopifnot(nrow(all_obs_dt) > 0)
 
 
-all_obs_dt$nTADs <- foreach(i  = 1:nrow(all_obs_dt), .combine='rbind') %dopar% {
+all_obs_dt$nTADs <- foreach(i  = 1:nrow(all_obs_dt), .combine='c') %dopar% {
   i_min <- which(gm_tad_dt$chromo == all_obs_dt$chromo[i] & 
                    gm_tad_dt$start <= all_obs_dt$minPos[i] & gm_tad_dt$end >= all_obs_dt$minPos[i])
   stopifnot(length(i_min) == 1)
@@ -76,6 +94,19 @@ all_obs_dt$nTADs <- foreach(i  = 1:nrow(all_obs_dt), .combine='rbind') %dopar% {
   nTADs
 }
 all_obs_dt$nTADs_ratio <- all_obs_dt$nTADs/all_obs_dt$clusterSize
+
+all_obs_dt$nSignifTADs <- foreach(i  = 1:nrow(all_obs_dt), .combine='c') %dopar% {
+  i_min <- which(gm_tad_dt$chromo == all_obs_dt$chromo[i] & 
+                   gm_tad_dt$start <= all_obs_dt$minPos[i] & gm_tad_dt$end >= all_obs_dt$minPos[i])
+  stopifnot(length(i_min) == 1)
+  i_max <- which(gm_tad_dt$chromo == all_obs_dt$chromo[i] & 
+                   gm_tad_dt$start <= all_obs_dt$maxPos[i] & gm_tad_dt$end >= all_obs_dt$maxPos[i])
+  stopifnot(length(i_max) == 1)
+  nTADs <- i_max - i_min + 1
+  stopifnot(nTADs >= 1)
+  sum(gm_tad_dt$region[i_min:i_max] %in% signif_tads)
+  
+}
 
 stopifnot(all_obs_dt$closest_CTCFclust %in% names(all_ctcf_clustLength))
 stopifnot(all_obs_dt$closest_CTCFclust %in% names(all_ctcf_clustSize))
@@ -173,4 +204,7 @@ outFile <- file.path(outFolder, paste0("family_clustSize_dist_d-", d_famClust, "
 ggsave(p, filename = outFile, height=5, width=6)
 cat(paste0("... written: ", outFile, "\n"))
 
+outFile <- file.path(outFolder, paste0("all_obs_dt.Rdata"))
+save(all_obs_dt, file = outFile)
+cat(paste0("... written: ", outFile, "\n"))
 
