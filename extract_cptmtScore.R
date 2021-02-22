@@ -1,6 +1,6 @@
 
 # Rscript extract_cptmtScore.R
-
+ 
 # => CORRECTED VERSION:
 # 1) TADs on left and right of a gap might have same TAD rank
 # so now impose a threshold:
@@ -54,7 +54,9 @@ cat(paste0("... gap_threshold\t=\t", gap_threshold, "\n"))
 cat(paste0("... binSize\t=\t", binSize, "\n"))
 cat(paste0("... binSizeKb\t=\t", binSizeKb, "\n"))
 
-
+all_ds <- c(
+"mega_GSE105381_HepG2" ,"Compendium_LG2" , "Compendium_LG1" ,"mega_GSE118514_RWPE1","Compendium_LI", "mega_ENCSR346DCU_LNCaP",  "GSE118514_22Rv1",  "mega_ENCSR444WCZ_A549",  "mega_ENCSR346DCU_LNCaP",    "mega_ENCSR489OCU_NCI-H460" 
+)
 ds = all_ds[1]
 # all_ds=all_ds[1]
 foo <- foreach(ds = all_ds) %dopar% {

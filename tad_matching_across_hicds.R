@@ -19,7 +19,7 @@ require(data.table)
 
 source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 
-buildTable <- FALSE
+buildTable <- TRUE
 
 plotType <- "png"
 myHeight <- ifelse(plotType=="png", 400, 7)
