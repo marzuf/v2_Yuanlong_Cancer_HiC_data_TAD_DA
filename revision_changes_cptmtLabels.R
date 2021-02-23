@@ -1,11 +1,18 @@
 require(foreach)
 require(doMC)
 registerDoMC(40)
+require(ggsci)
+require(ggpubr)
+require(ggplot2)
 
 # Rscript revision_changes_cptmtLabels.R
 
 setDir <- "/media/electron"
 setDir <- ""
+
+plotType <- "svg"
+myHeightGG <- 5
+myWidthGG <- 7
 
 outFolder <- "REVISION_CHANGES_CPTMTLABELS"
 dir.create(outFolder)
@@ -17,6 +24,8 @@ hierarchyFolder <- file.path(setDir,
 "Supplementary_Data_1_domain_hierarchies_127HiCmaps")
   
 matchingFile <- file.path("REVISION_RANKDIFF_ACTIVDIFF", "matching_data.Rdata")
+
+tadSignifThresh <- 0.01
 
 # 
 # head /mnt/ndata/Yuanlong/1.Projects/2.PROFILE/2.Results_review/2.Sup_tab_used_for_2nd_submission/Supplementary_Data_1_domain_hierarchies_127HiCmaps/LNCaP_prostate_cancer_binsize=40kb.bed
@@ -267,32 +276,193 @@ matching_withRank_dt$tumorCptmt <- ifelse(matching_withRank_dt$ref_hicds %in% al
                                          ifelse(matching_withRank_dt$matching_hicds %in% all_tumor_ds, matching_withRank_dt$matching_region_cptmt,NA))
 stopifnot(!is.na(matching_withRank_dt$tumorCptmt))
 
+
 matching_withRank_dt$norm2tumor_cptmtChange <- paste0(matching_withRank_dt$normCptmt, "->", matching_withRank_dt$tumorCptmt)
 matching_withRank_dt$tumorMinusNorm_meanLog2FC <- matching_withRank_dt$tumorMeanFC - matching_withRank_dt$normMeanFC
 
-ggboxplot(
-  data=matching_withRank_dt, x="norm2tumor_cptmtChange", y="tumorMinusNorm_meanLog2FC"
-)
 
-sub_dt <- matching_withRank_dt[matching_withRank_dt$norm2tumor_cptmtChange == "A->B" | 
-                                 matching_withRank_dt$norm2tumor_cptmtChange == "B->A",]
-ggboxplot(
-  data=sub_dt, x="norm2tumor_cptmtChange", y="tumorMinusNorm_meanLog2FC"
-)
+noGap_dt <- matching_withRank_dt[!grepl("g", matching_withRank_dt$norm2tumor_cptmtChange),]
 
-ggdensity(sub_dt,
-          x = paste0("tumorMinusNorm_meanLog2FC"),
-          y = "..density..",
-          # combine = TRUE,                  # Combine the 3 plots
-          xlab = paste0("Rank diff. with matched TAD"),
-          # add = "median",                  # Add median line.
-          rug = FALSE,                      # Add marginal rug
-          color = "norm2tumor_cptmtChange",
-          fill = "norm2tumor_cptmtChange",
-          palette = "jco"
+plot_types <- c("withGap", "noGap")
+
+mytheme <-     theme(
+  # text = element_text(family=fontFamily),
+  panel.grid.major.y =  element_line(colour = "grey", size = 0.5, linetype=1),
+  panel.grid.minor.y =  element_line(colour = "grey", size = 0.5, linetype=1),
+  panel.background = element_rect(fill = "transparent"),
+  panel.grid.major.x =  element_blank(),
+  panel.grid.minor.x =  element_blank(),
+  axis.title.x = element_text(size=14, hjust=0.5, vjust=0.5),
+  axis.title.y = element_text(size=14, hjust=0.5, vjust=0.5),
+  axis.text.y = element_text(size=12, hjust=0.5, vjust=0.5),
+  axis.text.x = element_text(size=12, hjust=0.5, vjust=0.5),
+  plot.title = element_text(hjust=0.5, size = 16, face="bold"),
+  plot.subtitle = element_text(hjust=0.5, size = 14, face="italic"),
+  legend.title = element_text(face="bold")
 ) 
 
+
+for(p_type in plot_types) {
+  
+  if(p_type == "withGap") {
+    plot_dt <-   matching_withRank_dt
+  } else if(p_type == "noGap"){
+    plot_dt <- noGap_dt
+  } else {
+    stop("error\n")
+  }
+  
+  my_cols <- setNames(pal_jama()(5)[c(3, 2,4)], unique(plot_dt$ref_tadSignif))
+  legTitle <- ""
+  
+  plotTit <- paste0("norm vs. tumor FC change and cptmt change (", p_type, ")")
+  
+  all_cmps <- unique(file.path(plot_dt$matching_hicds, plot_dt$matching_exprds,
+                               plot_dt$ref_hicds, plot_dt$ref_exprds))
+  
+  mySub <- paste0("# DS comparisons = ", length(all_cmps), "; # TADs = ", nrow(plot_dt), 
+                  " (signif.: ", sum(plot_dt$adjPval <= tadSignifThresh), ")")
+  
+  
+  ggbox_p <- ggboxplot(
+    data=plot_dt,
+    xlab="",
+    color = "ref_tadSignif",
+    x="norm2tumor_cptmtChange", 
+    y="tumorMinusNorm_meanLog2FC"
+  ) + mytheme +
+    ggtitle(plotTit, subtitle = mySub)+
+    scale_color_manual(values=my_cols)+
+    scale_fill_manual(values=my_cols)  +
+    labs(color=paste0(legTitle),fill=paste0(legTitle), x="", y="(tumor-norm) meanLog2FC") +
+    # guides(color=FALSE)+
+    scale_y_continuous(breaks = scales::pretty_breaks(n = 10))
+  
+  
+  outFile <- file.path(outFolder,paste0("norm_vs_tumor_meanLog2FC_cptmt_change_", p_type, "_boxplot.", plotType))
+  ggsave(ggbox_p, filename = outFile, height=myHeightGG, width=myWidthGG)
+  cat(paste0("... written: ", outFile, "\n"))
+  
+  
+  # barplot: ratio of b->a ou a->b changes in signif. and not signif
+  
+  agg_dt <- aggregate(ref_region_ID~norm2tumor_cptmtChange + ref_tadSignif, data=plot_dt, FUN=length)
+  colnames(agg_dt)[colnames(agg_dt)=="ref_region_ID"] <- "nTADs"
+  tmp_dt <- aggregate(ref_region_ID~ref_tadSignif, data=plot_dt, FUN=length)
+  nTot <- setNames(tmp_dt$ref_region_ID, tmp_dt$ref_tadSignif)
+  agg_dt$ratioTADs <- agg_dt$nTADs/nTot[paste0(agg_dt$ref_tadSignif)]
+  
+  plotTit <- paste0("norm vs. tumor ratio TADs by cptmt change (", p_type, ")")
+  
+  ggbar_p <-  ggbarplot(agg_dt, 
+                        y="ratioTADs",
+                        x="ref_tadSignif", 
+                        fill="norm2tumor_cptmtChange") +
+    ggtitle(plotTit, subtitle=mySub)+
+    mytheme +
+    labs(x="" , y ="ratio of TADs", color=paste0(legTitle),fill=paste0(legTitle)) + 
+    theme(
+      axis.text.x = element_text(hjust=1, vjust=0.5,size=10,angle=90)
+    )
+  
+  outFile <- file.path(outFolder,paste0("norm_vs_tumor_cptmt_change_signif_notSignif_", p_type, "_barplot.", plotType))
+  ggsave(ggbar_p, filename = outFile, height=myHeightGG, width=myWidthGG)
+  cat(paste0("... written: ", outFile, "\n"))
+  
+  
+  plotTit <- paste0("TAD adj. p-val and norm vs. tumor cptmt change (", p_type, ")")
+  
+  plot_dt$ref_region_pval_log10 <- -log10(plot_dt$ref_region_pval)
+  
+  p3 <- ggdensity(plot_dt,
+                  x = paste0("ref_region_pval_log10"),
+                  y = "..density..",
+                  # combine = TRUE,                  # Combine the 3 plots
+                  xlab = paste0("Ref. region adj. p-val [-log10]"),
+                  # add = "median",                  # Add median line.
+                  rug = FALSE,                      # Add marginal rug
+                  color = "norm2tumor_cptmtChange",
+                  fill = "norm2tumor_cptmtChange",
+                  palette = "jco"
+  ) +
+    ggtitle(plotTit, subtitle = mySub)+
+    # scale_color_manual(values=my_cols)+
+    # scale_fill_manual(values=my_cols)  +
+    labs(color=paste0(legTitle),fill=paste0(legTitle), y="Density") +
+    guides(color=FALSE)+
+    scale_y_continuous(breaks = scales::pretty_breaks(n = 10))+
+    scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
+    mytheme
+  
+  outFile <- file.path(outFolder, paste0("tad_pval_by_cptmt_change_", p_type, "_density.", plotType))
+  ggsave(p3, file=outFile, height=myHeightGG, width=myWidthGG)
+  cat(paste0("... written: ", outFile, "\n"))
+  
+}
+
+
+# ggboxplot(
+#   data=plot_dt,
+#   x="norm2tumor_cptmtChange", 
+#   y="tumorMinusNorm_meanLog2FC"
+# ) +
+#   mytheme +
+#   ggtitle(plotTit, subtitle = mySub)+
+#   scale_color_manual(values=my_cols)+
+#   scale_fill_manual(values=my_cols)  +
+#   labs(color=paste0(legTitle),fill=paste0(legTitle), y="Density") +
+#   # guides(color=FALSE)+
+#   scale_y_continuous(breaks = scales::pretty_breaks(n = 10))
+
+
+
+
+# subA_dt <- noGap_dt[grepl("A->", noGap_dt$norm2tumor_cptmtChange),]
+# 
+# subB_dt <- noGap_dt[grepl("B->", noGap_dt$norm2tumor_cptmtChange),]
+# 
+# ggdensity(subA_dt,
+#           x = paste0("tumorMinusNorm_meanLog2FC"),
+#           y = "..density..",
+#           # combine = TRUE,                  # Combine the 3 plots
+#           xlab = paste0("Rank diff. with matched TAD"),
+#           # add = "median",                  # Add median line.
+#           rug = FALSE,                      # Add marginal rug
+#           color = "norm2tumor_cptmtChange",
+#           fill = "norm2tumor_cptmtChange",
+#           palette = "jco"
+# ) 
+# 
+# ggdensity(subB_dt,
+#           x = paste0("tumorMinusNorm_meanLog2FC"),
+#           y = "..density..",
+#           # combine = TRUE,                  # Combine the 3 plots
+#           xlab = paste0("Rank diff. with matched TAD"),
+#           # add = "median",                  # Add median line.
+#           rug = FALSE,                      # Add marginal rug
+#           color = "norm2tumor_cptmtChange",
+#           fill = "norm2tumor_cptmtChange",
+#           palette = "jco"
+# ) 
+# 
+# 
+# ggdensity(noGap_dt,
+#           x = paste0("tumorMinusNorm_meanLog2FC"),
+#           y = "..density..",
+#           # combine = TRUE,                  # Combine the 3 plots
+#           xlab = paste0("Rank diff. with matched TAD"),
+#           # add = "median",                  # Add median line.
+#           rug = FALSE,                      # Add marginal rug
+#           color = "norm2tumor_cptmtChange",
+#           fill = "norm2tumor_cptmtChange",
+#           palette = "jco"
+# ) 
+
 # same with difference signif. not signif.
+
+
+
+
 
 # matching_withRank_dt[
 #   matching_withRank_dt$matching_region_ID == "LI_40kb/TCGAlihc_norm_lihc/chr1_TAD12" | 
@@ -320,9 +490,4 @@ ggdensity(sub_dt,
 
 
 
-my_cols <- setNames(pal_jama()(5)[c(3, 2,4)], unique(matching_withRank_dt$ref_tadSignif))
 
-legTitle <- ""
-
-
-tumor_ds

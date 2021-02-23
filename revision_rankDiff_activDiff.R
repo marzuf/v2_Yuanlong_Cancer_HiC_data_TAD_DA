@@ -498,12 +498,13 @@ ggsave(p3, file=outFile, height=myHeightGG, width=myWidthGG)
 cat(paste0("... written: ", outFile, "\n"))
 
 matching_withRank_dt$abs_rankDiff <- abs(matching_withRank_dt$rankDiff)
+plotTit <- paste0("TAD abs. rank diff. and signif.")
 
 p3 <- ggdensity(matching_withRank_dt,
                 x = paste0("abs_rankDiff"),
                 y = "..density..",
                 # combine = TRUE,                  # Combine the 3 plots
-                xlab = paste0("Rank diff. with matched TAD"),
+                xlab = paste0("Abs. rank diff. with matched TAD"),
                 # add = "median",                  # Add median line.
                 rug = FALSE,                      # Add marginal rug
                 color = "ref_tadSignif",
@@ -542,27 +543,27 @@ cat(paste0("... written: ", outFile, "\n"))
 
 outFile <- file.path(outFolder, paste0("matched_regions_pval_vs_rankdiff_densplot.", "png"))
 do.call("png", list(outFile, height=400, width=400))
-densplot(x=-log10(matching_withRank_dt$ref_region_pval), 
-         y = matching_withRank_dt$rankDiff,
-         xlab="ref_region_pval [-log10]",
-         ylab="rank diff.",
+densplot(y=-log10(matching_withRank_dt$ref_region_pval), 
+         x = matching_withRank_dt$rankDiff,
+         ylab="ref_region_pval [-log10]",
+         xlab="rank diff.",
          cex.main=1.2,
          cex.lab=1.2,cex.axis=1.5)
 addCorr(x=-log10(matching_withRank_dt$ref_region_pval), 
-        y = matching_withRank_dt$rankDiff,bty="n", legPos="topleft")
+        y = matching_withRank_dt$rankDiff,bty="n", legPos="topright")
 foo <- dev.off()
 cat(paste0("... written: ", outFile, "\n"))
 
 outFile <- file.path(outFolder, paste0("matched_regions_pval_vs_absRankdiff_densplot.", "png"))
 do.call("png", list(outFile, height=400, width=400))
-densplot(x=-log10(matching_withRank_dt$ref_region_pval), 
-         y = matching_withRank_dt$abs_rankDiff,
-xlab="ref_region_pval [-log10]",
-ylab="abs. rank diff.",
+densplot(y=-log10(matching_withRank_dt$ref_region_pval), 
+         x = matching_withRank_dt$abs_rankDiff,
+ylab="ref_region_pval [-log10]",
+xlab="abs. rank diff.",
 cex.main=1.2,
 cex.lab=1.2,cex.axis=1.5)
 addCorr(x=-log10(matching_withRank_dt$ref_region_pval), 
-        y = matching_withRank_dt$abs_rankDiff,bty="n", legPos="topleft")
+        y = matching_withRank_dt$abs_rankDiff,bty="n", legPos="topright")
 foo <- dev.off()
 cat(paste0("... written: ", outFile, "\n"))
 
