@@ -13,7 +13,7 @@ require(doMC)
 require(GenomicRanges)
 require(ggplot2)
 require(RColorBrewer)
-registerDoMC(4)
+registerDoMC(40)
 
 require(data.table)
 
@@ -47,13 +47,15 @@ stopifnot(dir.exists(mainFolder))
 pipFolder <- file.path(mainFolder, "PIPELINE", "OUTPUT_FOLDER")
 stopifnot(dir.exists(pipFolder))
 all_hicds <- list.files(pipFolder)
+all_hicds <- all_hicds[!grepl("RANDOM", all_hicds) & !grepl("PERMUT", all_hicds)]
+
 file.path(mainFolder, all_hicds)[!dir.exists(file.path(mainFolder, all_hicds))]
 stopifnot(dir.exists(file.path(mainFolder, all_hicds)))
 
 all_exprds <- lapply(all_hicds, function(x) list.files(file.path(pipFolder, x)))
 names(all_exprds) <- all_hicds
 
-outFolder <- "TAD_MATCHING_ACROSS_HICDS"
+outFolder <- "TAD_MATCHING_ACROSS_HICDS_NOPERMUT"
 dir.create(outFolder, recursive = TRUE)
 
 all_datasets <- unlist(lapply(1:length(all_exprds), function(x) file.path(names(all_exprds)[x], all_exprds[[x]])))

@@ -28,8 +28,8 @@ wget https://amp.pharm.mssm.edu/chea3/assets/tflibs/all_tissues.TFs.gmt
 
 
 ## enhanceratlas data - 14.02.2020
-wget http://www.enhanceratlas.org/data/download/enhancer/hs/Lung.bed --output-file enhanceratlas_enhancer_Lung.bed
-wget http://www.enhanceratlas.org/data/AllEPs/hs/Lung_EP.txt --output-file enhanceratlas_AllEPs_Lung_EP.bed
+wget http://www.enhanceratlas.org/data/download/enhancer/hs/Lung.bed ; mv Lung.bed enhanceratlas_enhancer_Lung.bed
+wget http://www.enhanceratlas.org/data/AllEPs/hs/Lung_EP.txt ; mv Lung_EP.txt enhanceratlas_AllEPs_Lung_EP.txt
 
 Data format EP file
 Data format in the file listed here (10 columns):
@@ -45,3 +45,28 @@ signalValue - Measurement of average enrichment for enhancer.
 EP Score - The confidence score of the enhancer-target interaction.
 
 http://www.enhanceratlas.org/Data_format_EP.txt
+
+
+chea3_encode data:
+17.02.2020
+https://amp.pharm.mssm.edu/chea3/
+https://amp.pharm.mssm.edu/chea3/assets/tflibs/ENCODE_ChIP-seq.gmt
+
+Jeme data - dld 06.03.2020
+http://yiplab.cse.cuhk.edu.hk/jeme/
+fantom5_elasticnet.646_NCI-H460.csv
+fantom5_lasso.646_NCI-H460.csv
+
+cosmic genes
+https://cancer.sanger.ac.uk/cosmic/download
+COSMIC HGNC, 09.03.2020
+
+
+list of transcription factors:
+http://humantfs.ccbr.utoronto.ca/download/v_1.01/TF_names_v_1.01.txt, 23.02.21
+
+
+list of housekeeping genes
+https://www.tau.ac.il/~elieis/HKG/HK_genes.txt, 23.02.21
+
+

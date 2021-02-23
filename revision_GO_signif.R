@@ -8,8 +8,9 @@ printAndLog <- function(txt, logFile=NULL) {
   cat(txt, file=logFile, append=T)
 }
 
+setDir <- ""
 
-script_name <- "purityFilter_density.R"
+script_name <- "revision_GO_signif.R"
 
 startTime <- Sys.time()
 
@@ -25,7 +26,23 @@ require(reshape2)
 # require(gplots)
 registerDoMC(4)
 
-source("../../Cancer_HiC_data_TAD_DA/utils_fct.R")
+source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
+
+my_box_theme <- theme(
+  # text = element_text(family=fontFamily),
+  panel.grid.major.y =  element_line(colour = "grey", size = 0.5, linetype=1),
+  panel.grid.minor.y =  element_line(colour = "grey", size = 0.5, linetype=1),
+  panel.background = element_rect(fill = "transparent"),
+  panel.grid.major.x =  element_blank(),
+  panel.grid.minor.x =  element_blank(),
+  axis.title.x = element_text(size=14, hjust=0.5, vjust=0.5),
+  axis.title.y = element_text(size=14, hjust=0.5, vjust=0.5),
+  axis.text.y = element_text(size=12, hjust=0.5, vjust=0.5),
+  axis.text.x = element_text(size=12, hjust=0.5, vjust=0.5),
+  plot.title = element_text(hjust=0.5, size = 16, face="bold"),
+  plot.subtitle = element_text(hjust=0.5, size = 14, face="italic"),
+  legend.title = element_text(face="bold")
+) 
 
 
 buildTable <- TRUE
@@ -34,6 +51,8 @@ plotType <- "svg"
 myHeight <- ifelse(plotType=="png", 400, 5)
 myWidth <- 8
 axisCex <- 1.4
+myHeightGG <- 6
+myWidthGG <- 7
 
 ### HARD-CODED - MAIN SETTINGS
 # _final:  discussion 04.08.2020 Giovanni - keep aran CPE data, first vial only
@@ -50,8 +69,8 @@ signifThresh <- 0.01
 signifcol <- paste0(signif_column, "_", signifThresh)
 
 
-source("../../Yuanlong_Cancer_HiC_data_TAD_DA/subtype_cols.R")
-source("../settings.R")
+source("../Yuanlong_Cancer_HiC_data_TAD_DA/subtype_cols.R")
+# source("../MANUSCRIPT_FIGURES/settings.R")
 
 plotType <- "svg"
 myHeight <- ifelse(plotType=="png", 400, 5)
@@ -88,6 +107,13 @@ stopifnot(file.exists(gmtFile))
 c5_msigdb <- read.gmt(gmtFile)
 
 
+outFolder <- file.path("REVISION_GO_SIGNIF")
+dir.create(outFolder, recursive = TRUE)
+
+runFolder <- "."
+
+logFile <- file.path(outFolder, "enrichr_logfile.txt")
+
 txt <- paste0("!!! HARD CODED SETTINGS !!! \n")
 printAndLog(txt, logFile)
 txt <- paste0("... gmtFile:\t", gmtFile, "\n")
@@ -118,9 +144,6 @@ printAndLog(txt, logFile)
 
 
 
-
-outFolder <- file.path("REVISION_GO_SIGNIF")
-dir.create(outFolder, recursive = TRUE)
 
 
 setDir <- "/media/electron"
@@ -165,114 +188,134 @@ stopifnot(! purity_flagged_tads  %in% tads_signif_notPurityFlaggedAll)
 stopifnot(! purity_flagged_tads %in% tads_signif_notPurityFlagged)
 
 
-tad_list  = tads_signif_notPurityFlagged
-data_dt = merge_dt
-stopifnot(tad_list %in% merge_dt$region_id)
-signif_notPF_genes <- unique(unlist(strsplit(as.character(data_dt$region_genes[data_dt$region_id %in% tad_list]), split=",")))
-stopifnot(signif_notPF_genes %in% gff_dt$symbol)
-signif_notPF_entrez <- gff_dt$entrezID[gff_dt$symbol %in% signif_notPF_genes]
+all_data_list <- list(
+  list(tad_list = tads_signif_notPurityFlagged, data_dt = merge_dt, name="keep not PF"),
+  list(tad_list = tads_signif_notPurityFlaggedAll, data_dt = merge_dt_all, name = "discard PF")
+)
 
-univers_genes <- unique(unlist(strsplit(as.character(data_dt$region_genes), split=",")))
-stopifnot(univers_genes %in% gff_dt$symbol)
-univers_entrez <- gff_dt$entrezID[gff_dt$symbol %in% univers_genes]
+save(all_data_list, file="all_data_list.Rdata", version=2)
+all_data_list <- get(load("all_data_list.Rdata"))
 
+for(i in seq_along(all_data_list)) {
 
-
-
-go_univers_entrez <- as.character(univers_entrez)[as.character(univers_entrez) %in% as.character(c5_msigdb$gene)]
-stopifnot(length(go_univers_entrez)  > 0)
-go_signif_notPF_entrez <- as.character(signif_notPF_entrez)[as.character(signif_notPF_entrez) %in% as.character(c5_msigdb$gene)]
-stopifnot(length(go_signif_notPF_entrez)  > 0)
-
-
-cat("... available annot. for univers_entrez:\t", length(go_univers_entrez) , "/", length(univers_entrez), "\n")
-cat("... available annot. for univers_entrez:\t", length(go_signif_notPF_entrez) , "/", length(signif_notPF_entrez), "\n")
-
-
-stopifnot(go_signif_notPF_entrez %in% go_univers_entrez)
-
-
+  tad_list <- all_data_list[[i]][["tad_list"]]
+  data_dt <- all_data_list[[i]][["data_dt"]]
+  myname <- all_data_list[[i]][["name"]]
   
   
-  #***** 1) conserved_signif
-  cat(paste0(">  start enricher for conserved_signif \n"))
   
-  if(length(go_all_conserved_signif_tads_genes) > 0) {
+  stopifnot(tad_list %in% data_dt$region_id)
+  signif_notPF_genes <- unique(unlist(strsplit(as.character(data_dt$region_genes[data_dt$region_id %in% tad_list]), split=",")))
+  stopifnot(signif_notPF_genes %in% gff_dt$symbol)
+  signif_notPF_entrez <- gff_dt$entrezID[gff_dt$symbol %in% signif_notPF_genes]
+  
+  univers_genes <- unique(unlist(strsplit(as.character(data_dt$region_genes), split=",")))
+  stopifnot(univers_genes %in% gff_dt$symbol)
+  univers_entrez <- gff_dt$entrezID[gff_dt$symbol %in% univers_genes]
+  
+  
+  go_univers_entrez <- as.character(univers_entrez)[as.character(univers_entrez) %in% as.character(c5_msigdb$gene)]
+  stopifnot(length(go_univers_entrez)  > 0)
+  go_signif_notPF_entrez <- as.character(signif_notPF_entrez)[as.character(signif_notPF_entrez) %in% as.character(c5_msigdb$gene)]
+  stopifnot(length(go_signif_notPF_entrez)  > 0)
+  
+  nDS <- length(unique(data_dt$dataset))
+  nTADs <- length(unlist(tad_list))
+  nSignifGenes <- length(signif_notPF_entrez)
+  nSignifGenesGO <- length(go_signif_notPF_entrez)
+  nAllGenes <- length(univers_entrez)
+  nAllGenesGO <- length(go_univers_entrez)
+  
+  
+  cat("... available annot. for univers_entrez:\t", length(go_univers_entrez) , "/", length(univers_entrez), "\n")
+  cat("... available annot. for univers_entrez:\t", length(go_signif_notPF_entrez) , "/", length(signif_notPF_entrez), "\n")
+  
+  
+  stopifnot(go_signif_notPF_entrez %in% go_univers_entrez)
+  
+  cat(paste0(">  start enricher  \n"))
+  
+  if(length(go_signif_notPF_entrez) > 0) {
     
-    conserved_signif_enrich <- enricher(gene = go_all_conserved_signif_tads_genes, 
+    entrez_signif_enrich <- enricher(gene = go_signif_notPF_entrez, 
                                         TERM2GENE=c5_msigdb,
-                                        universe = go_all_universe_genes,
+                                        universe = go_univers_entrez,
                                         pvalueCutoff = enricher_pvalueCutoff, 
                                         pAdjustMethod = enricher_pAdjustMethod, 
                                         minGSSize = enricher_minGSSize, 
                                         maxGSSize = enricher_maxGSSize, 
                                         qvalueCutoff =enricher_qvalueCutoff)
     
-    save(conserved_signif_enrich, version=2, file=file.path(outFolder, "conserved_signif_enrich.Rdata"))
+    outfile <- file.path(outFolder, paste0(gsub(" ", "", myname), "_entrez_signif_enrich.Rdata"))
+    save(entrez_signif_enrich, version=2, file=outfile)
+    cat(paste0("... written: ", outfile, "\n"))
+    # stop("-ok \n")
     
-    conserved_signif_enrich_resultDT <- conserved_signif_enrich@result
-    conserved_signif_enrich_resultDT <- conserved_signif_enrich_resultDT[order(conserved_signif_enrich_resultDT[,enricher_results_sortGOby], decreasing=FALSE), ]
-    conserved_signif_enrich_resultDT$log10_pval <- -log10(conserved_signif_enrich_resultDT[,paste0(padjVarGO)])
-    conserved_signif_enrich_resultDT$geneRatio <- as.numeric(sapply(conserved_signif_enrich_resultDT$GeneRatio, function(x) {
+    entrez_signif_enrich_resultDT <- entrez_signif_enrich@result
+    entrez_signif_enrich_resultDT <- entrez_signif_enrich_resultDT[order(entrez_signif_enrich_resultDT[,enricher_results_sortGOby], 
+                                                                         decreasing=FALSE), ]
+    entrez_signif_enrich_resultDT$log10_pval <- -log10(entrez_signif_enrich_resultDT[,paste0(padjVarGO)])
+    entrez_signif_enrich_resultDT$geneRatio <- as.numeric(sapply(entrez_signif_enrich_resultDT$GeneRatio, function(x) {
       gr <- as.numeric(eval(parse(text = x ))); stopifnot(!is.na(gr)); gr})) 
-    conserved_signif_enrich_resultDT$bgRatio <- as.numeric(sapply(conserved_signif_enrich_resultDT$BgRatio, function(x) {
+    entrez_signif_enrich_resultDT$bgRatio <- as.numeric(sapply(entrez_signif_enrich_resultDT$BgRatio, function(x) {
       gr <- as.numeric(eval(parse(text = x ))); stopifnot(!is.na(gr)); gr})) 
-    conserved_signif_enrich_resultDT$foldEnrichment <- conserved_signif_enrich_resultDT$geneRatio/conserved_signif_enrich_resultDT$bgRatio
+    entrez_signif_enrich_resultDT$foldEnrichment <- entrez_signif_enrich_resultDT$geneRatio/entrez_signif_enrich_resultDT$bgRatio
     
     
-    save(conserved_signif_enrich_resultDT, version=2, file=file.path(outFolder, "conserved_signif_enrich_resultDT_0.Rdata"))
+    genes_signif_plotMax <- min(c(plotMaxBars, nrow(entrez_signif_enrich_resultDT)))
     
     
-    genes_signif_plotMax <- min(c(plotMaxBars, nrow(conserved_signif_enrich_resultDT)))
     if(genes_signif_plotMax > 0) {
       for(var_plot in barplot_vars) {
-        myTit <- paste0(barplot_vars_tit[var_plot], " ", data_cmpType, " (conserved_signif)")
-        conserved_signif_enrich_resultDT <- conserved_signif_enrich_resultDT[order(conserved_signif_enrich_resultDT[,var_plot], decreasing=TRUE),]
         
-        my_x <- gsub("GO_", "", conserved_signif_enrich_resultDT$Description[1:genes_signif_plotMax])
+        entrez_signif_enrich_resultDT <- entrez_signif_enrich_resultDT[order(entrez_signif_enrich_resultDT[,var_plot], decreasing=TRUE),]
         
+        my_x <- gsub("GO_", "", entrez_signif_enrich_resultDT$Description[1:genes_signif_plotMax])
         
-        conserved_signif_dt <- conserved_signif_enrich_resultDT[1:genes_signif_plotMax,c(var_plot, "Description"), drop=FALSE]
-        conserved_signif_dt$labs <-  gsub("GO_", "", conserved_signif_dt$Description)
-        conserved_signif_dt$plot_labs <-  unlist(lapply(strwrap(gsub("_", " ", conserved_signif_dt$labs), 
+        plot_dt <- entrez_signif_enrich_resultDT[1:genes_signif_plotMax,c(var_plot, "Description"), drop=FALSE]
+        plot_dt$labs <-  gsub("GO_", "", plot_dt$Description)
+        
+        strwdth <- 25
+        
+        plot_dt$plot_labs <-  unlist(lapply(strwrap(gsub("_", " ", plot_dt$labs), 
                                                                 width = strwdth, simplify=FALSE), 
                                                         function(x) paste0(x, collapse="\n")))
         
-        outFile <- file.path(outFolder,paste0(file_prefix, "conserved_signif", var_plot, "_GO_",
-                                              enricher_ontologyType, "_", var_plot, "_barplot_dt.Rdata"))
-        save(conserved_signif_dt, file=outFile, version=2)
+        plot_dt <- plot_dt[order(plot_dt[,paste0(var_plot)], decreasing=TRUE),]
+        plot_dt$plot_labs <- factor(plot_dt$plot_labs, levels=as.character(plot_dt$plot_labs))
         
         
-        outFile <- file.path(outFolder,paste0(file_prefix, "conserved_signif", var_plot, "_GO_", enricher_ontologyType, "_", var_plot, "_barplot", ".", plotType))
-        do.call(plotType, list(outFile, height = myHeight*1.2, width = myWidth*1.5))    
-        par(oma=c(par_bot,1,1,1))
+        myTit <- paste0("Signif. enriched GO - ", myname, " (top ",var_plot,  ")")
         
         
+        subTit <- paste0("(# DS=", nDS, " - # TADs=", nTADs, " - # genes=",
+        nSignifGenes, "(", nSignifGenesGO, ")/", nAllGenes, "(", nAllGenesGO, "))")
         
-        barplot(conserved_signif_enrich_resultDT[1:genes_signif_plotMax,var_plot],
-                main = myTit, 
-                # ylab = paste0("-log10 (", padjVarGO, ")"),
-                ylab = paste0(barplot_vars_tit[var_plot]),
-                names.arg =unlist(lapply(strwrap(gsub("_", " ", my_x), width = strwdth, 
-                                                 simplify=FALSE), function(x) paste0(x, collapse="\n"))), 
-                las=2,
-                cex.lab = plotCex,
-                cex.main = plotCex,
-                cex.axis=plotCex,
-                cex.names = 0.9
-        )
-        mtext(side=3, text=paste0("(# datasets = ", nDS, ")"), font=3)
-        foo <- dev.off()
+        
+        if(var_plot == "log10_pval") {
+          my_ylab <- "adj. p-val [-log10]"
+        } else {
+          my_ylab <- var_plot
+        }
+        
+        ggbar_p <-  ggbarplot(plot_dt, 
+                              x="plot_labs", y=var_plot, fill="darkgrey") +
+          ggtitle(myTit, subtitle=subTit)+
+          my_box_theme +
+          labs(x="" , y = my_ylab) + 
+          theme(
+            axis.text.x = element_text(hjust=1, vjust=0.5,size=10,angle=90)
+          )
+        
+        outFile <- file.path(outFolder,paste0(gsub(" ", "", myname), "_genesFromDAsignif", var_plot, "_GO_", enricher_ontologyType, "_", var_plot, "_barplotGG", ".", plotType))
+        ggsave(ggbar_p, filename = outFile, height=myHeightGG, width=myWidthGG*1.2)
         cat(paste0("... written: ", outFile, "\n"))
-      }
-    }
-    conserved_signif_enrich_resultDT <- data.frame(conserved_signif_enrich_resultDT)
-    
-  } else {
-    conserved_signif_enrich_resultDT <- NULL
-  }
-  
-  
-  
-  
+        
+      } # iterating over plot_var
+    } # if GO signif
+  } # if not PF genes
+} # notPF and discard PF
+
+
+
 
