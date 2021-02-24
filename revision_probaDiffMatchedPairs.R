@@ -2,15 +2,38 @@
 outFolder <- file.path("REVISION_PROBADIFFMATCHEDPAIRS")
 dir.create(outFolder, recursive = TRUE)
 
+
+
 # Rscript revision_probaDiffMatchedPairs.R
 
+
+require(ggpubr)
+require(ggsci)
+require(doMC)
+require(foreach)
+
+registerDoMC(40)
+
+source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
+
+plotType <- "png"
+myWidth <- 500
+myWidthGG <- 7
+myHeightGG <- 5
+myHeight <- 400
+
+plotCex <- 1.2
+
+tadSignifThresh <- 0.01
+
+
 # 2nd part  => for matching pairs
-refID signif. or not signif.
-
-similar to normFC and tumorFC -> normInterIntraProba tumor
-
-diff. inter/intra vs. signif/not signif. norm tumor
-diff. inter/intra vs. norm tumor FC
+# refID signif. or not signif.
+# 
+# similar to normFC and tumorFC -> normInterIntraProba tumor
+# 
+# diff. inter/intra vs. signif/not signif. norm tumor
+# diff. inter/intra vs. norm tumor FC
 
 all_pairs <- c(
   file.path("LI_40kb","GSE105381_HepG2_40kb", "TCGAlihc_norm_lihc"),
@@ -28,13 +51,12 @@ all_pairs <- c(
 all_normal_ds <- as.character(sapply(all_pairs, function(x) dirname(dirname(x))))
 all_tumor_ds <-  as.character(sapply(all_pairs, function(x) basename(dirname(x))))
 
-
-col_var <- "mean_intra"
+all_col_vars <- c("mean_intra")
+col_var = "mean_intra"
 
 ###################
 ### PREPARE SIGNIF DATA
 ###################
-
 
 final_table_file <- file.path("CREATE_FINAL_TABLE/all_result_dt.Rdata")
 stopifnot(file.exists(final_table_file))
@@ -111,39 +133,84 @@ my_cols <- setNames(pal_jama()(5)[c(3, 2,4)], unique(matching_withRank_dt$ref_ta
 stopifnot(matching_withRank_dt$ref_region_hicdsID %in% names(colVar_values))
 stopifnot(matching_withRank_dt$matching_region_hicdsID %in% names(colVar_values))
 
-matching_withRank_dt[,paste0("ref_", col_var)] <- colVar_values[matching_withRank_dt$ref_region_hicdsID]
-matching_withRank_dt[,paste0("matching_", col_var)] <- colVar_values[matching_withRank_dt$matching_region_hicdsID]
+matching_withRank_dt_s <- matching_withRank_dt
 
+foo <- foreach(col_var=all_col_vars) %dopar% {
+  matching_withRank_dt <- matching_withRank_dt_s
+  matching_withRank_dt[,paste0("ref_", col_var)] <- colVar_values[matching_withRank_dt$ref_region_hicdsID]
+  matching_withRank_dt[,paste0("matching_", col_var)] <- colVar_values[matching_withRank_dt$matching_region_hicdsID]
 
-matching_withRank_dt[,paste0("norm_", col_var)] <- ifelse(matching_withRank_dt$ref_hicds %in% all_normal_ds, 
-                                                          matching_withRank_dt[,paste0("ref_", col_var)],
-                                         ifelse(matching_withRank_dt$matching_hicds %in% all_normal_ds, 
-                                                matching_withRank_dt[,paste0("matching_", col_var)],NA))
-stopifnot(!is.na(matching_withRank_dt[,paste0("norm_", col_var)]))
-
-matching_withRank_dt[,paste0("tumor_", col_var)] <- ifelse(matching_withRank_dt$ref_hicds %in% all_tumor_ds, 
-                                                          matching_withRank_dt[,paste0("ref_", col_var)],
-                                                          ifelse(matching_withRank_dt$matching_hicds %in% all_tumor_ds, 
-                                                                 matching_withRank_dt[,paste0("matching_", col_var)],NA))
-stopifnot(!is.na(matching_withRank_dt[,paste0("tumor_", col_var)]))
-
-
-
-# plot
-matching_withRank_dt[,paste0("tumorOverNorm_", col_var)] <- matching_withRank_dt[,paste0("tumor_", col_var)] / matching_withRank_dt[,paste0("norm_", col_var)]  
-
-plot(
-  x=matching_withRank_dt[,paste0("tumorOverNorm_", col_var)]  ,
-  y=matching_withRank_dt[,paste0("ref_region_pval")]  
-)
-
-
-matching_withRank_dt$tumorMinusNormFCdiff <- matching_withRank_dt$tumorMeanFC - matching_withRank_dt$normMeanFC
-plot(
-  x=matching_withRank_dt[,paste0("tumorOverNorm_", col_var)]  ,
-  y=matching_withRank_dt[,paste0("tumorMinusNormFCdiff")]  
-)
-
-
-
+  matching_withRank_dt <- matching_withRank_dt[
+    !is.na(  matching_withRank_dt[,paste0("ref_", col_var)] ) & !is.na( matching_withRank_dt[,paste0("matching_", col_var)] ),
+  ]
+  
+  matching_withRank_dt[,paste0("norm_", col_var)] <- ifelse(matching_withRank_dt$ref_hicds %in% all_normal_ds, 
+                                                            matching_withRank_dt[,paste0("ref_", col_var)],
+                                                            ifelse(matching_withRank_dt$matching_hicds %in% all_normal_ds, 
+                                                                   matching_withRank_dt[,paste0("matching_", col_var)],NA))
+  stopifnot(!is.na(matching_withRank_dt[,paste0("norm_", col_var)]))
+  
+  matching_withRank_dt[,paste0("tumor_", col_var)] <- ifelse(matching_withRank_dt$ref_hicds %in% all_tumor_ds, 
+                                                             matching_withRank_dt[,paste0("ref_", col_var)],
+                                                             ifelse(matching_withRank_dt$matching_hicds %in% all_tumor_ds, 
+                                                                    matching_withRank_dt[,paste0("matching_", col_var)],NA))
+  stopifnot(!is.na(matching_withRank_dt[,paste0("tumor_", col_var)]))
+  
+  
+  all_cmps <- unique(file.path(matching_withRank_dt$matching_hicds, matching_withRank_dt$matching_exprds,
+                               matching_withRank_dt$ref_hicds, matching_withRank_dt$ref_exprds))
+  
+  mySub <- paste0("# DS comparisons = ", length(all_cmps), "; # TADs = ", nrow(matching_withRank_dt), 
+                  " (signif.: ", sum(matching_withRank_dt$adjPval <= tadSignifThresh), ")")
+  
+  plotTit <- ""
+  
+  
+  # plot
+  matching_withRank_dt[,paste0("tumorOverNorm_", col_var)] <- matching_withRank_dt[,paste0("tumor_", col_var)] / matching_withRank_dt[,paste0("norm_", col_var)]  
+  
+  outFile  <- file.path(outFolder, paste0(col_var, "_ratio_vs_refAdjPvalComb_densplot.", plotType))
+  do.call(plotType, list(outFile, height=myWidth, width=myWidth))
+  
+  
+  densplot(
+    x=matching_withRank_dt[,paste0("tumorOverNorm_", col_var)]  ,
+    xlab=paste0("tumorOverNorm_", col_var),
+    y=matching_withRank_dt[,paste0("ref_region_pval")] ,
+    ylab=paste0("ref_region_pval"),
+    cex.main=plotCex,
+    cex.axis=plotCex,
+    cex.lab=plotCex,
+    main=plotTit
+  )
+  mtext(side=3, text=mySub)
+  foo <- dev.off()
+  cat(paste0("... written: ", outFile, "\n"))
+  
+  
+  matching_withRank_dt$tumorMinusNormFCdiff <- matching_withRank_dt$tumorMeanFC - matching_withRank_dt$normMeanFC
+  
+  outFile  <- file.path(outFolder, paste0(col_var, "_ratio_vs_FC_diff_densplot.", plotType))
+  do.call(plotType, list(outFile, height=myWidth, width=myWidth))
+  
+  densplot(
+    x=matching_withRank_dt[,paste0("tumorOverNorm_", col_var)]  ,
+    xlab=paste0("tumorOverNorm_", col_var),
+    y=matching_withRank_dt[,paste0("tumorMinusNormFCdiff")],
+    ylab=paste0("tumorMinusNormFCdiff"),
+    cex.main=plotCex,
+    cex.axis=plotCex,
+    cex.lab=plotCex,
+    main=plotTit
+  )
+  mtext(side=3, text=mySub)
+  foo <- dev.off()
+  cat(paste0("... written: ", outFile, "\n"))
+  
+  
+  
+  
+  
+  
+}
 
