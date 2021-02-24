@@ -204,6 +204,17 @@ mean(tad2cptmt_final_dt$tadCptmtLabel == "gap")
 # [1] 0.02096086
 mean(tad2cptmt_final_dt$i_endCptmt == tad2cptmt_final_dt$i_startCptmt)
 # [1] 0.9390172
+sum(tad2cptmt_final_dt$startCptmtLabel == "gap")
+# [1] 0
+sum(tad2cptmt_final_dt$endCptmtLabel == "gap")
+# [1] 0
+
+stopifnot(sum(tad2cptmt_final_dt$startCptmtLabel == "gap") == 0)
+stopifnot(sum(tad2cptmt_final_dt$endCptmtLabel == "gap") == 0)
+stopifnot(tad2cptmt_final_dt$endCptmtLabel == tad2cptmt_final_dt$startCptmtLabel)
+
+tad2cptmt_final_dt$tadCptmtLabel <- tad2cptmt_final_dt$startCptmtLabel
+
 
 tad2cptmt_final_dt$tad_binaryCptmtLab <- substr(tad2cptmt_final_dt$tadCptmtLabel, start=1, stop=1)
 tad2cptmt_final_dt$region_ID <- file.path(tad2cptmt_final_dt$hicds, tad2cptmt_final_dt$exprds, tad2cptmt_final_dt$region)
@@ -213,7 +224,8 @@ tad2cptmts <- setNames(tad2cptmt_final_dt$tad_binaryCptmtLab, tad2cptmt_final_dt
 # remove the TADs in gaps
 tad2cptmt_dt <- tad2cptmt_final_dt[tad2cptmt_final_dt$tadCptmtLabel != "gap",]
 stopifnot(tad2cptmt_dt$tad_binaryCptmtLab %in% c("A", "B"))
-
+### UPDATE HERE THE TADS ARE THE COMPARTMENTS... ONLY MIDCPTMT MIGHT BE IN GAP
+# START CPTMT = ENDCPTMT, AND NEITHER START NOR END ARE GAP
 
 # matching_data <- get(load("REVISION_RANKDIFF_ACTIVDIFF/matching_data.Rdata"))
 matching_data <- get(load(file=matchingFile))
