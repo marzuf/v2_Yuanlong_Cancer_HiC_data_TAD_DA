@@ -1,8 +1,11 @@
 setDir <- "/media/electron"
 setDir <- ""
 
-# Rscript revision_inter_intra_proba2.R
-script_name="revision_inter_intra_proba2.R"
+# v2 normalization: divide by the median [because of outliers] of diago instead of zscore
+# so then I can take the mean -> no negative values -> can take ratio
+
+# Rscript revision_inter_intra_proba2_v2.R
+script_name="revision_inter_intra_proba2_v2.R"
 startTime <- Sys.time()
 cat("> START ", script_name, "\n")
 
@@ -15,15 +18,13 @@ binSize <- 40000
 all_chrs <- paste0("chr", 1:22)
 # all_chrs=all_chrs[1]
 
-## !!! will need to build the final all data because missing rao116 file name !!!
-
 all_ds <-  c(
-  "Barutcu_MCF-10A_40kb"="AWS_Barutcu_MCF-10A",
-  "Barutcu_MCF-7_40kb"="AWS_Barutcu_MCF-7",
-  "ENCSR079VIJ_G401_40kb" ="mega_ENCSR079VIJ_G401",
-  "ENCSR312KHQ_SK-MEL-5_40kb"="mega_ENCSR312KHQ_SK-MEL-5",
-  "ENCSR401TBQ_Caki2_40kb"="mega_ENCSR401TBQ_Caki2",
-  "ENCSR504OTV_transverse_colon_40kb"="ENCSR504OTV_transverse_colon",
+#  "Barutcu_MCF-10A_40kb"="AWS_Barutcu_MCF-10A",
+#  "Barutcu_MCF-7_40kb"="AWS_Barutcu_MCF-7",
+#  "ENCSR079VIJ_G401_40kb" ="mega_ENCSR079VIJ_G401",
+#  "ENCSR312KHQ_SK-MEL-5_40kb"="mega_ENCSR312KHQ_SK-MEL-5",
+#  "ENCSR401TBQ_Caki2_40kb"="mega_ENCSR401TBQ_Caki2",
+#  "ENCSR504OTV_transverse_colon_40kb"="ENCSR504OTV_transverse_colon",
   "ENCSR549MGQ_T47D_40kb"="mega_ENCSR549MGQ_T47D",
   "ENCSR862OGI_RPMI-7951_40kb"="mega_ENCSR862OGI_RPMI-7951",
   "GSE105194_cerebellum_40kb"="mega_GSE105194_cerebellum",
@@ -41,9 +42,6 @@ all_ds <-  c(
   "HMEC_40kb"="AWS_HMEC"
 )
 
-all_ds <-  c(
-  "Rao_HCT-116_2017_40kb"="AWS_Rao_HCT-116_2017"
-)
 
 
 
@@ -52,7 +50,7 @@ all_ds <-  c(
 
 buildTable <- TRUE
 
-outFolder <- "REVISION_INTER_INTRA_PROBA2"
+outFolder <- "REVISION_INTER_INTRA_PROBA2_V2"
 dir.create(outFolder, recursive = TRUE)
 
 i=1
@@ -105,9 +103,11 @@ if(buildTable) {
       init_nrow <- nrow(mat_dt)
       mat_dt <- na.omit(mat_dt)
       cat(paste0("... after discarding NA values: ", nrow(mat_dt), "/", init_nrow, "\n"))
-      cat(paste0("... performing z-score normalization...\n"))
-      matNorm_dt <- do.call(rbind, by(mat_dt, mat_dt$diagoDist, function(x) {x$normCount <- as.numeric(scale(x$count)); x}))
-      # can produce Na if not enough value at one diagodist
+      cat(paste0("... performing median normalization...\n"))
+      matNorm_dt <- do.call(rbind, by(mat_dt, mat_dt$diagoDist, function(x) {x$normCount <- x$count/median(x$count); x})) ## CHANGE HERE v2 NORM
+      stopifnot(!is.na(matNorm_dt$count))
+      stopifnot(!is.na(matNorm_dt$normCount))
+      # can produce Na if not enough value at one diagodist # not true in v2
       matNorm_dt <- na.omit(matNorm_dt)
       cat(paste0("... after discarding NA values: ", nrow(matNorm_dt), "/", nrow(mat_dt), "\n"))
       rm("mat_dt")
