@@ -220,6 +220,7 @@ tad2cptmt_final_dt$tad_binaryCptmtLab <- substr(tad2cptmt_final_dt$tadCptmtLabel
 tad2cptmt_final_dt$region_ID <- file.path(tad2cptmt_final_dt$hicds, tad2cptmt_final_dt$exprds, tad2cptmt_final_dt$region)
 stopifnot(!duplicated(tad2cptmt_final_dt$region_ID))
 tad2cptmts <- setNames(tad2cptmt_final_dt$tad_binaryCptmtLab, tad2cptmt_final_dt$region_ID)
+tad2cptmts_full <- setNames(tad2cptmt_final_dt$tadCptmtLabel, tad2cptmt_final_dt$region_ID)
 
 # remove the TADs in gaps
 tad2cptmt_dt <- tad2cptmt_final_dt[tad2cptmt_final_dt$tadCptmtLabel != "gap",]
@@ -263,6 +264,11 @@ stopifnot(matching_withRank_dt$ref_region_ID %in% names(tad2cptmts))
 matching_withRank_dt$ref_region_cptmt <- tad2cptmts[paste0(matching_withRank_dt$ref_region_ID)]
 stopifnot(!is.na(matching_withRank_dt$ref_region_cptmt))
 
+stopifnot(matching_withRank_dt$ref_region_ID %in% names(tad2cptmts_full))
+matching_withRank_dt$ref_region_cptmt_full <- tad2cptmts_full[paste0(matching_withRank_dt$ref_region_ID)]
+stopifnot(!is.na(matching_withRank_dt$ref_region_cptmt_full))
+
+
 stopifnot(matching_withRank_dt$matching_region_ID %in% names(regionID_pvals))
 matching_withRank_dt$matching_region_pval <- regionID_pvals[paste0(matching_withRank_dt$matching_region_ID)]
 stopifnot(!is.na(matching_withRank_dt$matching_region_pval))
@@ -270,6 +276,10 @@ stopifnot(!is.na(matching_withRank_dt$matching_region_pval))
 stopifnot(matching_withRank_dt$matching_region_ID %in% names(tad2cptmts))
 matching_withRank_dt$matching_region_cptmt <- tad2cptmts[paste0(matching_withRank_dt$matching_region_ID)]
 stopifnot(!is.na(matching_withRank_dt$matching_region_cptmt))
+
+stopifnot(matching_withRank_dt$matching_region_ID %in% names(tad2cptmts_full))
+matching_withRank_dt$matching_region_cptmt_full <- tad2cptmts_full[paste0(matching_withRank_dt$matching_region_ID)]
+stopifnot(!is.na(matching_withRank_dt$matching_region_cptmt_full))
 
 
 matching_withRank_dt$ref_tadSignif <- ifelse(matching_withRank_dt$adjPval <= tadSignifThresh, "signif.", "not signif.")
@@ -313,6 +323,7 @@ mytheme <-     theme(
   legend.title = element_text(face="bold")
 ) 
 
+plot_types="noGap"
 
 for(p_type in plot_types) {
   
@@ -323,6 +334,23 @@ for(p_type in plot_types) {
   } else {
     stop("error\n")
   }
+  # plot_dt[plot_dt$ref_region_ID=="GSE105381_HepG2_40kb/TCGAlihc_norm_lihc/chr1_TAD10" | plot_dt$matching_region_ID == "GSE105381_HepG2_40kb/TCGAlihc_norm_lihc/chr1_TAD10",]
+  # matchingID_maxOverlapBp      refID            ref_hicds         ref_exprds       matching_hicds    matching_exprds   adjPval chromo.x start.x   end.x refID_rank normMeanFC chromo.y start.y   end.y matchingID_rank
+  # 1                  chr1_TAD10 chr1_TAD12              LI_40kb TCGAlihc_norm_lihc GSE105381_HepG2_40kb TCGAlihc_norm_lihc 0.4143104     chr1 3400001 3760000  0.6879433 -0.2967625     chr1 3520001 3800000       0.8377029
+  # 2                  chr1_TAD10 chr1_TAD13              LI_40kb TCGAlihc_norm_lihc GSE105381_HepG2_40kb TCGAlihc_norm_lihc 0.4007992     chr1 3760001 4360000  0.3900709  0.1704777     chr1 3520001 3800000       0.8377029
+  # 10831              chr1_TAD12 chr1_TAD10 GSE105381_HepG2_40kb TCGAlihc_norm_lihc              LI_40kb TCGAlihc_norm_lihc 0.3482057     chr1 3520001 3800000  0.8377029 -0.2967625     chr1 3400001 3760000       0.6879433
+  # tumorMeanFC   rankDiff ref_chromo matching_chromo                                      ref_region_ID                                 matching_region_ID ref_region_pval ref_region_cptmt ref_region_cptmt_full
+  # 1      -0.2442317 -0.1497596       chr1            chr1              LI_40kb/TCGAlihc_norm_lihc/chr1_TAD12 GSE105381_HepG2_40kb/TCGAlihc_norm_lihc/chr1_TAD10       0.4143104                A                     A
+  # 2      -0.2442317 -0.4476319       chr1            chr1              LI_40kb/TCGAlihc_norm_lihc/chr1_TAD13 GSE105381_HepG2_40kb/TCGAlihc_norm_lihc/chr1_TAD10       0.4007992                B                     B
+  # 10831  -0.2442317  0.1497596       chr1            chr1 GSE105381_HepG2_40kb/TCGAlihc_norm_lihc/chr1_TAD10              LI_40kb/TCGAlihc_norm_lihc/chr1_TAD12       0.3482057                A                     A
+  # matching_region_pval matching_region_cptmt matching_region_cptmt_full ref_tadSignif normCptmt tumorCptmt norm2tumor_cptmtChange tumorMinusNorm_meanLog2FC
+  # 1                0.3482057                     A                          A   not signif.         A          A                   A->A                0.05253079
+  # 2                0.3482057                     A                          A   not signif.         B          A                   B->A               -0.41470943
+  # 10831            0.4143104                     A                          A   not signif.         A          A                   A->A                0.05253079
+  
+  
+  save(plot_dt, file=file.path(outFolder, "plot_dt.Rdata"), version=2)
+  cat(paste0("... written: ", file.path(outFolder, "plot_dt.Rdata"), "\n"))
   
   my_cols <- setNames(pal_jama()(5)[c(3, 2,4)], unique(plot_dt$ref_tadSignif))
   legTitle <- ""
@@ -366,6 +394,9 @@ for(p_type in plot_types) {
   
   plotTit <- paste0("norm vs. tumor ratio TADs by cptmt change (", p_type, ")")
   
+  agg_dt$norm2tumor_cptmtChange <- factor(agg_dt$norm2tumor_cptmtChange, levels=rev(c("A->A", "B->B", "A->B", "B->A")))
+  stopifnot(!is.na(agg_dt$norm2tumor_cptmtChange))
+  
   ggbar_p <-  ggbarplot(agg_dt, 
                         y="ratioTADs",
                         x="ref_tadSignif", 
@@ -380,6 +411,64 @@ for(p_type in plot_types) {
   outFile <- file.path(outFolder,paste0("norm_vs_tumor_cptmt_change_signif_notSignif_", p_type, "_barplot.", plotType))
   ggsave(ggbar_p, filename = outFile, height=myHeightGG, width=myWidthGG)
   cat(paste0("... written: ", outFile, "\n"))
+  
+  
+  # barplot: ratio of compartment change [not binary cptmt !!]
+  plot_dt$fullsameCpt <- plot_dt$ref_region_cptmt_full == plot_dt$matching_region_cptmt_full
+  agg_dt <- aggregate(ref_region_ID~fullsameCpt + ref_tadSignif, data=plot_dt, FUN=length)
+  colnames(agg_dt)[colnames(agg_dt)=="ref_region_ID"] <- "nTADs"
+  tmp_dt <- aggregate(ref_region_ID~ref_tadSignif, data=plot_dt, FUN=length)
+  nTot <- setNames(tmp_dt$ref_region_ID, tmp_dt$ref_tadSignif)
+  agg_dt$ratioTADs <- agg_dt$nTADs/nTot[paste0(agg_dt$ref_tadSignif)]
+  
+  plotTit <- paste0("norm vs. tumor ratio TADs by same/diff cptmt (not binary; ", p_type, ")")
+  
+  ggbar_p <-  ggbarplot(agg_dt, 
+                        y="ratioTADs",
+                        x="ref_tadSignif", 
+                        fill="fullsameCpt") +
+    ggtitle(plotTit, subtitle=mySub)+
+    mytheme +
+    labs(x="" , y ="ratio of TADs", color=paste0("same cptmt"),fill=paste0("same cptmt")) + 
+    theme(
+      axis.text.x = element_text(hjust=1, vjust=0.5,size=10,angle=90)
+    )
+  
+  outFile <- file.path(outFolder,paste0("norm_vs_tumor_sameCptmt_signif_notSignif_", p_type, "_barplot.", plotType))
+  ggsave(ggbar_p, filename = outFile, height=myHeightGG, width=myWidthGG)
+  cat(paste0("... written: ", outFile, "\n"))
+  
+  
+  
+  # barplot: ratio of compartment change [binary cptmt !!]
+  plot_dt$sameCpt <- plot_dt$ref_region_cptmt == plot_dt$matching_region_cptmt
+  agg_dt <- aggregate(ref_region_ID~sameCpt + ref_tadSignif, data=plot_dt, FUN=length)
+  colnames(agg_dt)[colnames(agg_dt)=="ref_region_ID"] <- "nTADs"
+  tmp_dt <- aggregate(ref_region_ID~ref_tadSignif, data=plot_dt, FUN=length)
+  nTot <- setNames(tmp_dt$ref_region_ID, tmp_dt$ref_tadSignif)
+  agg_dt$ratioTADs <- agg_dt$nTADs/nTot[paste0(agg_dt$ref_tadSignif)]
+  
+  plotTit <- paste0("norm vs. tumor ratio TADs by same/diff cptmt (binary; ", p_type, ")")
+  
+  ggbar_p <-  ggbarplot(agg_dt, 
+                        y="ratioTADs",
+                        x="ref_tadSignif", 
+                        fill="sameCpt") +
+    ggtitle(plotTit, subtitle=mySub)+
+    mytheme +
+    labs(x="" , y ="ratio of TADs", color=paste0("same cptmt"),fill=paste0("same cptmt")) + 
+    theme(
+      axis.text.x = element_text(hjust=1, vjust=0.5,size=10,angle=90)
+    )
+  
+  outFile <- file.path(outFolder,paste0("norm_vs_tumor_sameBinaryCptmt_signif_notSignif_", p_type, "_barplot.", plotType))
+  ggsave(ggbar_p, filename = outFile, height=myHeightGG, width=myWidthGG)
+  cat(paste0("... written: ", outFile, "\n"))
+  
+  
+  
+  
+  
   
   
   plotTit <- paste0("TAD adj. p-val and norm vs. tumor cptmt change (", p_type, ")")

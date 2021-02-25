@@ -41,10 +41,6 @@ all_pairs <- c(
   file.path("LG2_40kb" ,"ENCSR444WCZ_A549_40kb" ,"TCGAluad_norm_luad"),
   file.path("LG1_40kb", "ENCSR489OCU_NCI-H460_40kb", "TCGAluad_norm_luad"), 
   file.path("LG2_40kb", "ENCSR489OCU_NCI-H460_40kb", "TCGAluad_norm_luad"), 
-  file.path("LG1_40kb", "ENCSR444WCZ_A549_40kb" ,"TCGAlusc_norm_lusc"), 
-  file.path("LG2_40kb",  "ENCSR444WCZ_A549_40kb", "TCGAlusc_norm_lusc"), 
-  file.path("LG1_40kb","ENCSR489OCU_NCI-H460_40kb", "TCGAlusc_norm_lusc"),
-  file.path("LG2_40kb", "ENCSR489OCU_NCI-H460_40kb", "TCGAlusc_norm_lusc"),
   file.path("GSE118514_RWPE1_40kb", "ENCSR346DCU_LNCaP_40kb", "TCGAprad_norm_prad"),
   file.path("GSE118514_RWPE1_40kb", "GSE118514_22Rv1_40kb", "TCGAprad_norm_prad")
 )
@@ -135,6 +131,7 @@ stopifnot(matching_withRank_dt$matching_region_hicdsID %in% names(colVar_values)
 
 matching_withRank_dt_s <- matching_withRank_dt
 
+stopifnot(length(all_col_vars) > 1) # will not work with more variables because colVar_values was built to work with 1 variable
 foo <- foreach(col_var=all_col_vars) %dopar% {
   matching_withRank_dt <- matching_withRank_dt_s
   matching_withRank_dt[,paste0("ref_", col_var)] <- colVar_values[matching_withRank_dt$ref_region_hicdsID]
