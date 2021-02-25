@@ -3,19 +3,35 @@ require(doMC)
 registerDoMC(40)
 require(ggsci)
 require(ggpubr)
+require(ggrepel)
 require(ggplot2)
 require(patchwork)
+require(stringr)
+blank_theme <- theme_minimal()+
+  theme(
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    axis.text.y = element_blank(),
+    axis.text.x = element_blank(),
+    panel.border = element_blank(),
+    panel.grid=element_blank(),
+    axis.ticks = element_blank(),
+    plot.title=element_text(size=14, face="bold")
+  )
+
 
 # Rscript revision_expressionLevel.R
 
 setDir <- "/media/electron"
 setDir <- ""
 
-plotType <- "svg"
+plotType <- "png"
 myHeightGG <- 5
 myWidthGG <- 7
 myHeight <- 400
 myWidth <- 500
+
+plotCex <- 1.2
 
 source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 
@@ -74,10 +90,16 @@ aggFun <- "mean"
 for(expr_var in all_vars) {
   
   agg_dt <- aggregate(as.formula(paste0(expr_var, "~regionID")), data = expr_level_dt, FUN=aggFun)
+  out_dt <- agg_dt
   stopifnot(agg_dt$regionID %in% names(regionID_signif))
   stopifnot(agg_dt$regionID %in% names(regionID_pvals))
   agg_dt$signif_lab <- regionID_signif[paste0(agg_dt$regionID)]
   agg_dt$pval <- regionID_pvals[paste0(agg_dt$regionID)]
+  out_dt$adjPval <- regionID_pvals[paste0(out_dt$regionID)]
+  
+  outFile <- file.path(outFolder, paste0(expr_var, "_aggByTAD_", aggFun, ".Rdata"))
+  save(out_dt, file=outFile, version=2)
+  cat(paste0("... written: ", outFile, "\n"))
   
   stopifnot(!is.na(agg_dt$signif_lab))
   
@@ -85,6 +107,9 @@ for(expr_var in all_vars) {
   
   mySub <- paste0("# DS = ", length(unique(dirname(agg_dt$regionID))), "; # TADs = ", length(unique(agg_dt$regionID)),
                   " (# signif. = ", sum(agg_dt$signif_lab == "signif."), ")")
+  
+  my_cols <- setNames(pal_jama()(5)[c(3, 2,4)], unique(agg_dt$signif_lab))
+  
   
   p3 <- ggdensity(agg_dt,
                   x = paste0(expr_var),
@@ -180,102 +205,64 @@ for(expr_var in all_vars) {
                                        levels = as.character(min(agg_dt[, paste0(expr_var)]): max(agg_dt[, paste0(expr_var)])))
   stopifnot(!is.na(  agg_dt[, paste0(expr_var)] ))
   
-  blank_theme <- theme_minimal()+
-    theme(
-      axis.title.x = element_blank(),
-      axis.title.y = element_blank(),
-      axis.text.y = element_blank(),
-      panel.border = element_blank(),
-      panel.grid=element_blank(),
-      axis.ticks = element_blank(),
-      plot.title=element_text(size=14, face="bold")
-    )
   
-  # agg_dt$freq = round(agg_dt$mean_ratioGenes * 100,2)
-  # agg_dt$freq_pos = cumsum(agg_dt$freq) - 0.5*agg_dt$freq
-  # 
-  # library(dplyr)
-  # library(ggplot2)
-  # 
-  # agg_dt <- agg_dt %>% group_by(signif_lab) %>% mutate(freq_pos = cumsum(freq)- freq/2)
-  # 
-  # ggplot(data=agg_dt, aes(x=factor(1), y=freq, fill=factor(histqt1AggExpr))) +
-  #   geom_bar(stat="identity") +
-  #   geom_text(aes(x= factor(1), y=freq_pos, label = freq), size=10) +  # note y = pos
-  #   # facet_grid(facets = .~year, labeller = label_value) +
-  #   coord_polar(theta = "y")
-  # 
+  ############################################################## DRAW DOUBLE PIEPLOT
   
   plot_dt <- agg_dt[agg_dt$signif_lab == "signif.",]
   # plot_dt <- plot_dt[order(as.numeric(plot_dt$histqt1AggExpr)),]
   plot_dt$freq <- 100*plot_dt$mean_ratioGenes
-  plot_dt$freq_pos <- cumsum(plot_dt$freq)- plot_dt$freq/2
-
+  plot_dt$freq_rd <- paste0(round(100*plot_dt$mean_ratioGenes,2), "%")
   
-  ggplot(plot_dt, aes(x=1, y=freq, fill=histqt1AggExpr)) +
+  p_signif <- ggplot(plot_dt, aes_string(x="1", y="freq", fill=expr_var)) +
+    ggtitle( "signif. TADs")+
     geom_col() +
-    geom_text(aes(label = freq), position = position_stack(vjust = 0.5))+
+    # geom_text(aes(label = freq_rd), position = position_stack(vjust = 0.5))+
+    geom_text_repel(aes(label = freq_rd), position = position_stack(vjust = 0.5))+
     coord_polar(theta = "y") + 
-    theme_void()
+    theme_void() +    
+    labs(fill="hist. break") +
+    blank_theme
+
+  plot_dt <- agg_dt[agg_dt$signif_lab == "not signif.",]
+  # plot_dt <- plot_dt[order(as.numeric(plot_dt$histqt1AggExpr)),]
+  plot_dt$freq <- 100*plot_dt$mean_ratioGenes
+  plot_dt$freq_rd <- paste0(round(100*plot_dt$mean_ratioGenes,2), "%")
+  
+  p_notsignif <- ggplot(plot_dt, aes_string(x="1", y="freq", fill=expr_var)) +
+    ggtitle( "not signif. TADs")+
+    geom_col() +
+    geom_text_repel(aes(label = freq_rd), position = position_stack(vjust = 0.5))+
+    coord_polar(theta = "y") + 
+    theme_void() +    
+    labs(fill="hist. break") +
+    blank_theme
   
   
+  p_tmp <- (p_signif + p_notsignif)
   
+  stopifnot(nTADs["signif."] == sum(final_table_DT$adjPvalComb<=tadSignifThresh))
+           
   
-ggbarplot(plot_dt,
-            # y="mean_ratioGenes",
-            y="freq",
-            x=, 
-            title = "mean ratios - signif.",
-            fill=paste0(expr_var)) +  
-  labs(fill="hist. break") + 
-  coord_polar("y", start=0) + 
-  geom_text(aes(label = freq), position = position_stack(vjust = 0.5))+
-  blank_theme 
+  plot_tit <- "mean ratios"
+  subtit <- paste0("# TADs: ", paste0(names(nTADs), "=", nTADs, collapse="; "), " adjPval<=", tadSignifThresh)
 
     
+  p_out <- p_tmp + 
+    plot_layout(guides = 'collect')+
+    plot_annotation(
+      title = plot_tit,
+      subtitle = paste0(subtit) 
+    ) & theme(plot.title=element_text(hjust=0.5, size=14, face = "bold"), 
+              plot.subtitle=element_text(hjust=0.5, size=12, face = "italic"),
+              legend.position = 'top')
   
+  outFile <- file.path(outFolder,paste0("mean_ratioGenes_byHistBreak_", expr_var, "_signif_notsignif_pieplot.", plotType))
+  ggsave(p_out, filename = outFile, height=myHeightGG, width=myWidthGG*1.5)
+  cat(paste0("... written: ", outFile, "\n"))
   
-  p_signif <- ggbarplot(agg_dt[agg_dt$signif_lab == "signif.",], 
-            # y="mean_ratioGenes",
-            y="freq",
-            x="signif_lab", 
-            title = "mean ratios - signif.",
-            fill=paste0(expr_var)) +  
+  ############################################################## DRAW BARPLOT
+  legTitle <- paste0("hist. break")
     
-    # geom_text(aes(label = paste(round(mean_ratioGenes / sum(mean_ratioGenes) * 100, 1), "%")),
-    #           position = position_stack(vjust = 0.5)) +
-    # geom_text(aes(label = paste(round(freq / sum(freq) * 100, 1), "%")),
-    #           position = position_stack(vjust = 0.5)) +
-    geom_text(aes(y = freq_pos, label = freq), color = "white")+
-    # cumsum(prop) - 0.5*prop comme
-    
-    # geom_text(aes(y = mean_ratioGenes/3 + c(0, cumsum(mean_ratioGenes)[-length(mean_ratioGenes)]), 
-    #               label = percent(mean_ratioGenes)), size=3)+
-    labs(fill="hist. break") + 
-    coord_polar("y", start=0) + blank_theme 
-  
-    
-  p_notsignif <- ggbarplot(agg_dt[agg_dt$signif_lab == "not signif.",], 
-                        y="mean_ratioGenes",
-                        x="signif_lab", 
-                        title = "mean ratios - not signif.",
-                        fill=paste0(expr_var)) +  
-    labs(fill="hist. break") + 
-    coord_polar("y", start=0) + blank_theme
-  
-  pie_out <- p_signif + p_notsignif
-  
-  
-  
-  p_notsignif <- ggbarplot(agg_dt[agg_dt$signif_lab == "not signif.",], 
-            y="mean_ratioGenes",
-            x="signif_lab", 
-            fill=paste0(expr_var)) +  coord_polar("y", start=0) +
-    theme(axis.text.x=element_blank(),
-          axis.text.y=element_blank()
-          ) + blank_theme
-   
-  
   ggbar_p <-  ggbarplot(agg_dt, 
                         y="mean_ratioGenes",
                         x="signif_lab", 
@@ -286,15 +273,10 @@ ggbarplot(plot_dt,
     theme(
       axis.text.x = element_text(hjust=1, vjust=0.5,size=10,angle=90)
     )
-  
   outFile <- file.path(outFolder,paste0("mean_ratioGenes_byHistBreak_", expr_var, "_barplot.", plotType))
   ggsave(ggbar_p, filename = outFile, height=myHeightGG, width=myWidthGG)
   cat(paste0("... written: ", outFile, "\n"))
-  
-  
-    
 }
-
 
 
 

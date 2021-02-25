@@ -2,7 +2,7 @@ setDir <- "/media/electron"
 setDir <- ""
 
 # v2 normalization: divide by the median [because of outliers] of diago instead of zscore
-# so then I can take the mean -> no negative values -> can take ratio
+# so then I can take the median -> no negative values -> can take ratio
 
 # Rscript revision_inter_intra_proba2_v2.R
 script_name="revision_inter_intra_proba2_v2.R"

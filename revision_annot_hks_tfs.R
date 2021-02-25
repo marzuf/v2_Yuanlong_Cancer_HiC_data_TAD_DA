@@ -163,6 +163,40 @@ for(plot_var in all_vars) {
   
   mySub <- paste0("# DS = ", length(unique(plot_dt$dataset)), "; # TADs = ", length(unique(plot_dt$region_id)) )
   
+  my_cols <- setNames(pal_jama()(5)[c(3, 2,4)], unique(plot_dt$signif_lab))
+  
+  
+  p3 <- ggdensity(plot_dt,
+                  x = paste0("ratio", plot_var),
+                  y = "..density..",
+                  # combine = TRUE,                  # Combine the 3 plots
+                  xlab = paste0("Ratio of ", plot_var, " in  TAD genes"),
+                  # add = "median",                  # Add median line.
+                  rug = FALSE,                      # Add marginal rug
+                  color = "signif_lab",
+                  fill = "signif_lab",
+                  palette = "jco"
+  ) +
+    ggtitle(plotTit, subtitle = mySub)+
+    scale_color_manual(values=my_cols)+
+    scale_fill_manual(values=my_cols)  +
+    labs(color=paste0(legTitle),fill=paste0(legTitle), y="Density") +
+    guides(color=FALSE)+
+    scale_y_continuous(breaks = scales::pretty_breaks(n = 10))+
+    scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
+    mytheme
+  
+  outFile <- file.path(outFolder, paste0("tad_genes_annot_", plot_var, "_signif_notsignif_density.", plotType))
+  ggsave(p3, file=outFile, height=myHeightGG, width=myWidthGG)
+  cat(paste0("... written: ", outFile, "\n"))
+  
+  my_cols <- setNames(pal_jama()(5)[c(3, 2,4)], unique(plot_dt$tad_purity_label))
+  
+  
+  plotTit <- paste0("TAD genes annotation: ", plot_var)
+  
+  mySub <- paste0("# DS = ", length(unique(plot_dt$dataset)), "; # TADs = ", length(unique(plot_dt$region_id)) )
+  
   p3 <- ggdensity(plot_dt,
                   x = paste0("ratio", plot_var),
                   y = "..density..",
