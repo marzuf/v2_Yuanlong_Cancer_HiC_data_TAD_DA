@@ -1,6 +1,8 @@
 setDir <- "/media/electron"
 setDir <- ""
 
+stop("-- sure do not want to use corrected version ?\n")
+
 # v2 normalization: divide by the median [because of outliers] of diago instead of zscore
 # so then I can take the mean -> no negative values -> can take ratio
 

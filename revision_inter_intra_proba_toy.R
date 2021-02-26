@@ -23,6 +23,13 @@ stopifnot(mat_dt$binA <= mat_dt$binB)
 
 mat_dt$diagoDist <- mat_dt$binB-mat_dt$binA
 
+mainDiagoSize <- max(mat_dt$binB)+1
+mat_dt$diagoSize <- mainDiagoSize - mat_dt$diagoDist
+
+by(mat_dt, mat_dt$diagoSize, function(x) nrow(x))
+
+
+
 init_nrow <- nrow(mat_dt)
 mat_dt <- na.omit(mat_dt)
 cat(paste0("... after discarding NA values: ", nrow(mat_dt), "/", init_nrow, "\n"))

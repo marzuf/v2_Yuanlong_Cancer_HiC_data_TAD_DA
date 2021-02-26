@@ -1,58 +1,49 @@
 setDir <- "/media/electron"
 setDir <- ""
 
-stop("-- sure do not want to use corrected version ?\n")
-
 # v2 normalization: divide by the median [because of outliers] of diago instead of zscore
-# so then I can take the median -> no negative values -> can take ratio
+# so then I can take the mean -> no negative values -> can take ratio
 
-# Rscript revision_inter_intra_proba2_v2.R
-script_name="revision_inter_intra_proba2_v2.R"
+# CORRECTED: before normalization and mean, add the 0 values in the count vector !
+
+# Rscript revision_inter_intra_proba_v2_corrected.R
+script_name="revision_inter_intra_proba_v2_corrected.R"
 startTime <- Sys.time()
 cat("> START ", script_name, "\n")
 
 
 require(foreach)
 require(doMC)
-registerDoMC(60)
+registerDoMC(50)
 
 binSize <- 40000
 all_chrs <- paste0("chr", 1:22)
 # all_chrs=all_chrs[1]
 
 all_ds <-  c(
-#  "Barutcu_MCF-10A_40kb"="AWS_Barutcu_MCF-10A",
-#  "Barutcu_MCF-7_40kb"="AWS_Barutcu_MCF-7",
-#  "ENCSR079VIJ_G401_40kb" ="mega_ENCSR079VIJ_G401",
-#  "ENCSR312KHQ_SK-MEL-5_40kb"="mega_ENCSR312KHQ_SK-MEL-5",
-#  "ENCSR401TBQ_Caki2_40kb"="mega_ENCSR401TBQ_Caki2",
-#  "ENCSR504OTV_transverse_colon_40kb"="ENCSR504OTV_transverse_colon",
-  "ENCSR549MGQ_T47D_40kb"="mega_ENCSR549MGQ_T47D",
-  "ENCSR862OGI_RPMI-7951_40kb"="mega_ENCSR862OGI_RPMI-7951",
-  "GSE105194_cerebellum_40kb"="mega_GSE105194_cerebellum",
-  "GSE105194_spinal_cord_40kb"="mega_GSE105194_spinal_cord",
-  "GSE105318_DLD1_40kb"="mega_GSE105318_DLD1", 
-  "GSE109229_BT474_40kb"="GSE109229_BT474", 
-  "GSE109229_SKBR3_40kb"="GSE109229_SKBR3",
-  "GSE118588_Panc_beta_40kb"="GSE118588_Panc_beta",
-  "GSE99051_786_O_40kb" = "GSE99051_786_O",
-  "PA2_40kb"="Compendium_PA2",
-  "PA3_40kb"="Compendium_PA3",
-  "Panc1_rep12_40kb"="mega_Panc1_rep12",
-  "Rao_HCT-116_2017_40kb"="AWS_Rao_HCT-116_2017",
-  "K562_40kb"="AWS_K562",
-  "HMEC_40kb"="AWS_HMEC"
+  "Barutcu_MCF-10A_40kb"="AWS_Barutcu_MCF-10A",
+  "Barutcu_MCF-7_40kb"="AWS_Barutcu_MCF-7",
+  "ENCSR079VIJ_G401_40kb" ="mega_ENCSR079VIJ_G401",
+  "ENCSR312KHQ_SK-MEL-5_40kb"="mega_ENCSR312KHQ_SK-MEL-5",
+  "ENCSR401TBQ_Caki2_40kb"="mega_ENCSR401TBQ_Caki2",
+  "ENCSR504OTV_transverse_colon_40kb"="ENCSR504OTV_transverse_colon",
+  
+  "LI_40kb"="Compendium_LI",
+  "GSE105381_HepG2_40kb"="mega_GSE105381_HepG2",
+  "LG1_40kb" ="Compendium_LG1",
+  "ENCSR444WCZ_A549_40kb"="mega_ENCSR444WCZ_A549",
+  "LG2_40kb"="Compendium_LG2",
+  "ENCSR489OCU_NCI-H460_40kb"="mega_ENCSR489OCU_NCI-H460",
+  "GSE118514_RWPE1_40kb"="mega_GSE118514_RWPE1",
+  "ENCSR346DCU_LNCaP_40kb"="mega_ENCSR346DCU_LNCaP",
+  "GSE118514_22Rv1_40kb"="GSE118514_22Rv1"
 )
-
-
-
-
 
 # all_ds = all_ds[1]
 
 buildTable <- TRUE
 
-outFolder <- "REVISION_INTER_INTRA_PROBA2_V2"
+outFolder <- "REVISION_INTER_INTRA_PROBA_V2_CORRECTED"
 dir.create(outFolder, recursive = TRUE)
 
 i=1
@@ -70,6 +61,7 @@ if(buildTable) {
     stopifnot(all_chrs %in% all_tads_dt$chromo)
     
     chromo = "chr21"
+    # all_chrs=all_chrs[1]
     all_chromo_dt <- foreach(chromo = all_chrs,.combine='rbind') %do% {
       
       
@@ -91,30 +83,53 @@ if(buildTable) {
       matfile <- file.path(setDir, "/mnt/ndata/Yuanlong/2.Results/1.Juicer",
                            cell_line, "contact_mat", paste0("mat_", chromo, "_", binSize/1000, "kb_ob.txt.gz"))
       
-      
-      mat_dt <- read.csv(gzfile(matfile,'rt')  ,header=FALSE, sep="\t", col.names=c("coordA", "coordB", "count")) 
+      zz <- gzfile(matfile,'rt')
+      mat_dt <- read.csv(zz  ,header=FALSE, sep="\t", col.names=c("coordA", "coordB", "count")) 
       stopifnot(is.numeric(mat_dt$coordA))
       stopifnot(is.numeric(mat_dt$coordB))
       stopifnot(is.numeric(mat_dt$count))
-      mat_dt$binA <- mat_dt$coordA/binSize
+      mat_dt$binA <- mat_dt$coordA/binSize  # 0-based bin
       mat_dt$binB <- mat_dt$coordB/binSize
       stopifnot(mat_dt$binA %% 1 == 0)
       stopifnot(mat_dt$binB %% 1 == 0)
       stopifnot(mat_dt$binA <= mat_dt$binB) ### check upper right stored
       mat_dt$diagoDist <- mat_dt$binB-mat_dt$binA
+      
+      mainDiagoSize <- max(mat_dt$binB)+1
+      # mat_dt$diagoSize <- mainDiagoSize - mat_dt$diagoDist 
+      
       init_nrow <- nrow(mat_dt)
       mat_dt <- na.omit(mat_dt)
       cat(paste0("... after discarding NA values: ", nrow(mat_dt), "/", init_nrow, "\n"))
       cat(paste0("... performing median normalization...\n"))
-      matNorm_dt <- do.call(rbind, by(mat_dt, mat_dt$diagoDist, function(x) {x$normCount <- x$count/median(x$count); x})) ## CHANGE HERE v2 NORM
+      # CORRECTED: CHANGED HERE -> add the 0s to have the full vector - 26.02.21
+      matNorm_dt <- do.call(rbind, by(mat_dt, mat_dt$diagoDist, function(x) {
+        diagDist <- as.numeric(unique(as.character(x$diagoDist)))
+        stopifnot(length(diagDist) ==1)
+        stopifnot(!is.na(diagDist))
+        
+        sparseVect <- x$count
+        sparseSize <- length(sparseVect)
+        fullSize <- mainDiagoSize - diagDist # how long should be the diago vect; to fill with 0s
+        
+        stopifnot(sparseSize <= fullSize)
+        
+        fullVect <- sparseVect
+        if(fullSize > sparseSize) fullVect[(sparseSize+1):fullSize] <- 0
+        
+        stopifnot(length(fullVect) == fullSize)
+        
+        x$normCount <- x$count/median(fullVect)  ### here corrected -> compute median based on fullVect
+        x
+        })) ## CHANGE HERE v2 NORM
       stopifnot(!is.na(matNorm_dt$count))
       stopifnot(!is.na(matNorm_dt$normCount))
-      # can produce Na if not enough value at one diagodist # not true in v2
+      # can produce Na if not enough value at one diagodist # not true for v2
       matNorm_dt <- na.omit(matNorm_dt)
       cat(paste0("... after discarding NA values: ", nrow(matNorm_dt), "/", nrow(mat_dt), "\n"))
       rm("mat_dt")
       
-      i=1
+      i=1 # CORRECTED VERSION: DO NOT DIRECTLY TAKE THE MEAN -> BUT SUM AND DIVIDE BY TOTAL POSSIBLE # OF VALUES
       overtads_dt <- foreach(i = 1:nrow(tad_dt), .combine='rbind') %dopar% {
         
         t_region <- tad_dt$region[i]
@@ -122,11 +137,25 @@ if(buildTable) {
         t_start <- tad_dt$startBin[i]
         t_end <- tad_dt$endBin[i]
         
+        # if bin start = 0 and bin end = 3 -> submatrix of 4x4 => should have 10 values / for 5 and 7 -> 3x3, 6 values
+        t_size <- t_end - t_start + 1
+        nvalues_current <- floor(t_size * (t_size-1) * 0.5) + t_size  # need the floor for the case of size 1 = 1 value
+        
         next_start <- tad_dt$startBin[i+1]
         next_end <- tad_dt$endBin[i+1]
+        next_size <- next_end - next_start + 1
+        # nvalues_next <- floor(next_size * (next_size-1) * 0.5) + next_size  # need the floor for the case of size 1 = 1 value
+        
         
         prev_start <- tad_dt$startBin[i-1]
         prev_end <- tad_dt$endBin[i-1]
+        prev_size <- prev_end - prev_start + 1
+        # nvalues_prev <- floor(prev_size * (prev_size-1) * 0.5) + prev_size  # need the floor for the case of size 1 = 1 value
+        
+        
+        # nbr values in inter: if a first TAD goes 0-3 and the next TAD goes 5-7 -> max # values = 12
+        nvalues_interNext <- t_size * next_size
+        nvalues_interPrev <- t_size * prev_size
         
         intra_values <- matNorm_dt$count[(t_start <= matNorm_dt$binA  & t_end >= matNorm_dt$binA) &
                                            (t_start <= matNorm_dt$binB  & t_end >= matNorm_dt$binB)]
@@ -135,10 +164,16 @@ if(buildTable) {
         stopifnot(!is.na(intra_values))
         stopifnot(!is.na(intra_normValues))
         
+        stopifnot(length(intra_values) <= nvalues_current)
+        stopifnot(length(intra_values) == length(intra_normValues))
+        
         if(i == nrow(tad_dt)) { # if last tad -> no next tad
           # store upper right corner, so binA in current, binB in next
-          next_inter_values <- NA
-          next_inter_normValues <- NA
+          # next_inter_values <- NA
+          # next_inter_normValues <- NA
+          mean_inter_next <-  NA
+          mean_inter_nextNorm <-  NA
+        
         } else {
           next_inter_values <- matNorm_dt$count[(t_start <= matNorm_dt$binA  & t_end >= matNorm_dt$binA) &
                                                   (next_start <= matNorm_dt$binB  & next_end >= matNorm_dt$binB)]
@@ -146,11 +181,21 @@ if(buildTable) {
                                                           (next_start <= matNorm_dt$binB  & next_end >= matNorm_dt$binB)]
           stopifnot(!is.na(next_inter_values))
           stopifnot(!is.na(next_inter_normValues))
+          stopifnot(length(next_inter_values) <= nvalues_interNext)
+          stopifnot(length(next_inter_values) == length(next_inter_normValues))
+          
+          mean_inter_next <-  sum(next_inter_values)/nvalues_interNext
+          mean_inter_nextNorm <-  sum(next_inter_normValues)/nvalues_interNext
         }
         
         if(i == 1) { # if 1st tad -> no previous tad 
-          prev_inter_values <- NA
-          prev_inter_normValues <- NA
+          # prev_inter_values <- NA
+          # prev_inter_normValues <- NA
+          # 
+          mean_inter_prev <- NA
+          mean_inter_prevNorm <- NA
+          
+          
         } else {
           # store upper right corner, so binA in previous, binB in current
           prev_inter_values <- matNorm_dt$count[(prev_start <= matNorm_dt$binA  & prev_end >= matNorm_dt$binA) &
@@ -160,8 +205,17 @@ if(buildTable) {
           
           stopifnot(!is.na(prev_inter_values))
           stopifnot(!is.na(prev_inter_normValues))
+          stopifnot(length(prev_inter_values) <= nvalues_interPrev)
+          stopifnot(length(prev_inter_values) == length(prev_inter_normValues))
+          
+          
+          mean_inter_prev <- sum(prev_inter_values)/nvalues_interPrev
+          mean_inter_prevNorm <- sum(prev_inter_normValues)/nvalues_interPrev
+          
           
         }
+        
+      
         data.frame(
           hicds = hicds,
           region = t_region,
@@ -169,16 +223,28 @@ if(buildTable) {
           binEnd = t_end,
           start = tad_dt$start[i],
           end = tad_dt$end[i],
-          mean_intra = mean(intra_values),
-          mean_intraNorm = mean(intra_normValues),
-          mean_inter_prev = mean(prev_inter_values),
-          mean_inter_prevNorm = mean(prev_inter_normValues),
-          mean_inter_next = mean(next_inter_values),
-          mean_inter_nextNorm = mean(next_inter_normValues),
+          #### CHANGE HERE CORRECTED VERSION
+          # mean_intra = mean(intra_values),
+          # mean_intraNorm = mean(intra_normValues),
+          # mean_inter_prev = mean(prev_inter_values),
+          # mean_inter_prevNorm = mean(prev_inter_normValues),
+          # mean_inter_next = mean(next_inter_values),
+          # mean_inter_nextNorm = mean(next_inter_normValues),
+          mean_intra = sum(intra_values)/nvalues_current,
+          mean_intraNorm = sum(intra_normValues)/nvalues_current,
+          
+          mean_inter_prev = mean_inter_prev,
+          mean_inter_prevNorm = mean_inter_prevNorm,
+          
+          mean_inter_next = mean_inter_next,
+          mean_inter_nextNorm = mean_inter_nextNorm,
+          
           stringsAsFactors = FALSE
           
         )
       } # end iterate over TADs
+      cat(paste0("... done for chromo ", chromo,"\n"))
+      close(zz)
       overtads_dt
     } # end iterate over chromo
     all_chromo_dt

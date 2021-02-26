@@ -1,4 +1,6 @@
 
+# need to re run 26.02.21 on corrected proba data
+
 # outFolder <- file.path("REVISION_PROBADIFF")
 # dir.create(outFolder, recursive = TRUE)
 # all_inter_intra1_dt <- get(load("REVISION_INTER_INTRA_PROBA/all_inter_intra_dt.Rdata"))

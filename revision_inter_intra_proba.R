@@ -1,6 +1,8 @@
 setDir <- "/media/electron"
 setDir <- ""
 
+stop("-- sure do not want to use corrected version ?\n")
+
 # Rscript revision_inter_intra_proba.R
 script_name="revision_inter_intra_proba.R"
 startTime <- Sys.time()
