@@ -3,6 +3,8 @@ setDir <- ""
 
 # v1 normalization: zscore
 
+### >>> need to reassemble !!!
+
 # CORRECTED: before normalization and mean, add the 0 values in the count vector !
 
 # Rscript revision_inter_intra_proba_corrected.R
@@ -13,7 +15,7 @@ cat("> START ", script_name, "\n")
 
 require(foreach)
 require(doMC)
-registerDoMC(50)
+registerDoMC(20)
 
 binSize <- 40000
 all_chrs <- paste0("chr", 1:22)
@@ -60,6 +62,11 @@ if(buildTable) {
     stopifnot(all_chrs %in% all_tads_dt$chromo)
     
     chromo = "chr21"
+    
+    outFile <- file.path(outFolder, paste0(hicds, "_all_chromo_dt.Rdata"))
+    if(file.exists(outFile)) return(NULL)
+    
+    
     # all_chrs=all_chrs[1]
     all_chromo_dt <- foreach(chromo = all_chrs,.combine='rbind') %do% {
       
@@ -125,10 +132,19 @@ if(buildTable) {
         normCount <- fullNormCount[1:sparseSize]
         stopifnot(length(normCount) == nrow(x))
         x$normCount <- normCount
+        
+        if(sum(is.na(normCount)) > 0) {
+          save(sparseVect, file=file.path(outFolder, paste0(hicds, "_", chromo, "_", diagDist, "_sparseVect.Rdata")))
+          save(mainDiagoSize, file=file.path(outFolder, paste0(hicds, "_", chromo, "_", diagDist, "_mainDiagoSize.Rdata")))
+          save(diagDist, file=file.path(outFolder, paste0(hicds, "_", chromo, "_", diagDist, "_diagDist.Rdata")))
+        }
+        
+        
         x
       }))
       stopifnot(!is.na(matNorm_dt$count))
-      stopifnot(!is.na(matNorm_dt$normCount))
+      # stopifnot(!is.na(matNorm_dt$normCount))  ## ---->> not true in the norm v1 -> when one signle value scale() -> NA
+      
       # can produce Na if not enough value at one diagodist # not true for v2
       matNorm_dt <- na.omit(matNorm_dt)
       cat(paste0("... after discarding NA values: ", nrow(matNorm_dt), "/", nrow(mat_dt), "\n"))

@@ -14,7 +14,7 @@ cat("> START ", script_name, "\n")
 
 require(foreach)
 require(doMC)
-registerDoMC(50)
+registerDoMC(40)
 
 binSize <- 40000
 all_chrs <- paste0("chr", 1:22)
@@ -33,6 +33,7 @@ rev_pairs <- as.character(sapply(tmp_pairs, function(x) file.path(basename(x), d
 all_pairs <- c(tmp_pairs, rev_pairs)
 stopifnot(!duplicated(all_pairs))
 
+# all_pairs=all_pairs[1]
 
 all_ds <-  c(
   "Barutcu_MCF-10A_40kb"="AWS_Barutcu_MCF-10A",
@@ -53,7 +54,6 @@ all_ds <-  c(
   "GSE118514_22Rv1_40kb"="GSE118514_22Rv1"
 )
 
-# all_ds = all_ds[1]
 
 buildTable <- TRUE
 
@@ -151,11 +151,13 @@ if(buildTable) {
       
       
       ### PREPARE HIC DATA - for the matched data
-      matched_file <- file.path(setDir, "/mnt/ndata/Yuanlong/2.Results/1.Juicer",
-                                cell_line, "contact_mat", paste0("mat_", chromo, "_", binSize/1000, "kb_ob.txt.gz"))
+      matched_matfile <- file.path(setDir, "/mnt/ndata/Yuanlong/2.Results/1.Juicer",
+                                matched_cell_line, "contact_mat", paste0("mat_", chromo, "_", binSize/1000, "kb_ob.txt.gz"))
       
-      zz2 <- gzfile(matched_file,'rt')
-      matched_mat_dt <- read.csv(zz  ,header=FALSE, sep="\t", col.names=c("coordA", "coordB", "count")) 
+      stopifnot(matched_matfile != matfile)
+      
+      zz2 <- gzfile(matched_matfile,'rt')
+      matched_mat_dt <- read.csv(zz2 ,header=FALSE, sep="\t", col.names=c("coordA", "coordB", "count")) 
       stopifnot(is.numeric(matched_mat_dt$coordA))
       stopifnot(is.numeric(matched_mat_dt$coordB))
       stopifnot(is.numeric(matched_mat_dt$count))
@@ -201,8 +203,6 @@ if(buildTable) {
       rm("matched_mat_dt")
       
       
-      ### >>> TO ADD IN NEXT SECTION EXTRACT COUNT FROM MATCHEDMATRIX
-      
       
       
       
@@ -247,12 +247,30 @@ if(buildTable) {
         stopifnot(length(intra_values) <= nvalues_current)
         stopifnot(length(intra_values) == length(intra_normValues))
         
+        
+        ##### do the same for matched hi-c
+        matched_intra_values <- matched_matNorm_dt$count[(t_start <= matched_matNorm_dt$binA  & t_end >= matched_matNorm_dt$binA) &
+                                                           (t_start <= matched_matNorm_dt$binB  & t_end >= matched_matNorm_dt$binB)]
+        matched_intra_normValues <- matched_matNorm_dt$normCount[(t_start <= matched_matNorm_dt$binA  & t_end >= matched_matNorm_dt$binA) &
+                                                                   (t_start <= matched_matNorm_dt$binB  & t_end >= matched_matNorm_dt$binB)]
+        stopifnot(!is.na(matched_intra_values))
+        stopifnot(!is.na(matched_intra_normValues))
+        
+        stopifnot(length(matched_intra_values) <= nvalues_current)
+        stopifnot(length(matched_intra_values) == length(matched_intra_normValues))
+        
+        
+        
         if(i == nrow(tad_dt)) { # if last tad -> no next tad
           # store upper right corner, so binA in current, binB in next
           # next_inter_values <- NA
           # next_inter_normValues <- NA
           mean_inter_next <-  NA
           mean_inter_nextNorm <-  NA
+          
+          matched_mean_inter_next <-  NA
+          matched_mean_inter_nextNorm <-  NA
+          
         
         } else {
           next_inter_values <- matNorm_dt$count[(t_start <= matNorm_dt$binA  & t_end >= matNorm_dt$binA) &
@@ -266,6 +284,22 @@ if(buildTable) {
           
           mean_inter_next <-  sum(next_inter_values)/nvalues_interNext
           mean_inter_nextNorm <-  sum(next_inter_normValues)/nvalues_interNext
+          
+          #### do the same for the matched hi-c
+          
+          
+          matched_next_inter_values <- matched_matNorm_dt$count[(t_start <= matched_matNorm_dt$binA  & t_end >= matched_matNorm_dt$binA) &
+                                                                  (next_start <= matched_matNorm_dt$binB  & next_end >= matched_matNorm_dt$binB)]
+          matched_next_inter_normValues <- matched_matNorm_dt$normCount[(t_start <= matched_matNorm_dt$binA  & t_end >= matched_matNorm_dt$binA) &
+                                                                          (next_start <= matched_matNorm_dt$binB  & next_end >= matched_matNorm_dt$binB)]
+          stopifnot(!is.na(matched_next_inter_values))
+          stopifnot(!is.na(matched_next_inter_normValues))
+          stopifnot(length(matched_next_inter_values) <= nvalues_interNext)
+          stopifnot(length(matched_next_inter_values) == length(matched_next_inter_normValues))
+          
+          matched_mean_inter_next <-  sum(matched_next_inter_values)/nvalues_interNext
+          matched_mean_inter_nextNorm <-  sum(matched_next_inter_normValues)/nvalues_interNext
+          
         }
         
         if(i == 1) { # if 1st tad -> no previous tad 
@@ -274,6 +308,9 @@ if(buildTable) {
           # 
           mean_inter_prev <- NA
           mean_inter_prevNorm <- NA
+          
+          matched_mean_inter_prev <- NA
+          matched_mean_inter_prevNorm <- NA
           
           
         } else {
@@ -293,11 +330,27 @@ if(buildTable) {
           mean_inter_prevNorm <- sum(prev_inter_normValues)/nvalues_interPrev
           
           
+          ### do the same for matched hi-c
+          matched_prev_inter_values <- matched_matNorm_dt$count[(t_start <= matched_matNorm_dt$binA  & t_end >= matched_matNorm_dt$binA) &
+                                                                  (prev_start <= matched_matNorm_dt$binB  & prev_end >= matched_matNorm_dt$binB)]
+          matched_prev_inter_normValues <- matched_matNorm_dt$normCount[(t_start <= matched_matNorm_dt$binA  & t_end >= matched_matNorm_dt$binA) &
+                                                                          (prev_start <= matched_matNorm_dt$binB  & prev_end >= matched_matNorm_dt$binB)]
+          stopifnot(!is.na(matched_prev_inter_values))
+          stopifnot(!is.na(matched_prev_inter_normValues))
+          stopifnot(length(matched_prev_inter_values) <= nvalues_interPrev)
+          stopifnot(length(matched_prev_inter_values) == length(matched_prev_inter_normValues))
+          
+          matched_mean_inter_prev <-  sum(matched_prev_inter_values)/nvalues_interPrev
+          matched_mean_inter_prevNorm <-  sum(matched_prev_inter_normValues)/nvalues_interPrev
+          
+          
+          
         }
         
       
         data.frame(
           hicds = hicds,
+          matched_hicds = matched_hicds,
           region = t_region,
           binStart = t_start,
           binEnd = t_end,
@@ -319,12 +372,25 @@ if(buildTable) {
           mean_inter_next = mean_inter_next,
           mean_inter_nextNorm = mean_inter_nextNorm,
           
+          # add the matched values
+          matched_mean_intra = sum(matched_intra_values)/nvalues_current,
+          matched_mean_intraNorm = sum(matched_intra_normValues)/nvalues_current,
+          
+          matched_mean_inter_prev = matched_mean_inter_prev,
+          matched_mean_inter_prevNorm = matched_mean_inter_prevNorm,
+          
+          matched_mean_inter_next = matched_mean_inter_next,
+          matched_mean_inter_nextNorm = matched_mean_inter_nextNorm,
+          
+          
+          
           stringsAsFactors = FALSE
           
         )
       } # end iterate over TADs
       cat(paste0("... done for chromo ", chromo,"\n"))
       close(zz)
+      close(zz2)
       overtads_dt
     } # end iterate over chromo
     all_chromo_dt

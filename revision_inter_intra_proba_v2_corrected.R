@@ -1,6 +1,8 @@
 setDir <- "/media/electron"
 setDir <- ""
 
+### !!! NEED TO REASSEMBLE: REVISION_INTER_INTRA_PROBA_V2_CORRECTED
+
 # v2 normalization: divide by the median [because of outliers] of diago instead of zscore
 # so then I can take the mean -> no negative values -> can take ratio
 
@@ -14,7 +16,7 @@ cat("> START ", script_name, "\n")
 
 require(foreach)
 require(doMC)
-registerDoMC(50)
+registerDoMC(8)
 
 binSize <- 40000
 all_chrs <- paste0("chr", 1:22)
@@ -62,6 +64,10 @@ if(buildTable) {
     
     chromo = "chr21"
     # all_chrs=all_chrs[1]
+    
+    outFile <- file.path(outFolder, paste0(hicds, "_all_chromo_dt.Rdata"))
+    if(file.exists(outFile)) return(NULL)
+    
     all_chromo_dt <- foreach(chromo = all_chrs,.combine='rbind') %do% {
       
       

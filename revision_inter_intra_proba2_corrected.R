@@ -1,6 +1,9 @@
 setDir <- "/media/electron"
 setDir <- ""
 
+### !!! NEED TO REASSEMBLE: REVISION_INTER_INTRA_PROBA2_CORRECTED
+
+
 # v1 normalization: zscore
 
 # CORRECTED: before normalization and mean, add the 0 values in the count vector !
@@ -13,7 +16,7 @@ cat("> START ", script_name, "\n")
 
 require(foreach)
 require(doMC)
-registerDoMC(50)
+registerDoMC(27)
 
 binSize <- 40000
 all_chrs <- paste0("chr", 1:22)
@@ -64,6 +67,9 @@ if(buildTable) {
     stopifnot(nrow(all_tads_dt) > 0)
     
     stopifnot(all_chrs %in% all_tads_dt$chromo)
+    
+    outFile <- file.path(outFolder, paste0(hicds, "_all_chromo_dt.Rdata"))
+    if(file.exists(outFile)) return(NULL)
     
     chromo = "chr21"
     # all_chrs=all_chrs[1]
@@ -131,10 +137,21 @@ if(buildTable) {
         normCount <- fullNormCount[1:sparseSize]
         stopifnot(length(normCount) == nrow(x))
         x$normCount <- normCount
+        
+        
+        if(sum(is.na(normCount)) > 0) {
+          save(sparseVect, file=file.path(outFolder, paste0(hicds, "_", chromo, "_", diagDist, "_sparseVect.Rdata")))
+          save(mainDiagoSize, file=file.path(outFolder, paste0(hicds, "_", chromo, "_", diagDist, "_mainDiagoSize.Rdata")))
+          save(diagDist, file=file.path(outFolder, paste0(hicds, "_", chromo, "_", diagDist, "_diagDist.Rdata")))
+        }
+        
         x
       }))
       stopifnot(!is.na(matNorm_dt$count))
-      stopifnot(!is.na(matNorm_dt$normCount))
+      
+      # stopifnot(!is.na(matNorm_dt$normCount))  ## ---->> not true in the norm v1 -> when one signle value scale() -> NA
+
+      
       # can produce Na if not enough value at one diagodist # not true for v2
       matNorm_dt <- na.omit(matNorm_dt)
       cat(paste0("... after discarding NA values: ", nrow(matNorm_dt), "/", nrow(mat_dt), "\n"))
