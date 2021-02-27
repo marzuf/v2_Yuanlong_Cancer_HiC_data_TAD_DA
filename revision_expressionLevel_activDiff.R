@@ -7,7 +7,12 @@ source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 
 # Rscript revision_expressionLevel_activDiff.R
 
-outFolder <- "REVISION_EXPRESSIONLEVEL_ACTIVDIFF"
+# all_inter_intra1_dt <- get(load("REVISION_INTER_INTRA_PROBA/all_inter_intra_dt.Rdata"))
+# all_inter_intra2_dt <- get(load("REVISION_INTER_INTRA_PROBA2/all_inter_intra_dt.Rdata"))
+all_inter_intra1_dt <- get(load("REVISION_INTER_INTRA_PROBA_V2_CORRECTED/all_inter_intra_dt.Rdata"))
+all_inter_intra2_dt <- get(load("REVISION_INTER_INTRA_PROBA2_V2_CORRECTED/all_inter_intra_dt.Rdata"))
+
+outFolder <- "REVISION_EXPRESSIONLEVEL_ACTIVDIFF_V2_CORRECTED"
 dir.create(outFolder, recursive = TRUE)
 
 plotType <- "png"
@@ -42,8 +47,6 @@ regionID_pvals <- setNames(final_table_DT$adjPvalComb, final_table_DT$regionID)
 ###################
 ### PREPARE PROBA DIFF DATA
 ###################
-all_inter_intra1_dt <- get(load("REVISION_INTER_INTRA_PROBA/all_inter_intra_dt.Rdata"))
-all_inter_intra2_dt <- get(load("REVISION_INTER_INTRA_PROBA2/all_inter_intra_dt.Rdata"))
 stopifnot(! all_inter_intra1_dt$hicds %in% all_inter_intra2_dt$hicds)
 all_inter_intra_dt <- rbind(all_inter_intra1_dt, all_inter_intra2_dt)
 stopifnot(final_table_DT$hicds %in% all_inter_intra_dt$hicds)

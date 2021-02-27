@@ -1,7 +1,13 @@
 
 outFolder <- file.path("REVISION_PROBADIFFMATCHEDPAIRS_CORRECTED")
 dir.create(outFolder, recursive = TRUE)
+all_inter_intra1_dt <- get(load("REVISION_INTER_INTRA_PROBA_CORRECTED/all_inter_intra_dt.Rdata"))
+all_inter_intra2_dt <- get(load("REVISION_INTER_INTRA_PROBA2_CORRECTED/all_inter_intra_dt.Rdata"))
 
+# outFolder <- file.path("REVISION_PROBADIFFMATCHEDPAIRS_V2_CORRECTED")
+# dir.create(outFolder, recursive = TRUE)
+# all_inter_intra1_dt <- get(load("REVISION_INTER_INTRA_PROBA_V2_CORRECTED/all_inter_intra_dt.Rdata"))
+# all_inter_intra2_dt <- get(load("REVISION_INTER_INTRA_PROBA2_V2_CORRECTED/all_inter_intra_dt.Rdata"))
 
 
 # Rscript revision_probaDiffMatchedPairs.R
@@ -47,8 +53,8 @@ all_pairs <- c(
 all_normal_ds <- as.character(sapply(all_pairs, function(x) dirname(dirname(x))))
 all_tumor_ds <-  as.character(sapply(all_pairs, function(x) basename(dirname(x))))
 
-all_col_vars <- c("mean_intra")
-col_var = "mean_intra"
+all_col_vars <- c("mean_intraNorm")
+col_var = "mean_intraNorm"
 
 ###################
 ### PREPARE SIGNIF DATA
@@ -64,8 +70,6 @@ regionID_pvals <- setNames(final_table_DT$adjPvalComb, final_table_DT$regionID)
 ###################
 ### PREPARE PROBA DIFF DATA
 ###################
-all_inter_intra1_dt <- get(load("REVISION_INTER_INTRA_PROBA_CORRECTED/all_inter_intra_dt.Rdata"))
-all_inter_intra2_dt <- get(load("REVISION_INTER_INTRA_PROBA2_CORRECTED/all_inter_intra_dt.Rdata"))
 stopifnot(! all_inter_intra1_dt$hicds %in% all_inter_intra2_dt$hicds)
 all_inter_intra_dt <- rbind(all_inter_intra1_dt, all_inter_intra2_dt)
 stopifnot(final_table_DT$hicds %in% all_inter_intra_dt$hicds)
@@ -204,10 +208,8 @@ foo <- foreach(col_var=all_col_vars) %dopar% {
   foo <- dev.off()
   cat(paste0("... written: ", outFile, "\n"))
   
-  
-  
-  
-  
+  outFile <- file.path(outFolder, paste0(col_var, "_matching_withRank_dt.Rdata"))
+  save(matching_withRank_dt, file=outFile, version=2) 
+  cat(paste0("... written: ", outFile, "\n"))
   
 }
-

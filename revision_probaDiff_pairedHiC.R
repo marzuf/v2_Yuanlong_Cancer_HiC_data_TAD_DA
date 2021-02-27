@@ -73,11 +73,13 @@ for(plot_var in all_vars) {
   
   plotTit <- paste0(plot_var, " ds vs. matched ds")
   
-  mySub <- paste0("# DS = ", length(all_inter_intra_dt$hicds), "; # TADs = ", nrow(all_inter_intra_dt))
+  mySub <- paste0("# hicds = ", length(unique(all_inter_intra_dt$hicds)), 
+                  "; # cmps = ", length(unique(file.path(all_inter_intra_dt$matched_hicds, all_inter_intra_dt$hicds))), 
+                  "; # TADs = ", nrow(all_inter_intra_dt))
   
   
-  myx <- log10(all_inter_intra_dt[,paste0(plot_var)])
-  myy <- log10(all_inter_intra_dt[,paste0("matched_", plot_var)])
+  myx <- all_inter_intra_dt[,paste0(plot_var)]
+  myy <- all_inter_intra_dt[,paste0("matched_", plot_var)]
   
   
   
@@ -92,7 +94,7 @@ for(plot_var in all_vars) {
            cex.axis =plotCex,
            cex.lab = plotCex)
   mtext(side=3, text=mySub)
-  addCorr(x=myx,y=myy, legPos="topright", bty="n", corMet="spearman")
+  addCorr(x=myx,y=myy, legPos="topleft", bty="n", corMet="spearman")
   foo <- dev.off()
   cat(paste0("... written: ", outFile, "\n"))
   
@@ -112,7 +114,7 @@ for(plot_var in all_vars) {
            cex.axis =plotCex,
            cex.lab = plotCex)
   mtext(side=3, text=mySub)
-  addCorr(x=myx,y=myy, legPos="topright", bty="n", corMet="spearman")
+  addCorr(x=myx,y=myy, legPos="topleft", bty="n", corMet="spearman")
   foo <- dev.off()
   cat(paste0("... written: ", outFile, "\n"))
   
@@ -176,12 +178,14 @@ yvar <- "adjPvalComb_log10"
 
 ncomps <- length(unique(file.path(final_proba_dt$hicds, 
                            final_proba_dt$matched_hicds, final_proba_dt$exprds)))
+nhicds <- length(unique(file.path(final_proba_dt$hicds)))
 
 foo <- foreach(plot_var = all_plot_vars) %dopar%{
   
   plotTit <- paste0(yvar, " vs. ", plot_var)
   
-  mySub <- paste0("# comparisons = ", ncomps,
+  mySub <- paste0("# hicds = ", nhicds, 
+                  "; # cmps = ", ncomps,
                   "; # TADs = ", nrow(final_proba_dt))
 
   myx <- final_proba_dt[, paste0(plot_var)]
@@ -198,7 +202,7 @@ foo <- foreach(plot_var = all_plot_vars) %dopar%{
            cex.axis =plotCex,
            cex.lab = plotCex)
   mtext(side=3, text=mySub)
-  addCorr(x=myx,y=myy, legPos="topright", bty="n", corMet="spearman")
+  addCorr(x=myx,y=myy, legPos="topleft", bty="n", corMet="spearman")
   foo <- dev.off()
   cat(paste0("... written: ", outFile, "\n"))
   
@@ -209,7 +213,8 @@ foo <- foreach(plot_var = all_plot_vars) %dopar%{
   stopifnot(sum(final_proba_dt$signif_lab == "signif.") == 
               sum(final_proba_dt$adjPvalComb <= tadSignifThresh))
   
-  mySub <- paste0("# comparisons = ", ncomps,
+  mySub <- paste0("# hicds = ", nhicds, 
+                    "; # cmps = ", ncomps,
                   "; # TADs = ", nrow(final_proba_dt),
                   " (# signif. = ", sum(final_proba_dt$signif_lab == "signif.") , ")")
   
