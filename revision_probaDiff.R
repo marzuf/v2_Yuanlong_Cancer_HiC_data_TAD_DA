@@ -1,15 +1,15 @@
 
 # need to re run 26.02.21 on corrected proba data
 
-# outFolder <- file.path("REVISION_PROBADIFF")
-# dir.create(outFolder, recursive = TRUE)
-# all_inter_intra1_dt <- get(load("REVISION_INTER_INTRA_PROBA/all_inter_intra_dt.Rdata"))
-# all_inter_intra2_dt <- get(load("REVISION_INTER_INTRA_PROBA2/all_inter_intra_dt.Rdata"))
-
-outFolder <- file.path("REVISION_PROBADIFF_V2_CORRECTED")
+outFolder <- file.path("REVISION_PROBADIFF_CORRECTED")
 dir.create(outFolder, recursive = TRUE)
-all_inter_intra1_dt <- get(load("REVISION_INTER_INTRA_PROBA_V2_CORRECTED/all_inter_intra_dt.Rdata"))
-all_inter_intra2_dt <- get(load("REVISION_INTER_INTRA_PROBA2_V2_CORRECTED/all_inter_intra_dt.Rdata"))
+all_inter_intra1_dt <- get(load("REVISION_INTER_INTRA_PROBA_CORRECTED/all_inter_intra_dt.Rdata"))
+all_inter_intra2_dt <- get(load("REVISION_INTER_INTRA_PROBA2_CORRECTED/all_inter_intra_dt.Rdata"))
+
+# outFolder <- file.path("REVISION_PROBADIFF_V2_CORRECTED")
+# dir.create(outFolder, recursive = TRUE)
+# all_inter_intra1_dt <- get(load("REVISION_INTER_INTRA_PROBA_V2_CORRECTED/all_inter_intra_dt.Rdata"))
+# all_inter_intra2_dt <- get(load("REVISION_INTER_INTRA_PROBA2_V2_CORRECTED/all_inter_intra_dt.Rdata"))
 
 
 # Rscript revision_probaDiff.R
@@ -118,7 +118,7 @@ all_plot_vars <- c("interOverIntraNorm_mean", "interOverIntra_mean", "mean_intra
 # 1) density
 # 2 continuous association with pvalue)
 plot_var="mean_intra"
-
+# all_plot_vars=all_plot_vars[1]
 foo <- foreach(plot_var = all_plot_vars) %dopar%{
   
   
@@ -126,6 +126,8 @@ foo <- foreach(plot_var = all_plot_vars) %dopar%{
   
   
   sub_dt <- merge_dt[merge_dt[,paste0(plot_var)] >= qts[1] & merge_dt[,paste0(plot_var)] <= qts[2] ,]
+  
+  # save(sub_dt, file="sub_dt.Rdata", version=2) ; stop("--ok\n")
   
   sub_dt <- sub_dt[!is.na(sub_dt[,paste0(plot_var)]),]
   

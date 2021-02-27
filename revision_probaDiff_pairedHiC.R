@@ -42,27 +42,103 @@ mytheme <-     theme(
   legend.title = element_text(face="bold")
 ) 
 
-
-
+all_pairs <- c(
+  file.path("LI_40kb","GSE105381_HepG2_40kb", "TCGAlihc_norm_lihc"),
+  file.path("LG1_40kb" ,"ENCSR444WCZ_A549_40kb", "TCGAluad_norm_luad"),
+  file.path("LG2_40kb" ,"ENCSR444WCZ_A549_40kb" ,"TCGAluad_norm_luad"),
+  file.path("LG1_40kb", "ENCSR489OCU_NCI-H460_40kb", "TCGAluad_norm_luad"), 
+  file.path("LG2_40kb", "ENCSR489OCU_NCI-H460_40kb", "TCGAluad_norm_luad"), 
+  file.path("GSE118514_RWPE1_40kb", "ENCSR346DCU_LNCaP_40kb", "TCGAprad_norm_prad"),
+  file.path("GSE118514_RWPE1_40kb", "GSE118514_22Rv1_40kb", "TCGAprad_norm_prad")
+)
 
 all_inter_intra_dt <- get(load("REVISION_INTER_INTRA_PROBA_V2_CORRECTED_PAIREDHIC//all_inter_intra_dt.Rdata"))
+
+all_inter_intra_dt$mean_inter_prevnext <- 0.5*(all_inter_intra_dt$mean_inter_prev + all_inter_intra_dt$mean_inter_next)
+all_inter_intra_dt$mean_inter_prevnextNorm <- 0.5*(all_inter_intra_dt$mean_inter_prevNorm + 
+                                                     all_inter_intra_dt$mean_inter_nextNorm)
+
+all_inter_intra_dt$matched_mean_inter_prevnext <- 0.5*(all_inter_intra_dt$matched_mean_inter_prev + 
+                                                         all_inter_intra_dt$matched_mean_inter_next)
+all_inter_intra_dt$matched_mean_inter_prevnextNorm <- 0.5*(all_inter_intra_dt$matched_mean_inter_prevNorm + 
+                                                     all_inter_intra_dt$matched_mean_inter_nextNorm)
+
+
+# first have a look of count matching
+all_vars <- c("mean_intra", "mean_intraNorm","mean_inter_prevnext" , "mean_inter_prevnextNorm")
+
+plot_var = "mean_intra"
+for(plot_var in all_vars) {
+  
+  
+  plotTit <- paste0(plot_var, " ds vs. matched ds")
+  
+  mySub <- paste0("# DS = ", length(all_inter_intra_dt$hicds), "; # TADs = ", nrow(all_inter_intra_dt))
+  
+  
+  myx <- log10(all_inter_intra_dt[,paste0(plot_var)])
+  myy <- log10(all_inter_intra_dt[,paste0("matched_", plot_var)])
+  
+  
+  
+  outFile  <- file.path(outFolder, paste0(plot_var, "_ds_vs_matched_densplot.", plotType))
+  do.call(plotType, list(outFile, height=myWidth, width=myWidth))
+  densplot(x = myx,
+           xlab =paste0(plot_var, " - ds"),
+           y  = myy,
+           ylab = paste0(plot_var, " - matched"),
+           main=plotTit,
+           cex.main=plotCex,
+           cex.axis =plotCex,
+           cex.lab = plotCex)
+  mtext(side=3, text=mySub)
+  addCorr(x=myx,y=myy, legPos="topright", bty="n", corMet="spearman")
+  foo <- dev.off()
+  cat(paste0("... written: ", outFile, "\n"))
+  
+  plotTit <- paste0(plot_var, " ds vs. matched ds (log10)")
+  
+  myx <- log10(all_inter_intra_dt[,paste0(plot_var)])
+  myy <- log10(all_inter_intra_dt[,paste0("matched_", plot_var)])
+  
+  outFile  <- file.path(outFolder, paste0(plot_var, "_ds_vs_matched_log10_densplot.", plotType))
+  do.call(plotType, list(outFile, height=myWidth, width=myWidth))
+  densplot(x = myx,
+           xlab =paste0(plot_var, " - ds [log10]"),
+           y  = myy,
+           ylab = paste0(plot_var, " - matched [log10]"),
+           main=plotTit,
+           cex.main=plotCex,
+           cex.axis =plotCex,
+           cex.lab = plotCex)
+  mtext(side=3, text=mySub)
+  addCorr(x=myx,y=myy, legPos="topright", bty="n", corMet="spearman")
+  foo <- dev.off()
+  cat(paste0("... written: ", outFile, "\n"))
+  
+}
+
 
 # compute inter over intra - reference
 all_inter_intra_dt$mean_inter_prevNext_norm <- 0.5*(all_inter_intra_dt$mean_inter_prevNorm + 
                                                       all_inter_intra_dt$mean_inter_nextNorm)
-all_inter_intra_dt$interOverIntra_norm <- all_inter_intra_dt$mean_inter_prevNext_norm/all_inter_intra_dt$mean_intraNorm
+all_inter_intra_dt$interOverIntra_norm <- all_inter_intra_dt$mean_inter_prevNext_norm/
+                                            all_inter_intra_dt$mean_intraNorm
 
 # compute inter over intra - matched
 all_inter_intra_dt$matched_mean_inter_prevNext_norm <- 0.5*(all_inter_intra_dt$matched_mean_inter_prevNorm + 
                                                               all_inter_intra_dt$matched_mean_inter_nextNorm)
-all_inter_intra_dt$matched_interOverIntra_norm <- all_inter_intra_dt$matched_mean_inter_prevNext_norm/all_inter_intra_dt$matched_mean_intraNorm
+all_inter_intra_dt$matched_interOverIntra_norm <- all_inter_intra_dt$matched_mean_inter_prevNext_norm/
+                                                all_inter_intra_dt$matched_mean_intraNorm
 
 
 # compute diff in mean intra
-all_inter_intra_dt$meanIntra_norm_diff <- all_inter_intra_dt$mean_intraNorm_matched - all_inter_intra_dt$mean_intraNorm
+all_inter_intra_dt$meanIntra_norm_diff <- all_inter_intra_dt$matched_mean_intraNorm - 
+                                                        all_inter_intra_dt$mean_intraNorm
 
 # compute diff in inter over intra
-all_inter_intra_dt$interOverIntra_norm_diff <- all_inter_intra_dt$matched_interOverIntra_norm - all_inter_intra_dt$interOverIntra_norm
+all_inter_intra_dt$interOverIntra_norm_diff <- all_inter_intra_dt$matched_interOverIntra_norm -
+                                                            all_inter_intra_dt$interOverIntra_norm
 
 
 # pval vs. inter/intra 
@@ -71,53 +147,75 @@ stopifnot(file.exists(final_table_file))
 final_table_DT <- get(load(final_table_file))
 final_table_DT$regionID <- file.path(final_table_DT$hicds, final_table_DT$exprds, final_table_DT$region)
 final_table_DT$signif_lab <- ifelse(final_table_DT$adjPvalComb <= 0.01, "signif.", "not signif.")
-
 final_table_DT$hicds_regionID <- file.path(final_table_DT$hicds, final_table_DT$region)
 
+## keep only the norm tumor comparisons
+final_table_DT <- final_table_DT[final_table_DT$exprds %in% basename(all_pairs),]
+
+all_inter_intra_dt$hicds_regionID <- file.path(all_inter_intra_dt$hicds, all_inter_intra_dt$region)
+
 # merge inter intra sur final_table
-final_proba_dt <- merge(final_table_DT, all_inter_intra_dt[,c("meanIntra_norm_diff", "interOverIntra_norm_diff")],
-                        by=c("hicds", "regionID"))
+final_proba_dt <- merge(final_table_DT, 
+                        all_inter_intra_dt[,c("hicds_regionID", "matched_hicds", "meanIntra_norm_diff", "interOverIntra_norm_diff")],
+                        by=c("hicds_regionID"))
+
+my_cols <- setNames(pal_jama()(5)[c(3, 2,4)], unique(final_proba_dt$signif_lab))
 
 
-
+# stopifnot(!duplicated(final_proba_dt$regionID))
+# there are some duplicates e.g. for A549 I have 2 matched hic (LG1 and LG2)
 
 all_plot_vars <- c("meanIntra_norm_diff", "interOverIntra_norm_diff")
 
+stopifnot(all_plot_vars %in% colnames(final_proba_dt))
 
-plot_var="mean_intra"
+plot_var="meanIntra_norm_diff"
+
+final_proba_dt$adjPvalComb_log10 <- -log10(final_proba_dt$adjPvalComb)
+yvar <- "adjPvalComb_log10"
+
+ncomps <- length(unique(file.path(final_proba_dt$hicds, 
+                           final_proba_dt$matched_hicds, final_proba_dt$exprds)))
 
 foo <- foreach(plot_var = all_plot_vars) %dopar%{
   
+  plotTit <- paste0(yvar, " vs. ", plot_var)
   
+  mySub <- paste0("# comparisons = ", ncomps,
+                  "; # TADs = ", nrow(final_proba_dt))
+
+  myx <- final_proba_dt[, paste0(plot_var)]
+  myy <- final_proba_dt[,paste0(yvar)]
   
-  myx <- final_proba_dt$meanIntra_norm_diff
-  myx <- final_proba_dt$adjPvalComb
-  
-  densplot(
-    
-  )
-  
-  
-  
-  
-  
-  
-  qts <- quantile(na.omit(merge_dt[,paste0(plot_var)]), probs=c(plot_qt1, plot_qt2))
-  
-  
-  sub_dt <- merge_dt[merge_dt[,paste0(plot_var)] >= qts[1] & merge_dt[,paste0(plot_var)] <= qts[2] ,]
-  
-  sub_dt <- sub_dt[!is.na(sub_dt[,paste0(plot_var)]),]
-  
-  all_cmps <- unique(file.path(sub_dt$hicds, sub_dt$exprds))
+  outFile  <- file.path(outFolder, paste0(plot_var, "_vs_", yvar, "_densplot.", plotType))
+  do.call(plotType, list(outFile, height=myWidth, width=myWidth))
+  densplot(x = myx,
+           xlab =paste0(plot_var),
+           y  = myy,
+           ylab = paste0(yvar),
+           main=plotTit,
+           cex.main=plotCex,
+           cex.axis =plotCex,
+           cex.lab = plotCex)
+  mtext(side=3, text=mySub)
+  addCorr(x=myx,y=myy, legPos="topright", bty="n", corMet="spearman")
+  foo <- dev.off()
+  cat(paste0("... written: ", outFile, "\n"))
   
   plotTit <- paste0(plot_var, " - signif. not signif.")
-  mySub <- paste0("# DS comparisons = ", length(all_cmps), "; # TADs = ", nrow(sub_dt), 
-                  " (signif.: ", sum(sub_dt$adjPvalComb <= tadSignifThresh), "); crop ", plot_qt1,"-", plot_qt2, "")
   
-  my_cols <- setNames(pal_jama()(5)[c(3, 2,4)], unique(sub_dt$signif_lab))
+
   
-  p3 <- ggdensity(sub_dt,
+  stopifnot(sum(final_proba_dt$signif_lab == "signif.") == 
+              sum(final_proba_dt$adjPvalComb <= tadSignifThresh))
+  
+  mySub <- paste0("# comparisons = ", ncomps,
+                  "; # TADs = ", nrow(final_proba_dt),
+                  " (# signif. = ", sum(final_proba_dt$signif_lab == "signif.") , ")")
+  
+  legTitle <- ""
+  
+  p3 <- ggdensity(final_proba_dt,
                   x = paste0(plot_var),
                   y = "..density..",
                   # combine = TRUE,                  # Combine the 3 plots
@@ -140,23 +238,8 @@ foo <- foreach(plot_var = all_plot_vars) %dopar%{
   outFile <- file.path(outFolder, paste0(plot_var, "_signif_notsignif_density.", plotType))
   ggsave(p3, file=outFile, height=myHeightGG, width=myWidthGG)
   cat(paste0("... written: ", outFile, "\n"))
-  
-  plotTit <- paste0(plot_var, " vs. adjPvalComb")
-  
-  outFile  <- file.path(outFolder, paste0(plot_var, "_log10_vs_adjPvalComb_densplot.", plotType))
-  do.call(plotType, list(outFile, height=myWidth, width=myWidth))
-  densplot(x = -log10(sub_dt$adjPvalComb),
-           xlab ="adjPvalComb [-log10]",
-           y  = log10(sub_dt[,paste0(plot_var)]),
-           ylab = paste0(plot_var, " [log10]"),
-           main=plotTit,
-           cex.main=plotCex,
-           cex.axis =plotCex,
-           cex.lab = plotCex)
-  mtext(side=3, text=mySub)
-  foo <- dev.off()
-  cat(paste0("... written: ", outFile, "\n"))
-  
+
+    
 }
   
   

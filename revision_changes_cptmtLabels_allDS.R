@@ -34,7 +34,7 @@ mytheme <-     theme(
 outFolder <- "REVISION_CHANGES_CPTMTLABELS_ALLDS"
 dir.create(outFolder)
 
-buildTable <- TRUE
+buildTable <- F
 
 hierarchyFolder <- file.path(setDir, 
 "/mnt/ndata/Yuanlong/1.Projects/2.PROFILE/2.Results_review/2.Sup_tab_used_for_2nd_submission",
@@ -288,7 +288,7 @@ for(suffix in c("", "_eight")) {
   tmp_dt <- aggregate(region_ID~tadSignif, data=all_ds_dt, FUN=length)
   nTot <- setNames(tmp_dt$region_ID, tmp_dt$tadSignif)
   agg_dt$ratioTADs <- agg_dt$nTADs/nTot[paste0(agg_dt$tadSignif)]
-  plotTit <- paste0("norm vs. tumor ratio TADs by cptmt", suffix, " (all DS)")
+  plotTit <- paste0("ratio TADs by cptmt", suffix, " (all DS)")
   ggbar_p <-  ggbarplot(agg_dt, 
                         y="ratioTADs",
                         x="tadSignif", 
@@ -299,7 +299,7 @@ for(suffix in c("", "_eight")) {
     theme(
       axis.text.x = element_text(hjust=1, vjust=0.5,size=10,angle=90)
     )
-  outFile <- file.path(outFolder,paste0("norm_vs_tumor_cptmt", suffix, "_signif_notSignif_allDS_barplot.", plotType))
+  outFile <- file.path(outFolder,paste0("cptmt", suffix, "_signif_notSignif_allDS_barplot.", plotType))
   ggsave(ggbar_p, filename = outFile, height=myHeightGG, width=myWidthGG)
   cat(paste0("... written: ", outFile, "\n"))
   
@@ -313,7 +313,7 @@ for(suffix in c("", "_eight")) {
   tmp_dt <- aggregate(as.formula(paste0("region_ID~region_cptmt", suffix)), data=all_ds_dt, FUN=length)
   nTot <- setNames(tmp_dt$region_ID, tmp_dt[, paste0("region_cptmt", suffix)])
   agg_dt$ratioTADs <- agg_dt$nTADs/nTot[paste0(agg_dt[,paste0("region_cptmt", suffix)])]
-  plotTit <- paste0("norm vs. tumor ratio TADs by signif. cptmt", suffix, " (all DS)")
+  plotTit <- paste0("ratio TADs by signif. cptmt", suffix, " (all DS)")
   ggbar_p <-  ggbarplot(agg_dt, 
                         y="ratioTADs",
                         x=paste0("region_cptmt", suffix),
@@ -324,7 +324,7 @@ for(suffix in c("", "_eight")) {
     theme(
       axis.text.x = element_text(hjust=1, vjust=0.5,size=10,angle=90)
     )
-  outFile <- file.path(outFolder,paste0("norm_vs_tumor_signif_cptmt", suffix, "_allDS_barplot.", plotType))
+  outFile <- file.path(outFolder,paste0("signif_cptmt", suffix, "_allDS_barplot.", plotType))
   ggsave(ggbar_p, filename = outFile, height=myHeightGG, width=myWidthGG)
   cat(paste0("... written: ", outFile, "\n"))
   

@@ -1,5 +1,5 @@
 
-outFolder <- file.path("REVISION_PROBADIFFMATCHEDPAIRS")
+outFolder <- file.path("REVISION_PROBADIFFMATCHEDPAIRS_CORRECTED")
 dir.create(outFolder, recursive = TRUE)
 
 
@@ -64,8 +64,8 @@ regionID_pvals <- setNames(final_table_DT$adjPvalComb, final_table_DT$regionID)
 ###################
 ### PREPARE PROBA DIFF DATA
 ###################
-all_inter_intra1_dt <- get(load("REVISION_INTER_INTRA_PROBA/all_inter_intra_dt.Rdata"))
-all_inter_intra2_dt <- get(load("REVISION_INTER_INTRA_PROBA2/all_inter_intra_dt.Rdata"))
+all_inter_intra1_dt <- get(load("REVISION_INTER_INTRA_PROBA_CORRECTED/all_inter_intra_dt.Rdata"))
+all_inter_intra2_dt <- get(load("REVISION_INTER_INTRA_PROBA2_CORRECTED/all_inter_intra_dt.Rdata"))
 stopifnot(! all_inter_intra1_dt$hicds %in% all_inter_intra2_dt$hicds)
 all_inter_intra_dt <- rbind(all_inter_intra1_dt, all_inter_intra2_dt)
 stopifnot(final_table_DT$hicds %in% all_inter_intra_dt$hicds)
@@ -131,7 +131,7 @@ stopifnot(matching_withRank_dt$matching_region_hicdsID %in% names(colVar_values)
 
 matching_withRank_dt_s <- matching_withRank_dt
 
-stopifnot(length(all_col_vars) > 1) # will not work with more variables because colVar_values was built to work with 1 variable
+stopifnot(length(all_col_vars) == 1) # will not work with more variables because colVar_values was built to work with 1 variable
 foo <- foreach(col_var=all_col_vars) %dopar% {
   matching_withRank_dt <- matching_withRank_dt_s
   matching_withRank_dt[,paste0("ref_", col_var)] <- colVar_values[matching_withRank_dt$ref_region_hicdsID]

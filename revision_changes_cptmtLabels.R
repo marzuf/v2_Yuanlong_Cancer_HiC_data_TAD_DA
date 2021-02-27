@@ -86,7 +86,11 @@ regionID_pvals <- setNames(final_table_DT$adjPvalComb, final_table_DT$regionID)
 
 
 stopifnot(names(cptmt_files) %in% final_dt$hicds)
-sub_final_dt <- final_dt[final_dt$hicds %in% names(cptmt_files),]
+# sub_final_dt <- final_dt[final_dt$hicds %in% names(cptmt_files),]
+### CORRECTED 27.02 -> NEED TO KEEP ONLY THE normal vs. tumor !!!
+sub_final_dt <- final_dt[final_dt$hicds %in% names(cptmt_files) &
+                           final_dt$exprds %in% basename(all_pairs),]
+stopifnot(nrow(sub_final_dt) > 0)
 
 hicds = names(cptmt_files)[1]
 
