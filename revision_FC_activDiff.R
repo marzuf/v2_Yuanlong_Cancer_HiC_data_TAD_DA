@@ -13,22 +13,17 @@ matching_dt <- get(load("REVISION_PROBADIFFMATCHEDPAIRS_V2_CORRECTED/mean_intraN
 
 all_inter_intra_dt <- get(load("REVISION_INTER_INTRA_PROBA_V2_CORRECTED_PAIREDHIC//all_inter_intra_dt.Rdata"))
 
+buildTable <- FALSE
 
 plotType <- "png"
 myHeight <- myWidth <- 400
 plotCex <- 1.2
+myHeightGG <- 5
+myWidthGG <- 6
 
-all_pairs <- c(
-  file.path("LI_40kb","GSE105381_HepG2_40kb", "TCGAlihc_norm_lihc"),
-  file.path("LG1_40kb" ,"ENCSR444WCZ_A549_40kb", "TCGAluad_norm_luad"),
-  file.path("LG2_40kb" ,"ENCSR444WCZ_A549_40kb" ,"TCGAluad_norm_luad"),
-  file.path("LG1_40kb", "ENCSR489OCU_NCI-H460_40kb", "TCGAluad_norm_luad"), 
-  file.path("LG2_40kb", "ENCSR489OCU_NCI-H460_40kb", "TCGAluad_norm_luad"), 
-  file.path("GSE118514_RWPE1_40kb", "ENCSR346DCU_LNCaP_40kb", "TCGAprad_norm_prad"),
-  file.path("GSE118514_RWPE1_40kb", "GSE118514_22Rv1_40kb", "TCGAprad_norm_prad")
-)
-all_normal_ds <- as.character(sapply(all_pairs, function(x) dirname(dirname(x))))
-all_tumor_ds <-  as.character(sapply(all_pairs, function(x) basename(dirname(x))))
+
+source("revision_settings.R")
+
 
 stopifnot(matching_dt$ref_exprds %in% basename(all_pairs))
 stopifnot(matching_dt$matching_exprds %in% basename(all_pairs))
@@ -62,27 +57,34 @@ stopifnot(setequal(gene_tad_signif_dt$regionID, final_table_DT$regionID))
 # -> for the matched data, meanIntraDiff
 gene_tad_signif_dt$dataset <- file.path(gene_tad_signif_dt$hicds, gene_tad_signif_dt$exprds)
 
-gene_tad_histfc_dt <- do.call(rbind, by(gene_tad_signif_dt, gene_tad_signif_dt$dataset, function(sub_dt) {
+if(buildTable) {
+  gene_tad_histfc_dt <- do.call(rbind, by(gene_tad_signif_dt, gene_tad_signif_dt$dataset, function(sub_dt) {
+    
+    all_aggFC_hist <- hist(sub_dt$logFC, breaks = seq(min(sub_dt$logFC), max(sub_dt$logFC), 
+                                                      length.out=nBreaks+1), plot=FALSE)# $breaks
+    # then for each value find in which break it falls
+    logFC_hist <- sapply(sub_dt$logFC, function(x) { 
+      xbreak <- which(hist(x, breaks = all_aggFC_hist$breaks, plot=FALSE)$counts == 1);
+      stopifnot(length(xbreak) == 1); 
+      xbreak})
+    check_histqt <- factor(logFC_hist, levels = seq_along(all_aggFC_hist$counts))
+    stopifnot(table(check_histqt) == all_aggFC_hist$counts)
+    stopifnot(max(logFC_hist) <= nBreaks)
+    stopifnot(min(logFC_hist) >= 1)
+    stopifnot(length(logFC_hist) == nrow(sub_dt))
+    sub_dt$logFC_histBreak <- logFC_hist
+    sub_dt
+  }))
   
-  all_aggFC_hist <- hist(sub_dt$logFC, breaks = seq(min(sub_dt$logFC), max(sub_dt$logFC), 
-                                                    length.out=nBreaks+1), plot=FALSE)# $breaks
-  # then for each value find in which break it falls
-  logFC_hist <- sapply(sub_dt$logFC, function(x) { 
-    xbreak <- which(hist(x, breaks = all_aggFC_hist$breaks, plot=FALSE)$counts == 1);
-    stopifnot(length(xbreak) == 1); 
-    xbreak})
-  check_histqt <- factor(logFC_hist, levels = seq_along(all_aggFC_hist$counts))
-  stopifnot(table(check_histqt) == all_aggFC_hist$counts)
-  stopifnot(max(logFC_hist) <= nBreaks)
-  stopifnot(min(logFC_hist) >= 1)
-  stopifnot(length(logFC_hist) == nrow(sub_dt))
-  sub_dt$logFC_histBreak <- logFC_hist
-  sub_dt
-}))
+  outFile <- file.path(outFolder, "gene_tad_histfc_dt.Rdata")
+  save(gene_tad_histfc_dt, file=outFile, version=2)
+  cat(paste0("... written: ", outFile, "\n"))
+  
+} else {
+  outFile <- file.path(outFolder, "gene_tad_histfc_dt.Rdata")
+  gene_tad_histfc_dt <- get(load(outFile))
+}
 
-outFile <- file.path(outFolder, "gene_tad_histfc_dt.Rdata")
-save(gene_tad_histfc_dt, file=outFile, version=2)
-cat(paste0("... written: ", outFile, "\n"))
 
 stopifnot(nrow(gene_tad_histfc_dt) == nrow(gene_tad_signif_dt))
 
@@ -97,7 +99,52 @@ all_meanLogFCbreaks <- setNames(tad_agg_fcHist_dt$meanLogFCbreak, tad_agg_fcHist
 ### plot ggdensity the fc breaks signif and not signif 
 ###################
 
-tad_agg_fcHist_dt$signif_lab <- ifelse(tad_agg_fcHist_dt$regionID %in% signif_tads, "signif.", "not signif.")
+stopifnot(!duplicated(tad_agg_fcHist_dt$regionID))
+
+tad_agg_fcHist_dt$signif_lab <- ifelse(tad_agg_fcHist_dt$regionID %in% signif_tads,
+                                       "signif.", "not signif.")
+
+stopifnot(sum(tad_agg_fcHist_dt$signif_lab=="signif.") == 
+            sum(final_table_DT$adjPvalComb <= tadSignifThresh))
+
+plotTit <- paste0("")
+
+mySub <- paste0("# DS = ", length(unique(tad_agg_fcHist_dt$hicds, tad_agg_fcHist_dt$exprds)), 
+                "; # TADs = ", nrow(tad_agg_fcHist_dt),
+                " (# signif.  = ", sum(tad_agg_fcHist_dt$signif_lab=="signif."), ")")
+
+
+plot_var <- "meanLogFCbreak"
+
+legTitle <- ""
+
+my_cols <- setNames(pal_jama()(5)[c(3, 2,4)], unique(tad_agg_fcHist_dt$signif_lab))
+
+
+p3 <- ggdensity(tad_agg_fcHist_dt,
+                x = paste0(plot_var),
+                y = "..density..",
+                # combine = TRUE,                  # Combine the 3 plots
+                xlab = paste0(plot_var),
+                # add = "median",                  # Add median line.
+                rug = FALSE,                      # Add marginal rug
+                color = "signif_lab",
+                fill = "signif_lab",
+                palette = "jco"
+) +
+  ggtitle(plotTit, subtitle = mySub)+
+  scale_color_manual(values=my_cols)+
+  scale_fill_manual(values=my_cols)  +
+  labs(color=paste0(legTitle),fill=paste0(legTitle), y="Density") +
+  guides(color=FALSE)+
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 10))+
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
+  mytheme
+
+outFile <- file.path(outFolder, paste0(plot_var, "_signif_notsignif_density.", plotType))
+ggsave(p3, file=outFile, height=myHeightGG, width=myWidthGG)
+cat(paste0("... written: ", outFile, "\n"))
+
 
 ###################
 ### merge the data --- matching regions
@@ -113,17 +160,70 @@ matching_dt$matching_meanLogFCbreaks <- all_meanLogFCbreaks[paste0(matching_dt$m
 ### mean FC breaks and diff in mean intra norm for matching tad
 ###################
 
-signif_matching_dt <- matching_dt[matching_dt$ref_region_pval <= tadSignifThresh,]
-stopifnot(nrow(signif_matching_dt) > 0)
-stopifnot(signif_matching_dt$ref_region_ID %in% signif_tads)
+matching_dt$diff_mean_intraNorm <- matching_dt$ref_mean_intraNorm-matching_dt$matching_mean_intraNorm
 
-signif_matching_dt$diff_mean_intraNorm <- signif_matching_dt$ref_mean_intraNorm-signif_matching_dt$matching_mean_intraNorm
+plot_list <- list(
+  c(myxvar="tumorOverNorm_mean_intraNorm", myyvar="ref_meanLogFCbreaks"),
+  c(myxvar = "tumorOverNorm_mean_intraNorm", myyvar = "ref_meanLogFCbreaks")
+  )
 
-plot(x=signif_matching_dt$tumorOverNorm_mean_intraNorm,
-     y=signif_matching_dt$ref_meanLogFCbreaks)
+toplots <- c("all", "signif")
+toplot="all"
+i=1
+for(i in seq_along(plot_list)) {
+  
+  myxvar <- as.character(plot_list[[i]]["myxvar"])
+  myyvar <- as.character(plot_list[[i]]["myyvar"])
+  
+  
+  for(toplot in toplots) {
+    
+    if(toplot == "all") {
+      toplot_dt <- matching_dt
+    } else if(toplot == "signif"){
+      signif_matching_dt <- matching_dt[matching_dt$ref_region_pval <= tadSignifThresh,]
+      stopifnot(nrow(signif_matching_dt) > 0)
+      stopifnot(signif_matching_dt$ref_region_ID %in% signif_tads)
+      toplot_dt <- signif_matching_dt
+    } else {
+      stop("--error\n")
+    }
+    
+    
+    myx <- toplot_dt[,paste0(myxvar)]
+    myy <- toplot_dt[,paste0(myyvar)]
+    
+    plotTit <- paste0(toplot, " TADs: ", myyvar, " vs. ", myxvar)
+    
+    mySub <- paste0("# hicds = ", length(unique(toplot_dt$ref_hicds)), 
+                    "; # cmps = ", length(unique(file.path(toplot_dt$matching_hicds, 
+                                                           toplot_dt$ref_hicds))), 
+                    "; # TADs = ", nrow(toplot_dt))
+    
+    outFile  <- file.path(outFolder, paste0(toplot, "TADs_", myyvar, "_vs_", myxvar, "_matched_densplot.", plotType))
+    do.call(plotType, list(outFile, height=myWidth, width=myWidth))
+    densplot(x=myx,
+             y=myy,
+             xvar = paste0(myxvar),
+             yvar = paste0(myyvar),
+             plot.main=plotCex,
+             plot.main=plotCex,
+             plot.main=plotCex
+    )
+    mtext(side=3, text=mySub)
+    addCorr(x=myx,y=myy, legPos="topleft", bty="n", corMet="spearman")
+    foo <- dev.off()
+    cat(paste0("... written: ", outFile, "\n"))
+    
+  }
+  
+}
 
-plot(x=signif_matching_dt$diff_mean_intraNorm,
-     y=signif_matching_dt$ref_meanLogFCbreaks)
+
+
+
+
+
 
 
 ###################
@@ -146,13 +246,57 @@ matched_paired_dt <- merge(sub_tad_agg_fcHist_dt,all_inter_intra_dt[,c("hicds_re
 matched_paired_dt$diff_mean_intraNorm <- matched_paired_dt$mean_intraNorm-
                                                   matched_paired_dt$matched_mean_intraNorm
 
-plot(x=matched_paired_dt$diff_mean_intraNorm,
-     y=matched_paired_dt$meanLogFCbreak)
 
-signif_matched_paired_dt <- matched_paired_dt[matched_paired_dt$regionID %in% signif_tads,]
-stopifnot(nrow(signif_matched_paired_dt) > 0)
-plot(x=signif_matched_paired_dt$diff_mean_intraNorm,
-     y=signif_matched_paired_dt$meanLogFCbreak)
+myxvar <- "diff_mean_intraNorm"
+myyvar <- "meanLogFCbreak"
+
+for(toplot in toplots) {
+  
+  if(toplot == "all") {
+    toplot_dt <- matched_paired_dt
+  } else if(toplot == "signif"){
+    signif_matched_paired_dt <- matched_paired_dt[matched_paired_dt$regionID %in% signif_tads,]
+    stopifnot(nrow(signif_matched_paired_dt) > 0)
+    stopifnot(signif_matched_paired_dt$ref_region_ID %in% signif_tads)
+    toplot_dt <- signif_matched_paired_dt
+  } else {
+    stop("--error\n")
+  }
+  
+  
+  myx <- toplot_dt[,paste0(myxvar)]
+  myy <- toplot_dt[,paste0(myyvar)]
+  
+  plotTit <- paste0(toplot, " TADs: ", myyvar, " vs. ", myxvar)
+  
+  mySub <- paste0("# hicds = ", length(unique(toplot_dt$ref_hicds)), 
+                  "; # cmps = ", length(unique(file.path(toplot_dt$matching_hicds, 
+                                                         toplot_dt$ref_hicds))), 
+                  "; # TADs = ", nrow(toplot_dt))
+  
+  outFile  <- file.path(outFolder, paste0(toplot, "TADs_", myyvar, "_vs_", myxvar, "_matched_densplot.", plotType))
+  do.call(plotType, list(outFile, height=myWidth, width=myWidth))
+  densplot(x=myx,
+           y=myy,
+           xvar = paste0(myxvar),
+           yvar = paste0(myyvar),
+           plot.main=plotCex,
+           plot.main=plotCex,
+           plot.main=plotCex
+  )
+  mtext(side=3, text=mySub)
+  addCorr(x=myx,y=myy, legPos="topleft", bty="n", corMet="spearman")
+  foo <- dev.off()
+  cat(paste0("... written: ", outFile, "\n"))
+  
+
+}
+
+
+
+
+
+
 
 # 
 # 

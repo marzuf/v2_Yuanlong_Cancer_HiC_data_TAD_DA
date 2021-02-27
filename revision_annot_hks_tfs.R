@@ -18,8 +18,11 @@ plotType <- "png"
 myHeightGG <- 6
 myWidthGG <- 7
 
+source("revision_settings.R")
+
 outFolder <- file.path("REVISION_ANNOT_HKS_TFS")
 dir.create(outFolder, recursive=TRUE)
+
 
 # data from https://www.tau.ac.il/~elieis/HKG/HK_genes.txt (Eisenberg and Levanon 2013, updated)
 hk_dt <- read.delim("HK_genes.txt", header=FALSE, col.names=c("symbol", "id"), stringsAsFactors = FALSE, sep=" ")
@@ -33,6 +36,15 @@ tf_dt <- read.delim("TF_names_v_1.01.txt", header=FALSE, col.names="symbol")
 nrow(tf_dt)
 # 1639
 all_tfs <- as.character(tf_dt$symbol)
+
+# list of cancer genes
+cancer_genes_file <- "cancer_gene_census.csv"
+cg_dt <- read.delim(cancer_genes_file, header = TRUE, stringsAsFactors = FALSE, sep=",")
+nrow(cg_dt)
+# 723
+all_cgs_synos <- unlist(strsplit(cg_dt$Synonyms, split = ","))
+all_cgs <- as.character(cg_dt$Gene.Symbol)
+all_cgs <- unique(c(all_cgs, all_cgs_synos))
 
 purity_ds <- "aran"
 pm <- "CPE"
@@ -61,6 +73,10 @@ mean(all_hks %in% gff_dt$symbol)
 stopifnot(any(all_tfs %in% gff_dt$symbol))
 mean(all_tfs %in% gff_dt$symbol)
 # [1] 0.9853569
+stopifnot(any(all_cgs %in% gff_dt$symbol))
+mean(all_cgs %in% gff_dt$symbol)
+# [1] 0.1526671
+
 
 purity_file <- file.path(runFolder,"ALLTADS_AND_PURITY_FINAL", purity_ds, pm, transfExpr, "all_ds_corrPurity_dt.Rdata") # here _final INPUT
 purityData <- get(load(purity_file))
@@ -100,10 +116,12 @@ if(buildTable) {
     stopifnot(region_symbols %in% gff_dt$symbol)
     nTFs <- sum(region_symbols %in% all_tfs)
     nHKs <- sum(region_symbols %in% all_hks)
+    nCGs <- sum(region_symbols %in% all_cgs)
     nGenes <- length(region_symbols)
     stopifnot(nGenes >= minGenes)
     list(
       nGenes=nGenes,
+      nCGs = nCGs,
       nTFs=nTFs,
       nHKs=nHKs
     )
@@ -113,12 +131,15 @@ if(buildTable) {
   plot_dt$nGenes <- unlist(lapply(gene_annot, function(x) x[["nGenes"]]))
   plot_dt$nTFs <- unlist(lapply(gene_annot, function(x) x[["nTFs"]]))
   plot_dt$nHKs <- unlist(lapply(gene_annot, function(x) x[["nHKs"]]))
+  plot_dt$nCGs <- unlist(lapply(gene_annot, function(x) x[["nCGs"]]))
   
   stopifnot(plot_dt$nTFs <= plot_dt$nGenes)
   stopifnot(plot_dt$nHKs <= plot_dt$nGenes)
+  stopifnot(plot_dt$nCGs <= plot_dt$nGenes)
   
   plot_dt$ratioTFs <- plot_dt$nTFs/plot_dt$nGenes
   plot_dt$ratioHKs <- plot_dt$nHKs/plot_dt$nGenes
+  plot_dt$ratioCGs <- plot_dt$nCGs/plot_dt$nGenes
   
   # stopifnot(!is.na(plot_dt)) # not true because NA for purity corr missing
   outFile <-  file.path(outFolder, "plot_dt.Rdata")
@@ -130,7 +151,7 @@ if(buildTable) {
   plot_dt <- get(load(outFile))
   
 }
-all_vars <- c("TFs", "HKs")
+all_vars <- c("TFs", "HKs", "CGs")
 plot_var = "TFs"
 
 
@@ -141,21 +162,7 @@ signif_var=signif_vars[1]
 
 legTitle <- ""
 
-mytheme <-     theme(
-  # text = element_text(family=fontFamily),
-  panel.grid.major.y =  element_line(colour = "grey", size = 0.5, linetype=1),
-  panel.grid.minor.y =  element_line(colour = "grey", size = 0.5, linetype=1),
-  panel.background = element_rect(fill = "transparent"),
-  panel.grid.major.x =  element_blank(),
-  panel.grid.minor.x =  element_blank(),
-  axis.title.x = element_text(size=14, hjust=0.5, vjust=0.5),
-  axis.title.y = element_text(size=14, hjust=0.5, vjust=0.5),
-  axis.text.y = element_text(size=12, hjust=0.5, vjust=0.5),
-  axis.text.x = element_text(size=12, hjust=0.5, vjust=0.5),
-  plot.title = element_text(hjust=0.5, size = 16, face="bold"),
-  plot.subtitle = element_text(hjust=0.5, size = 14, face="italic"),
-  legend.title = element_text(face="bold")
-) 
+
 
 for(plot_var in all_vars) {
   

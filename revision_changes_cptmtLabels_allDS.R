@@ -34,7 +34,7 @@ mytheme <-     theme(
 outFolder <- "REVISION_CHANGES_CPTMTLABELS_ALLDS"
 dir.create(outFolder)
 
-buildTable <- F
+buildTable <- TRUE
 
 hierarchyFolder <- file.path(setDir, 
 "/mnt/ndata/Yuanlong/1.Projects/2.PROFILE/2.Results_review/2.Sup_tab_used_for_2nd_submission",
@@ -239,7 +239,7 @@ stopifnot(tad2cptmt_final_dt$endCptmtLabel == tad2cptmt_final_dt$startCptmtLabel
 ### UPDATE HERE THE TADS ARE THE COMPARTMENTS... ONLY MIDCPTMT MIGHT BE IN GAP
 # retaint the start (= end ) compartment
 tad2cptmt_final_dt$tadCptmtLabel <- tad2cptmt_final_dt$startCptmtLabel
-
+tad2cptmt_final_dt$tadCptmtNormRank <- tad2cptmt_final_dt$startCptmtNormRank
 
 # from A.1.1 to B.2.2
 tad2cptmt_final_dt$tad_eightCptmtLab <- substr(tad2cptmt_final_dt$tadCptmtLabel, start=1, stop=5)
@@ -256,6 +256,11 @@ tad2cptmt_dt <- tad2cptmt_final_dt[tad2cptmt_final_dt$tadCptmtLabel != "gap",]
 stopifnot(tad2cptmt_dt$tad_binaryCptmtLab %in% c("A", "B"))
 ### UPDATE HERE THE TADS ARE THE COMPARTMENTS... ONLY MIDCPTMT MIGHT BE IN GAP
 # START CPTMT = ENDCPTMT, AND NEITHER START NOR END ARE GAP
+
+stopifnot(nrow(tad2cptmt_dt) == nrow(tad2cptmt_final_dt))
+outFile <- file.path(outFolder, "tad2cptmt_dt.Rdata")
+save(tad2cptmt_dt, file=outFile, version=2)
+stop("-ok \n")
 
 
 ######################## PLOT ALL DATASETS

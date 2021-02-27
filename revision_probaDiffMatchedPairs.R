@@ -12,7 +12,7 @@ all_inter_intra2_dt <- get(load("REVISION_INTER_INTRA_PROBA2_CORRECTED/all_inter
 
 # Rscript revision_probaDiffMatchedPairs.R
 
-
+require(ggplot2)
 require(ggpubr)
 require(ggsci)
 require(doMC)
@@ -41,17 +41,8 @@ tadSignifThresh <- 0.01
 # diff. inter/intra vs. signif/not signif. norm tumor
 # diff. inter/intra vs. norm tumor FC
 
-all_pairs <- c(
-  file.path("LI_40kb","GSE105381_HepG2_40kb", "TCGAlihc_norm_lihc"),
-  file.path("LG1_40kb" ,"ENCSR444WCZ_A549_40kb", "TCGAluad_norm_luad"),
-  file.path("LG2_40kb" ,"ENCSR444WCZ_A549_40kb" ,"TCGAluad_norm_luad"),
-  file.path("LG1_40kb", "ENCSR489OCU_NCI-H460_40kb", "TCGAluad_norm_luad"), 
-  file.path("LG2_40kb", "ENCSR489OCU_NCI-H460_40kb", "TCGAluad_norm_luad"), 
-  file.path("GSE118514_RWPE1_40kb", "ENCSR346DCU_LNCaP_40kb", "TCGAprad_norm_prad"),
-  file.path("GSE118514_RWPE1_40kb", "GSE118514_22Rv1_40kb", "TCGAprad_norm_prad")
-)
-all_normal_ds <- as.character(sapply(all_pairs, function(x) dirname(dirname(x))))
-all_tumor_ds <-  as.character(sapply(all_pairs, function(x) basename(dirname(x))))
+source("revision_settings.R")
+
 
 all_col_vars <- c("mean_intraNorm")
 col_var = "mean_intraNorm"
