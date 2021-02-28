@@ -27,3 +27,16 @@ all_pairs <- c(
 all_normal_ds <- as.character(sapply(all_pairs, function(x) dirname(dirname(x))))
 all_tumor_ds <-  as.character(sapply(all_pairs, function(x) basename(dirname(x))))
 
+
+blank_theme <- theme_minimal()+
+  theme(
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    axis.text.y = element_blank(),
+    axis.text.x = element_blank(),
+    panel.border = element_blank(),
+    panel.grid=element_blank(),
+    axis.ticks = element_blank(),
+    plot.title=element_text(size=14, face="bold")
+  )
+

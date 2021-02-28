@@ -8,12 +8,18 @@ source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 
 outFolder <- "REVISION_FC_ACTIVDIFF_V2_CORRECTED"
 dir.create(outFolder, recursive = TRUE)
-
 matching_dt <- get(load("REVISION_PROBADIFFMATCHEDPAIRS_V2_CORRECTED/mean_intraNorm_matching_withRank_dt.Rdata"))
-
 all_inter_intra_dt <- get(load("REVISION_INTER_INTRA_PROBA_V2_CORRECTED_PAIREDHIC//all_inter_intra_dt.Rdata"))
 
-buildTable <- FALSE
+### THIS CANNOT BE RUN BECAUSE **** REVISION_INTER_INTRA_PROBA_V2_CORRECTED_PAIREDHIC ***
+# ONLY AVAILABLE FOR V2
+# outFolder <- "REVISION_FC_ACTIVDIFF_CORRECTED"
+# dir.create(outFolder, recursive = TRUE)
+# matching_dt <- get(load("REVISION_PROBADIFFMATCHEDPAIRS_CORRECTED/mean_intraNorm_matching_withRank_dt.Rdata"))
+# all_inter_intra_dt <- get(load("REVISION_INTER_INTRA_PROBA_CORRECTED_PAIREDHIC//all_inter_intra_dt.Rdata"))
+
+
+buildTable <- TRUE
 
 plotType <- "png"
 myHeight <- myWidth <- 400
@@ -193,9 +199,9 @@ for(i in seq_along(plot_list)) {
     myx <- toplot_dt[,paste0(myxvar)]
     myy <- toplot_dt[,paste0(myyvar)]
     
-    plotTit <- paste0(toplot, " TADs: ", myyvar, " vs. ", myxvar)
+    plotTit <- paste0( myyvar, " vs. ", myxvar)
     
-    mySub <- paste0("# hicds = ", length(unique(toplot_dt$ref_hicds)), 
+    mySub <- paste0(toplot, " TADs - ", "# hicds = ", length(unique(toplot_dt$ref_hicds)), 
                     "; # cmps = ", length(unique(file.path(toplot_dt$matching_hicds, 
                                                            toplot_dt$ref_hicds))), 
                     "; # TADs = ", nrow(toplot_dt))
@@ -204,8 +210,9 @@ for(i in seq_along(plot_list)) {
     do.call(plotType, list(outFile, height=myWidth, width=myWidth))
     densplot(x=myx,
              y=myy,
-             xvar = paste0(myxvar),
-             yvar = paste0(myyvar),
+              xlab = paste0(myxvar),
+             ylab = paste0(myyvar),
+             main  = plotTit,
              plot.main=plotCex,
              plot.main=plotCex,
              plot.main=plotCex
@@ -267,19 +274,22 @@ for(toplot in toplots) {
   myx <- toplot_dt[,paste0(myxvar)]
   myy <- toplot_dt[,paste0(myyvar)]
   
-  plotTit <- paste0(toplot, " TADs: ", myyvar, " vs. ", myxvar)
+  plotTit <- paste0( myyvar, " vs. ", myxvar)
   
-  mySub <- paste0("# hicds = ", length(unique(toplot_dt$ref_hicds)), 
-                  "; # cmps = ", length(unique(file.path(toplot_dt$matching_hicds, 
-                                                         toplot_dt$ref_hicds))), 
+  mySub <- paste0(toplot, " TADs - ",
+                  # "# hicds = ", length(unique(toplot_dt$ref_hicds)), 
+                  # "; # cmps = ", length(unique(file.path(toplot_dt$matching_hicds, 
+                  #                                        toplot_dt$ref_hicds))), 
+                  "# hicds = ", length(unique(file.path(toplot_dt$hicds, toplot_dt$exprds))), 
                   "; # TADs = ", nrow(toplot_dt))
   
   outFile  <- file.path(outFolder, paste0(toplot, "TADs_", myyvar, "_vs_", myxvar, "_matched_densplot.", plotType))
   do.call(plotType, list(outFile, height=myWidth, width=myWidth))
   densplot(x=myx,
            y=myy,
-           xvar = paste0(myxvar),
-           yvar = paste0(myyvar),
+           xlab = paste0(myxvar),
+           ylab = paste0(myyvar),
+           main=plotTit,
            plot.main=plotCex,
            plot.main=plotCex,
            plot.main=plotCex

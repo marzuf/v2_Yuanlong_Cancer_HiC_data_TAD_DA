@@ -1,4 +1,4 @@
-col_var <- "mean_intra"
+col_var <- "mean_intraNorm"
 
 require(ggsci)
 require(ggpubr)
@@ -7,13 +7,15 @@ source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 
 # Rscript revision_expressionLevel_activDiff.R
 
-# all_inter_intra1_dt <- get(load("REVISION_INTER_INTRA_PROBA/all_inter_intra_dt.Rdata"))
-# all_inter_intra2_dt <- get(load("REVISION_INTER_INTRA_PROBA2/all_inter_intra_dt.Rdata"))
-all_inter_intra1_dt <- get(load("REVISION_INTER_INTRA_PROBA_V2_CORRECTED/all_inter_intra_dt.Rdata"))
-all_inter_intra2_dt <- get(load("REVISION_INTER_INTRA_PROBA2_V2_CORRECTED/all_inter_intra_dt.Rdata"))
-
-outFolder <- "REVISION_EXPRESSIONLEVEL_ACTIVDIFF_V2_CORRECTED"
+all_inter_intra1_dt <- get(load("REVISION_INTER_INTRA_PROBA_CORRECTED/all_inter_intra_dt.Rdata"))
+all_inter_intra2_dt <- get(load("REVISION_INTER_INTRA_PROBA2_CORRECTED/all_inter_intra_dt.Rdata"))
+outFolder <- "REVISION_EXPRESSIONLEVEL_ACTIVDIFF_CORRECTED"
 dir.create(outFolder, recursive = TRUE)
+
+# all_inter_intra1_dt <- get(load("REVISION_INTER_INTRA_PROBA_V2_CORRECTED/all_inter_intra_dt.Rdata"))
+# all_inter_intra2_dt <- get(load("REVISION_INTER_INTRA_PROBA2_V2_CORRECTED/all_inter_intra_dt.Rdata"))
+# outFolder <- "REVISION_EXPRESSIONLEVEL_ACTIVDIFF_V2_CORRECTED"
+# dir.create(outFolder, recursive = TRUE)
 
 plotType <- "png"
 myHeight <- myWidth <- 400

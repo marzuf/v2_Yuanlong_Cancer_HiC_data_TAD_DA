@@ -44,6 +44,10 @@ tadSignifThresh <- 0.01
 
 ratioAnnotThresh <- 0.75
 
+all_inter_intra1_dt <- get(load("REVISION_INTER_INTRA_PROBA_CORRECTED/all_inter_intra_dt.Rdata"))
+all_inter_intra2_dt <- get(load("REVISION_INTER_INTRA_PROBA2_CORRECTED/all_inter_intra_dt.Rdata"))
+
+
 ###################
 ### PREPARE mrna + SIGNIF DATA
 ###################
@@ -265,8 +269,9 @@ cat(paste0("... written: ", outFile, "\n"))
 ###################
 ### PREPARE mrna + proba diff
 ###################
-all_inter_intra1_dt <- get(load("REVISION_INTER_INTRA_PROBA/all_inter_intra_dt.Rdata"))
-all_inter_intra2_dt <- get(load("REVISION_INTER_INTRA_PROBA2/all_inter_intra_dt.Rdata"))
+
+plot_var <- "mean_intraNorm"
+
 stopifnot(! all_inter_intra1_dt$hicds %in% all_inter_intra2_dt$hicds)
 all_inter_intra_dt <- rbind(all_inter_intra1_dt, all_inter_intra2_dt)
 stopifnot(final_table_DT$hicds %in% all_inter_intra_dt$hicds)
@@ -274,52 +279,52 @@ stopifnot(final_table_DT$hicds %in% all_inter_intra_dt$hicds)
 all_inter_intra_dt$region_hicdsID <- file.path(all_inter_intra_dt$hicds, all_inter_intra_dt$region)
 stopifnot(!duplicated(all_inter_intra_dt$region_hicdsID))
 
-meanintra_values <- setNames(all_inter_intra_dt[,paste0("mean_intra")], all_inter_intra_dt$region_hicdsID)
+plotvar_values <- setNames(all_inter_intra_dt[,paste0(plot_var)], all_inter_intra_dt$region_hicdsID)
 
-stopifnot(matching_withRank_dt$ref_region_hicdsID %in% names(meanintra_values))
-stopifnot(matching_withRank_dt$matching_region_hicdsID %in% names(meanintra_values))
+stopifnot(matching_withRank_dt$ref_region_hicdsID %in% names(plotvar_values))
+stopifnot(matching_withRank_dt$matching_region_hicdsID %in% names(plotvar_values))
 
-matching_withRank_dt$meanIntra_ref <- meanintra_values[paste0(matching_withRank_dt$ref_region_hicdsID)]
-matching_withRank_dt$meanIntra_matching <- meanintra_values[paste0(matching_withRank_dt$matching_region_hicdsID)]
+matching_withRank_dt[paste0(plot_var, "_ref")] <- plotvar_values[paste0(matching_withRank_dt$ref_region_hicdsID)]
+matching_withRank_dt[paste0(plot_var, "_matching")] <- plotvar_values[paste0(matching_withRank_dt$matching_region_hicdsID)]
 
-matching_withRank_dt <- matching_withRank_dt[!is.na(matching_withRank_dt$meanIntra_ref) &
-                                               !is.na(matching_withRank_dt$meanIntra_matching),]
+matching_withRank_dt <- matching_withRank_dt[!is.na(matching_withRank_dt[paste0(plot_var, "_ref")]) &
+                                               !is.na(matching_withRank_dt[paste0(plot_var, "_matching")]),]
 
 
-matching_withRank_dt[,paste0("norm_meanIntra")] <- ifelse(matching_withRank_dt$ref_hicds %in% all_normal_ds, 
-                                                          matching_withRank_dt[,paste0("meanIntra_ref")],
+matching_withRank_dt[,paste0("norm_", plot_var)] <- ifelse(matching_withRank_dt$ref_hicds %in% all_normal_ds, 
+                                                          matching_withRank_dt[,paste0(plot_var, "_ref")],
                                                           ifelse(matching_withRank_dt$matching_hicds %in% all_normal_ds, 
-                                                                 matching_withRank_dt[,paste0("meanIntra_matching")],NA))
-stopifnot(!is.na(matching_withRank_dt[,paste0("norm_meanIntra")]))
+                                                                 matching_withRank_dt[,paste0(plot_var,"_matching")],NA))
+stopifnot(!is.na(matching_withRank_dt[,paste0("norm_", plot_var)]))
 
-matching_withRank_dt[,paste0("tumor_meanIntra")] <- ifelse(matching_withRank_dt$ref_hicds %in% all_tumor_ds, 
-                                                           matching_withRank_dt[,paste0("meanIntra_ref")],
+matching_withRank_dt[,paste0("tumor_", plot_var)] <- ifelse(matching_withRank_dt$ref_hicds %in% all_tumor_ds, 
+                                                           matching_withRank_dt[,paste0(plot_var,"_ref")],
                                                            ifelse(matching_withRank_dt$matching_hicds %in% all_tumor_ds, 
-                                                                  matching_withRank_dt[,paste0("meanIntra_matching")],NA))
-stopifnot(!is.na(matching_withRank_dt[,paste0("tumor_meanIntra")]))
+                                                                  matching_withRank_dt[,paste0(plot_var,"_matching")],NA))
+stopifnot(!is.na(matching_withRank_dt[,paste0("tumor_", plot_var)]))
 
-matching_withRank_dt$norm_minus_tumor_cellline_meanIntra <- matching_withRank_dt[,paste0("norm_meanIntra")] -  
-  matching_withRank_dt[,paste0("tumor_meanIntra")] 
+matching_withRank_dt[,paste0("norm_minus_tumor_cellline_", plot_var)] <- matching_withRank_dt[,paste0("norm_", plot_var)] -  
+  matching_withRank_dt[,paste0("tumor_", plot_var)] 
 
-matching_withRank_dt$norm_over_tumor_cellline_meanIntra <- matching_withRank_dt[,paste0("norm_meanIntra")] /  
-  matching_withRank_dt[,paste0("tumor_meanIntra")] 
+matching_withRank_dt[paste0("norm_over_tumor_cellline_", plot_var)] <- matching_withRank_dt[,paste0("norm_", plot_var)] /  
+  matching_withRank_dt[,paste0("tumor_", plot_var)] 
 
-myx <- log2(matching_withRank_dt$norm_over_tumor_cellline_meanIntra)
-myy <- log2(matching_withRank_dt$norm_over_tumor_cellline_mRNA )
+myx <- log2(matching_withRank_dt[,paste0("norm_over_tumor_cellline_", plot_var)])
+myy <- log2(matching_withRank_dt[,paste0("norm_over_tumor_cellline_mRNA")] )
 
 toKeep <- !is.na(myx) & !is.na(myy)
 myx <- myx[toKeep]
 myy <- myy[toKeep]
 
-plotTit <- "meanIntra ratio vs. mRNA FPKM ratio"
+plotTit <- paste0(plot_var, " ratio vs. mRNA FPKM ratio")
 
 
-outFile  <- file.path(outFolder, paste0("normOverTumorMeanIntra", "_vs_cellLinesFPKMratio_densplot.", plotType))
+outFile  <- file.path(outFolder, paste0("normOverTumor", plot_var,  "_vs_cellLinesFPKMratio_densplot.", plotType))
 do.call(plotType, list(outFile, height=myWidth, width=myWidth))
 densplot(
   x= myx,
   y = myy,
-  xlab=paste0("norm/tumor meanIntra [log2]"),
+  xlab=paste0("norm/tumor ", plot_var, " [log2]"),
   ylab=paste0("norm/tumor mRNA FPKM [log2]"),
   cex.main=plotCex,
   cex.axis=plotCex,

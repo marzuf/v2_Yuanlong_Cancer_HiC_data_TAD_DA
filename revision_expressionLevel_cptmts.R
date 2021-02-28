@@ -1,8 +1,32 @@
+require(ggsci)
+require(ggpubr)
+require(ggplot2)
+
+source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
+source("revision_settings.R")
+
+plotType <- "png"
+myWidthGG <- 7
+myHeightGG <- 5
+myHeight <- 400
+myWidth <- 400
+
+plotCex <- 1.2
+
+tadSignifThresh <- 0.01
+
 # Rscript revision_expressionLevel_cptmts.R
+
+outFolder <- file.path("REVISION_EXPRESSIONLEVEL_CPTMTS")
+dir.create(outFolder, recursive=TRUE)
+
 
 inFolder <- "REVISION_CHANGES_CPTMTLABELS_ALLDS"
 outFile <- file.path(inFolder, "tad2cptmt_dt.Rdata")
 tad2cptmt_dt <- get(load(outFile))
+
+stopifnot(tad2cptmt_dt$tad_binaryCptmtLab == tad2cptmt_dt$start_binaryCptmtLab)
+stopifnot(tad2cptmt_dt$tad_eightCptmtLab == tad2cptmt_dt$start_eightCptmtLab)
 
 final_table_file <- file.path("CREATE_FINAL_TABLE/all_result_dt.Rdata")
 stopifnot(file.exists(final_table_file))
@@ -18,18 +42,24 @@ corr_values <- setNames(final_table_DT$meanCorr, final_table_DT$region_ID)
 stopifnot(setequal(names(logFC_values), tad2cptmt_dt$region_ID))
 stopifnot(setequal(names(corr_values), tad2cptmt_dt$region_ID))
 
-tad2cptmt_dt[,paste0("corr_values")] <- corr_values[tad2cptmt_dt$region_ID]
-tad2cptmt_dt[,paste0("logFC_values")] <- logFC_values[tad2cptmt_dt$region_ID]
+tad2cptmt_dt[,paste0("meanCorr")] <- corr_values[tad2cptmt_dt$region_ID]
+tad2cptmt_dt[,paste0("meanLogFC")] <- logFC_values[tad2cptmt_dt$region_ID]
 
-ggboxplot(tad2cptmt_dt, 
-          x="tad_binaryCptmtLab",
-          y=paste0("corr_values")) + 
-  mytheme
 
-ggboxplot(tad2cptmt_dt, 
-          x="tad_binaryCptmtLab",
-          y=paste0("logFC_values")) + 
-  mytheme
+legTitle <- ""
+
+tad2cptmt_dt$tad_binaryCptmtLab <- factor(tad2cptmt_dt$tad_binaryCptmtLab,
+                                          levels=as.character(sort(unique(as.character(
+                                            tad2cptmt_dt$tad_binaryCptmtLab)))))
+stopifnot(!is.na(tad2cptmt_dt$tad_binaryCptmtLab))
+
+
+tad2cptmt_dt$tad_eightCptmtLab <- factor(tad2cptmt_dt$tad_eightCptmtLab,
+                                          levels=as.character(sort(unique(as.character(
+                                            tad2cptmt_dt$tad_eightCptmtLab)))))
+stopifnot(!is.na(tad2cptmt_dt$tad_eightCptmtLab))
+
+
 
 ###################
 ### PREPARE THE GENE FC DATA
@@ -45,50 +75,47 @@ tad2cptmt_dt[,paste0(expr_var)] <- exprVar_values[tad2cptmt_dt$region_ID]
 plotTit <- ""
 mysub <- ""
 
-# set correct levels
-tad2cptmt_dt$tad_eightCptmtLab <- factor(tad2cptmt_dt$tad_eightCptmtLab,
-                                         levels=sort(as.character(unique(tad2cptmt_dt$tad_eightCptmtLab))))
-stopifnot(!is.na(tad2cptmt_dt$tad_eightCptmtLab))
-tad2cptmt_dt$tad_binaryCptmtLab <- factor(tad2cptmt_dt$tad_binaryCptmtLab,
-                                         levels=sort(as.character(unique(tad2cptmt_dt$tad_binaryCptmtLab))))
-stopifnot(!is.na(tad2cptmt_dt$tad_binaryCptmtLab))
 
 all_cptmt_vars <- c("tad_binaryCptmtLab","tad_eightCptmtLab")
 
-all_plot_vars <- c(expr_var, "corr_values", "logFC_values")
+all_plot_vars <- c(expr_var, "meanCorr", "meanLogFC")
 
-cptmt_var="tad_eightCptmtLab"
-plot_var="corr_values"
-plot_var=expr_var
+
 for(cptmt_var in all_cptmt_vars){
   
   for(plot_var in all_plot_vars) {
     
+    plotTit <- paste0(plot_var, " by ", cptmt_var)
     
-    ggboxplot(tad2cptmt_dt, 
-              x=paste0(cptmt_var),
-              y=paste0(plot_var)) + 
-      mytheme
+    mySub <- paste0("# DS = ", length(unique(file.path(tad2cptmt_dt$hicds,tad2cptmt_dt$exprds))),
+                                 "; # TADs = ", nrow(tad2cptmt_dt))
     
+    pbox <- ggboxplot(tad2cptmt_dt, 
+                      x=paste0(cptmt_var),
+                      y=paste0(plot_var),
+                      add="jitter") + 
+      mytheme +
+      ggtitle(plotTit, subtitle = mySub)+
+      # scale_color_manual(values=my_cols)+
+      # scale_fill_manual(values=my_cols)  +
+      labs(color=paste0(legTitle),fill=paste0(legTitle), x="", y=paste0("TAD ", plot_var))+
+      # guides(color=FALSE)+
+      scale_y_continuous(breaks = scales::pretty_breaks(n = 10))
     
-    outFile <- file.path(outFolder, paste0("tad_genes_annot_", plot_var, "_signif_notsignif_density.", plotType))
-    ggsave(p3, file=outFile, height=myHeightGG, width=myWidthGG)
+    outFile <- file.path(outFolder,paste0(plot_var, "_byCptmt_", cptmt_var, "_boxplot.", plotType))
+    ggsave(pbox, filename = outFile, height=myHeightGG, width=myWidthGG)
     cat(paste0("... written: ", outFile, "\n"))
-    
-    
     
   }
 }
 
-
-
+############## DENSPLOT WITH THE CONTINUOUS RANKS
 
 all_cptmt_vars <- c("tadCptmtNormRank")
-
-all_plot_vars <- c(expr_var, "corr_values", "logFC_values")
+all_plot_vars <- c(expr_var, "meanCorr", "meanLogFC")
 
 cptmt_var="tadCptmtNormRank"
-plot_var="corr_values"
+plot_var="meanCorr"
 
 for(cptmt_var in all_cptmt_vars){
   
@@ -97,16 +124,30 @@ for(cptmt_var in all_cptmt_vars){
     
     myx <- tad2cptmt_dt[,paste0(cptmt_var)]
     myy <- tad2cptmt_dt[,paste0(plot_var)]
+
+        
+    plotTit <- paste0( plot_var, " by ", cptmt_var)
     
-    densplot(
-              x=myx,
-              y=myy)
-                
+    mySub <- paste0("# DS = ", length(unique(file.path(tad2cptmt_dt$hicds,tad2cptmt_dt$exprds))),
+                    "; # TADs = ", nrow(tad2cptmt_dt))
     
+    outFile <- file.path(outFolder,paste0(plot_var, "_byCptmt_", cptmt_var, "_densplot.", plotType))
+    do.call(plotType, list(outFile, height=myWidth, width=myWidth))
+    densplot(x=myx,
+             y=myy,
+             xlab = paste0(cptmt_var),
+             ylab = paste0(plot_var),
+             main  = plotTit,
+             plot.main=plotCex,
+             plot.main=plotCex,
+             plot.main=plotCex
+    )
+    mtext(side=3, text=mySub)
+    addCorr(x=myx,y=myy, legPos="topleft", bty="n", corMet="spearman")
+    foo <- dev.off()
+    cat(paste0("... written: ", outFile, "\n"))
     
 
-    
-    
   }
 }
 

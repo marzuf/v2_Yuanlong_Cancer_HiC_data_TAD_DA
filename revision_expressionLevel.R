@@ -7,17 +7,6 @@ require(ggrepel)
 require(ggplot2)
 require(patchwork)
 require(stringr)
-blank_theme <- theme_minimal()+
-  theme(
-    axis.title.x = element_blank(),
-    axis.title.y = element_blank(),
-    axis.text.y = element_blank(),
-    axis.text.x = element_blank(),
-    panel.border = element_blank(),
-    panel.grid=element_blank(),
-    axis.ticks = element_blank(),
-    plot.title=element_text(size=14, face="bold")
-  )
 
 
 # Rscript revision_expressionLevel.R
@@ -34,6 +23,7 @@ myWidth <- 500
 plotCex <- 1.2
 
 source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
+source("revision_settings.R")
 
 outFolder <- "REVISION_EXPRESSION_LEVEL"
 dir.create(outFolder)

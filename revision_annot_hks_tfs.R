@@ -8,10 +8,11 @@ registerDoMC(40)
 require(ggplot2)
 require(ggpubr)
 require(ggsci)
+require(ggrepel)
 
 minGenes <- 3
 
-buildTable <- TRUE
+buildTable <- F
 
 
 plotType <- "png"
@@ -165,6 +166,39 @@ legTitle <- ""
 
 
 for(plot_var in all_vars) {
+  
+  #### pie chart distribution in signif. not signfi.
+  
+  agg_dt <- aggregate(as.formula(paste0("n", plot_var, "~signif_lab")), data =plot_dt, FUN=sum)
+  colnames(agg_dt)[colnames(agg_dt) == paste0("n", plot_var)] <- "nTot"
+  agg_dt$ratioTot <- agg_dt$nTot/sum(agg_dt$nTot)
+  agg_dt$ratioTot_rd <- paste0(round(agg_dt$ratioTot*100, 2), " %")
+  
+  nSignif <- sum(plot_dt$signif_lab == "signif.")
+  nNotSignif <- sum(plot_dt$signif_lab == "not signif.")
+  
+  mysub <- paste0("# TADs=", nrow(plot_dt), 
+                  " (", round(nSignif/nrow(plot_dt)*100, 2), "% signif. (", nSignif, "); ",
+                   round(nNotSignif/nrow(plot_dt)*100, 2), "% not signif. (", nNotSignif, ")", ")")
+  
+  myTit <- paste(plot_var, " distribution in signif./not signif.")
+                               
+  p_dist <- ggplot(agg_dt, aes_string(x="1", y="ratioTot", fill="signif_lab")) +
+    geom_col() +
+    geom_text_repel(aes(label = ratioTot_rd), position = position_stack(vjust = 0.5))+
+    coord_polar(theta = "y") + 
+    ggtitle(myTit, subtitle=mysub) +
+    theme_void() +    
+    labs(fill="") +
+    blank_theme
+  
+  outFile <- file.path(outFolder, paste0( plot_var, "_signif_notsignif_dist_pie.", plotType))
+  ggsave(p_dist, file=outFile, height=myHeightGG, width=myWidthGG)
+  cat(paste0("... written: ", outFile, "\n"))
+  
+  next
+  
+  ##### density of the ratio
   
   plotTit <- paste0("TAD genes annotation: ", plot_var)
   
