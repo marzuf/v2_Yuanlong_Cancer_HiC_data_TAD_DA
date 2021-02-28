@@ -12,9 +12,13 @@ registerDoMC(40)
 
 source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 
-outFolder <- file.path("REVISION_PROBADIFF_CHECK_SAMEHIC_V2")
+#outFolder <- file.path("REVISION_PROBADIFF_CHECK_SAMEHIC_V2")
+#dir.create(outFolder, recursive = TRUE)
+#all_inter_intra_dt <- get(load("REVISION_INTER_INTRA_PROBA_V2_CORRECTED_SAMEHIC///all_inter_intra_dt.Rdata"))
+
+outFolder <- file.path("REVISION_PROBADIFF_CHECK_SAMEHIC")
 dir.create(outFolder, recursive = TRUE)
-all_inter_intra_dt <- get(load("REVISION_INTER_INTRA_PROBA_V2_CORRECTED_SAMEHIC///all_inter_intra_dt.Rdata"))
+all_inter_intra_dt <- get(load("REVISION_INTER_INTRA_PROBA_CORRECTED_SAMEHIC///all_inter_intra_dt.Rdata"))
 
 plotType <- "png"
 myWidth <- 500

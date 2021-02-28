@@ -1,7 +1,7 @@
 require(ggsci)
 require(ggpubr)
 require(ggplot2)
-
+require(ggrepel)
 source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 source("revision_settings.R")
 
@@ -151,6 +151,65 @@ for(cptmt_var in all_cptmt_vars){
   }
 }
 
+
+##### pie chart signif by cptmts
+
+stopifnot(!duplicated(tad2cptmt_dt$region_ID))
+
+signif_dt <- tad2cptmt_dt[tad2cptmt_dt$adjPvalComb <= tadSignifThresh,]
+
+all_cptmt_vars <- c("tad_binaryCptmtLab","tad_eightCptmtLab")
+
+cptmt_var="tad_binaryCptmtLab"
+
+
+for(cptmt_var in all_cptmt_vars){
+  
+  tmp_dt <- aggregate(as.formula(paste0("region_ID ~ ", cptmt_var)), data=tad2cptmt_dt, FUN=length)
+  colnames(tmp_dt)[colnames(tmp_dt) == "region_ID"] <- "nTADs"
+  tmp_dt$ratioTADs <- tmp_dt$nTADs/nrow(tad2cptmt_dt)
+  tmp_dt$ratioTADs_lab <- paste0(round(tmp_dt$ratioTADs*100, 2), "%")
+  
+  myTit <- paste0("Dist. of all TADs across ", cptmt_var)
+  mysub <- paste0("# DS = ", length(unique(file.path(tad2cptmt_dt$hicds, tad2cptmt_dt$exprds))) , "; # TADs = ", nrow(tad2cptmt_dt))
+  
+  p_dist <- ggplot(tmp_dt, aes_string(x="1", y="ratioTADs", fill=cptmt_var)) +
+    geom_col() +
+    geom_text_repel(aes(label = ratioTADs_lab), position = position_stack(vjust = 0.5))+
+    coord_polar(theta = "y") + 
+    ggtitle(myTit, subtitle=mysub) +
+    theme_void() +    
+    labs(fill="") +
+    blank_theme
+  
+  outFile <- file.path(outFolder, paste0( "distAllTADs_by_", cptmt_var, "_pie.", plotType))
+  ggsave(p_dist, file=outFile, height=myHeightGG, width=myWidthGG)
+  cat(paste0("... written: ", outFile, "\n"))
+  
+  
+  agg_dt <- aggregate(as.formula(paste0("region_ID ~ ", cptmt_var)), data=signif_dt, FUN=length)
+  colnames(agg_dt)[colnames(agg_dt) == "region_ID"] <- "nTADs"
+  agg_dt$ratioTADs <- agg_dt$nTADs/nrow(signif_dt)
+  
+  agg_dt$ratioTADs_lab <- paste0(round(agg_dt$ratioTADs*100, 2), "%")
+  
+  myTit <- paste0("Dist. signif. TADs across ", cptmt_var)
+  mysub <- paste0("# DS = ", length(unique(file.path(signif_dt$hicds, signif_dt$exprds))) , "; # TADs = ", nrow(signif_dt))
+  
+  p_dist <- ggplot(agg_dt, aes_string(x="1", y="ratioTADs", fill=cptmt_var)) +
+    geom_col() +
+    geom_text_repel(aes(label = ratioTADs_lab), position = position_stack(vjust = 0.5))+
+    coord_polar(theta = "y") + 
+    ggtitle(myTit, subtitle=mysub) +
+    theme_void() +    
+    labs(fill="") +
+    blank_theme
+  
+  outFile <- file.path(outFolder, paste0( "distSignifTADs_by_", cptmt_var, "_pie.", plotType))
+  ggsave(p_dist, file=outFile, height=myHeightGG, width=myWidthGG)
+  cat(paste0("... written: ", outFile, "\n"))
+  
+}
 
 
 
