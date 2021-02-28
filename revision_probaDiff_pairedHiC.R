@@ -1,7 +1,5 @@
 
 
-outFolder <- file.path("REVISION_PROBADIFF_PAIREDHIC")
-dir.create(outFolder, recursive = TRUE)
 
 # Rscript revision_probaDiff_pairedHiC.R
 
@@ -28,7 +26,8 @@ plot_qt2 <- 0.95
 
 source("revision_settings.R")
 
-
+outFolder <- file.path("REVISION_PROBADIFF_PAIREDHIC_V2")
+dir.create(outFolder, recursive = TRUE)
 all_inter_intra_dt <- get(load("REVISION_INTER_INTRA_PROBA_V2_CORRECTED_PAIREDHIC//all_inter_intra_dt.Rdata"))
 
 all_inter_intra_dt$mean_inter_prevnext <- 0.5*(all_inter_intra_dt$mean_inter_prev + all_inter_intra_dt$mean_inter_next)

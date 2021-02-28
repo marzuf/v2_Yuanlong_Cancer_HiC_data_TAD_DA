@@ -5,8 +5,8 @@ SSHFS=F
 
 # Rscript revision_rankDiff_activDiff.R
 
-buildPlotList <- T
-buildTable <- T
+buildPlotList <- F
+buildTable <- F
 
 all_pairs <- c(
   file.path("LI_40kb","GSE105381_HepG2_40kb", "TCGAlihc_norm_lihc"),
@@ -34,6 +34,9 @@ require(ggpubr)
 require(ggrepel)
 require(ggsci)
 require(gridExtra)
+
+require(e1071)
+
 
 hicds_norm <- "LI_40kb"
 hicds_tumor <- "GSE105381_HepG2_40kb"
@@ -498,6 +501,85 @@ ggsave(p3, file=outFile, height=myHeightGG, width=myWidthGG)
 cat(paste0("... written: ", outFile, "\n"))
 
 matching_withRank_dt$abs_rankDiff <- abs(matching_withRank_dt$rankDiff)
+
+plot_dt <- matching_withRank_dt
+outFile <- file.path(outFolder, "plot_dt.Rdata")
+save(plot_dt, file=outFile)
+cat(paste0("... written: ", outFile, "\n"))
+plot_dt=get(load("REVISION_RANKDIFF_ACTIVDIFF/plot_dt.Rdata"))
+
+signif_kurto <- kurtosis(plot_dt$rankDiff[plot_dt$ref_tadSignif == "signif."])
+signif_skew <- skewness(plot_dt$abs_rankDiff[plot_dt$ref_tadSignif == "signif."])
+nSignif <- sum(plot_dt$ref_tadSignif == "signif.")
+stopifnot(length(signif_kurto) == 1)
+stopifnot(length(signif_skew) == 1)
+
+# sharped = high kurto value (positive kurtosis = leptokurtic)
+# platykurtic = negative kurtosis, lower values, flattened curve
+
+nonsignif_kurto <- kurtosis(plot_dt$rankDiff[plot_dt$ref_tadSignif == "not signif."])
+stopifnot(length(nonsignif_kurto) == 1)
+nonsignif_skew <- skewness(plot_dt$abs_rankDiff[plot_dt$ref_tadSignif == "not signif."])
+stopifnot(length(nonsignif_skew) == 1)
+
+nRandom_kurts <- 100000
+permut_data <- foreach(i= 1:nRandom_kurts) %dopar% {
+  c(rd_kurtosis=kurtosis(sample(plot_dt$rankDiff, size=nSignif)),
+    rd_skewness=skewness(sample(plot_dt$abs_rankDiff, size=nSignif)))
+}
+rd_kurto <- unlist(lapply(permut_data, function(x)x[["rd_kurtosis"]]))
+stopifnot(length(rd_kurto) == nRandom_kurts)
+
+rd_skew <- unlist(lapply(permut_data, function(x)x[["rd_skewness"]]))
+stopifnot(length(rd_skew) == nRandom_kurts)
+
+kurto_pval_signifTADs <- (sum(signif_kurto > rd_kurto) + 1)/(nRandom_kurts + 1)
+kurto_pval_nonsignifTADs <- (sum(nonsignif_kurto > rd_kurto) + 1)/(nRandom_kurts + 1)
+
+skew_pval_signifTADs <- (sum(signif_skew > rd_skew) + 1)/(nRandom_kurts + 1)
+skew_pval_nonsignifTADs <- (sum(nonsignif_skew > rd_skew) + 1)/(nRandom_kurts + 1)
+
+mysub <- paste0("randomly sampled TADs (as many as signif=", nSignif, "; # permut=", nRandom_kurts, ")")
+
+outFile <- file.path(outFolder, paste0("kurtosis_obs_permut_density.", "png"))
+do.call("png", list(outFile, height=400, width=400*1.5))
+plot(density(rd_kurto), col="black",
+     xlab="kurtosis",
+     main = "Kurtosis of TAD rank diff. distribution")
+mtext(side=3, mysub)
+abline(v = signif_kurto, col="red")
+abline(v = nonsignif_kurto, col="blue")
+legend("topright", lty=1, col=c("black", "red", "blue"), bty="n",
+       legend=c(paste0("random (n=", nRandom_kurts, ")"),
+                paste0("signif. TADs\np-val = " , round(kurto_pval_signifTADs, 4)), 
+                paste0("non signif. TADs\np-val = " , round(kurto_pval_nonsignifTADs, 4))))
+
+foo <- dev.off()
+cat(paste0("... written: ", outFile, "\n"))
+
+
+
+outFile <- file.path(outFolder, paste0("skewness_obs_permut_density.", "png"))
+do.call("png", list(outFile, height=400, width=400*1.5))
+plot(density(rd_skew), col="black",
+     xlab="skewness",
+     main = "Skewness of abs. TAD rank diff. distribution")
+mtext(side=3, mysub)
+abline(v = signif_skew, col="red")
+abline(v = nonsignif_skew, col="blue")
+legend("topright", lty=1, col=c("black", "red", "blue"), bty="n",
+       legend=c(paste0("random (n=", nRandom_kurts, ")"),
+                paste0("signif. TADs\np-val = " , round(skew_pval_signifTADs, 4)), 
+                paste0("non signif. TADs\np-val = " , round(skew_pval_nonsignifTADs, 4))))
+
+foo <- dev.off()
+cat(paste0("... written: ", outFile, "\n"))
+
+stop("-ok\n")
+
+
+
+
 plotTit <- paste0("TAD abs. rank diff. and signif.")
 
 p3 <- ggdensity(matching_withRank_dt,
@@ -594,8 +676,75 @@ cat(paste0("... written: ", outFile, "\n"))
 # cat(paste0("... written: ", outFile, "\n"))
 
 
+# matching_data <- get(load("REVISION_RANKDIFF_ACTIVDIFF/matching_data.Rdata"))
+# cptmt_data <- get(load("REVISION_CHANGES_CPTMTLABELS_ALLDS/tad2cptmt_dt.Rdata"))
+# 
+# ds1_matching_dt <- do.call(rbind, lapply(matching_data, function(x)x[["norm_matching_pval_tadRank_dt"]]))
+# unique(ds1_matching_dt$ref_hicds)
+# # [1] "LI_40kb"              "LG1_40kb"             "LG2_40kb"             "GSE118514_RWPE1_40kb"
+# ds2_matching_dt <- do.call(rbind, lapply(matching_data, function(x)x[["tumor_matching_pval_tadRank_dt"]]))
+# unique(ds2_matching_dt$ref_hicds)
+# # [1] "GSE105381_HepG2_40kb"      "ENCSR444WCZ_A549_40kb"     "ENCSR489OCU_NCI-H460_40kb"
+# # [4] "ENCSR346DCU_LNCaP_40kb"    "GSE118514_22Rv1_40kb"     
+# 
+# 
+# match_dt <- rbind(ds1_matching_dt, ds2_matching_dt)
+# rownames(match_dt) <- NULL
+# 
+# v1_ranks <- setNames(cptmt_data$startCptmtNormRank, cptmt_data$region_ID)
+# 
+# v2_ranks <- setNames(match_dt$refID_rank,file.path(match_dt$ref_hicds,match_dt$ref_exprds, match_dt$refID ))
+# stopifnot(names(v2_ranks) %in% names(v1_ranks))
+# sum(v2_ranks != v1_ranks[names(v2_ranks)])
+# # 0
+# 
+# v2_ranks <- setNames(match_dt$matchingID_rank,file.path(match_dt$matching_hicds,match_dt$matching_exprds, match_dt$matchingID_maxOverlapBp ))
+# stopifnot(names(v2_ranks) %in% names(v1_ranks))
+# sum(v2_ranks != v1_ranks[names(v2_ranks)])
+# 0
+
+x <- rnorm(100) 
+plot(density(x))
+# Print skewness of distribution 
+print(kurtosis(x)) 
 
 
+x <- c(rep(61, each = 10), rep(64, each = 18),  
+       rep(65, each = 23), rep(67, each = 32), rep(70, each = 27), 
+       rep(73, each = 17)) 
+plot(density(x))
+# Print skewness of distribution 
+print(kurtosis(x)) 
+
+x <- rnorm(n = 10000, mean = 55, sd = 4.5)
+plot(density(x))
+# Print skewness of distribution 
+print(kurtosis(x)) 
+# [1] -0.01520751
+
+x <- rnorm(n = 10000, mean = 55, sd = 7.5)
+plot(density(x))
+# Print skewness of distribution 
+print(kurtosis(x)) 
+# [1] -0.02470491
+
+x <- rnorm(n = 10000, mean = 55, sd = 1.5)
+plot(density(x))
+# Print skewness of distribution 
+print(kurtosis(x)) 
+# [1] 0.04368179
+
+x <- rnorm(n = 10000, mean = 55, sd = 0.1)
+plot(density(x))
+# Print skewness of distribution 
+print(kurtosis(x)) 
+# [1] -0.009699777
+
+x <- rnorm(n = 10000, mean = 55, sd = 10.5)
+plot(density(x))
+# Print skewness of distribution 
+print(kurtosis(x)) 
+# [1] 0.04368179
 
 
 ######################################################################################
