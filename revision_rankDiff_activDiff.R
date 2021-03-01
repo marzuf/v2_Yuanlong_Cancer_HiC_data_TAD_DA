@@ -2,6 +2,7 @@ options(scipen=100)
 
 SSHFS=F
 
+set.seed(010321) # for sampling
 
 # Rscript revision_rankDiff_activDiff.R
 
@@ -91,16 +92,12 @@ stopifnot(!duplicated(final_table_DT$regionID))
 regionID_pvals <- setNames(final_table_DT$adjPvalComb, final_table_DT$regionID)
 
 if(buildTable){
-  
-  
   # inFile <- file.path("TAD_MATCHING_ACROSS_HICDS", "all_matching_dt.Rdata")
   inFile <- file.path("TAD_MATCHING_ACROSS_HICDS_NOPERMUT", "all_matching_dt.Rdata")
   matching_dt <- get(load(inFile))
   
-  
   all_plots <- list()
 
-    
  matching_data <- foreach(mypair = all_pairs) %dopar% {
     hicds_norm <- dirname(dirname(mypair))
     hicds_tumor <- basename(dirname(mypair))
@@ -108,9 +105,6 @@ if(buildTable){
     
     pipFolder <- file.path("PIPELINE", "OUTPUT_FOLDER")
     stopifnot(dir.exists(pipFolder))
-    
-    
-    
     
     ######################### PREPARE NORM DATA
     
@@ -225,7 +219,6 @@ if(buildTable){
       stopifnot(length(curr_meanFC) == 1)
       stopifnot(!is.na(curr_meanFC) )
       
-      
       data.frame(
         chromo=curr_chromo,
         region=curr_region,
@@ -236,8 +229,6 @@ if(buildTable){
         stringsAsFactors = FALSE
       )
     }
-    
-    
     
     ### prepare the TAD pvalues for tumor hicds
     tumor_tadPval_file <- file.path(pipFolder, hicds_tumor, exprds, script11same_name, "emp_pval_combined.Rdata" )
@@ -323,11 +314,7 @@ if(buildTable){
         myx <- -log10(curr_dt$adjPval)
         myy <- curr_dt$rankDiff
         
-        
-        
-        
         myx <- curr_dt[, paste0(curr_ref, "MeanFC")]
-        
         
         ###################################################################################### plot only signif TADs  
         
@@ -341,11 +328,6 @@ if(buildTable){
         myy <- signif_dt$rankDiff
         
         mylab <- paste0("best matching TAD rank diff. (", curr_ref, "-", curr_match, ")")
-        
-        
-        
-        
-        
         save(signif_dt, file="signif_dt.Rdata", version=2)
         
         
@@ -359,8 +341,6 @@ if(buildTable){
                        ylab = paste0("-log10 TAD adj. pval"),
                        y="adjPval_log10", 
                        x="rankDiff")
-        
-        
         
         p <- p + geom_vline(xintercept=0, linetype=2)
         
@@ -502,15 +482,104 @@ cat(paste0("... written: ", outFile, "\n"))
 
 matching_withRank_dt$abs_rankDiff <- abs(matching_withRank_dt$rankDiff)
 
-######################################################################################## PERMUTATION TEST - V1
-https://stats.stackexchange.com/questions/39150/permutation-test-to-test-significance-of-skewness-kurtosis-of-two-distributions
-
-######################################################################################## PERMUTATION TEST - V2
+##################
 plot_dt <- matching_withRank_dt
 outFile <- file.path(outFolder, "plot_dt.Rdata")
 save(plot_dt, file=outFile)
 cat(paste0("... written: ", outFile, "\n"))
 # plot_dt=get(load("REVISION_RANKDIFF_ACTIVDIFF/plot_dt.Rdata"))
+
+######################################################################################## PERMUTATION TEST - V1
+# https://stats.stackexchange.com/questions/39150/permutation-test-to-test-significance-of-skewness-kurtosis-of-two-distributions
+mystat ="kurtosis"
+
+nRandom_stats <- 100000
+
+for(mystat in c("kurtosis", "skewness")) {
+  
+  if(mystat == "kurtosis") {
+    col_var <- "rankDiff"
+  } else if(mystat == "skewness") {
+    col_var <- "abs_rankDiff"
+  } else {
+    stop("-error\n")
+  }
+  
+  
+  stat_signif <- do.call(mystat, list(plot_dt[plot_dt$ref_tadSignif == "signif.",paste0(col_var)]))
+  nsignif <- sum(plot_dt$ref_tadSignif == "signif.")
+  stopifnot(length(stat_signif) == 1)
+  
+  stat_nonsignif <- do.call(mystat, list(plot_dt[plot_dt$ref_tadSignif == "not signif.",paste0(col_var)]))
+  nnonsignif <- sum(plot_dt$ref_tadSignif == "not signif.")
+  stopifnot(length(stat_nonsignif) == 1)
+  
+  stat_diff <- stat_nonsignif - stat_signif
+  
+  permut_data <- foreach(i= 1:nRandom_stats) %dopar% {
+    
+    i_rd_signif <- sample(seq_len(nrow(plot_dt)), size=nsignif)
+    i_rd_nonsignif <- setdiff(seq_len(nrow(plot_dt)), i_rd_signif)
+    stopifnot(c(1:nrow(plot_dt)) ==  sort(c(i_rd_signif, i_rd_nonsignif)))
+    
+    rd_stat_signif <- do.call(mystat, list(plot_dt[i_rd_signif, paste0(col_var)]))
+    rd_stat_nonsignif <- do.call(mystat, list(plot_dt[i_rd_nonsignif, paste0(col_var)]))
+    
+
+    rd_stat_diff <- rd_stat_nonsignif - rd_stat_signif 
+    c(rd_stat_signif=rd_stat_signif, rd_stat_nonsignif=rd_stat_nonsignif, rd_stat_diff=rd_stat_diff)    
+  }
+  
+  myvar ="rd_stat_signif"
+  myvar ="rd_stat_diff"
+  
+  for(myvar in c("rd_stat_signif", "rd_stat_nonsignif", "rd_stat_diff")) {
+    
+    rd_myvar <- unlist(lapply(permut_data, function(x)x[[paste0(myvar)]]))
+    stopifnot(length(rd_myvar) == nRandom_stats)
+    
+    obs_myvar <- eval(parse(text = gsub("rd_", "", myvar)))
+    
+    
+    myvartype <- gsub("rd_stat_", "", myvar)
+    
+    if(myvartype == "diff") {
+      mysub <- paste0("# permut=", nRandom_stats, "")
+      myleg <- paste0("diff. nonsignif-signif")
+      myvar_pval <- (sum(obs_myvar < rd_myvar) + 1)/(nRandom_stats + 1)
+      legPos <- "topleft"
+      
+    } else {
+      nmyvar <- eval(parse(text = paste0("n", myvartype)))
+      mysub <- paste0("randomly sampled TADs (as many as ", myvartype, "=", nmyvar, "; # permut=", nRandom_stats, ")")  
+      myleg <- paste0(myvartype, " TADs")
+      myvar_pval <- (sum(obs_myvar > rd_myvar) + 1)/(nRandom_stats + 1)
+      legPos <- "topright"
+    }
+    
+    outFile <- file.path(outFolder, paste0(mystat, "_", myvar, "_", col_var, "_obs_permut_density.", "png"))
+    do.call("png", list(outFile, height=400, width=400*1.5))
+    plot(density(rd_myvar), col="black",
+         xlab=paste0(mystat),
+         main = paste0(mystat, " of TAD ", col_var, " distribution"))
+    mtext(side=3, mysub)
+    abline(v = obs_myvar, col="red")
+    # abline(v = nonsignif_kurto, col="blue")
+    legend(legPos, lty=1, col=c("black", "red"), bty="n",
+           # legend("topright", lty=1, col=c("black", "red", "blue"), bty="n",
+           legend=c(paste0("random (n=", nRandom_stats, ")"),
+                    paste0(myleg, "\np-val = " , round(myvar_pval, 4)))) 
+    # paste0("signif. TADs\np-val = " , round(kurto_pval_signifTADs, 4)), 
+    # paste0("non signif. TADs\np-val = " , round(kurto_pval_nonsignifTADs, 4))))
+    
+    foo <- dev.off()
+    cat(paste0("... written: ", outFile, "\n"))
+    
+  }
+}
+
+
+######################################################################################## PERMUTATION TEST - V2
 
 signif_kurto <- kurtosis(plot_dt$rankDiff[plot_dt$ref_tadSignif == "signif."])
 signif_skew <- skewness(plot_dt$abs_rankDiff[plot_dt$ref_tadSignif == "signif."])
