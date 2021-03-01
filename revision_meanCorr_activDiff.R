@@ -3,21 +3,23 @@ require(ggpubr)
 require(ggplot2)
 source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 
-# Rscript revision_FC_activDiff.R
+# Rscript revision_meanCorr_activDiff.R
 
 
-# outFolder <- "REVISION_FC_ACTIVDIFF_V2_CORRECTED"
-# dir.create(outFolder, recursive = TRUE)
-# matching_dt <- get(load("REVISION_PROBADIFFMATCHEDPAIRS_V2_CORRECTED/mean_intraNorm_matching_withRank_dt.Rdata"))
-# all_inter_intra_dt <- get(load("REVISION_INTER_INTRA_PROBA_V2_CORRECTED_PAIREDHIC//all_inter_intra_dt.Rdata"))
-
-outFolder <- "REVISION_FC_ACTIVDIFF_CORRECTED"
+outFolder <- "REVISION_MEANCORR_ACTIVDIFF_V2_CORRECTED"
 dir.create(outFolder, recursive = TRUE)
-matching_dt <- get(load("REVISION_PROBADIFFMATCHEDPAIRS_CORRECTED/mean_intraNorm_matching_withRank_dt.Rdata"))
-all_inter_intra_dt <- get(load("REVISION_INTER_INTRA_PROBA_CORRECTED_PAIREDHIC//all_inter_intra_dt.Rdata"))
+matching_dt <- get(load("REVISION_PROBADIFFMATCHEDPAIRS_V2_CORRECTED/mean_intraNorm_matching_withRank_dt.Rdata"))
+all_inter_intra_dt <- get(load("REVISION_INTER_INTRA_PROBA_V2_CORRECTED_PAIREDHIC//all_inter_intra_dt.Rdata"))
+
+### THIS CANNOT BE RUN BECAUSE **** REVISION_INTER_INTRA_PROBA_V2_CORRECTED_PAIREDHIC ***
+# ONLY AVAILABLE FOR V2
+# outFolder <- "REVISION_MEANCORR_ACTIVDIFF_CORRECTED"
+# dir.create(outFolder, recursive = TRUE)
+# matching_dt <- get(load("REVISION_PROBADIFFMATCHEDPAIRS_CORRECTED/mean_intraNorm_matching_withRank_dt.Rdata"))
+# all_inter_intra_dt <- get(load("REVISION_INTER_INTRA_PROBA_CORRECTED_PAIREDHIC//all_inter_intra_dt.Rdata"))
 
 
-buildTable <- TRUE
+buildTable <- FALSE
 
 plotType <- "png"
 myHeight <- myWidth <- 400
@@ -49,83 +51,126 @@ regionID_pvals <- setNames(final_table_DT$adjPvalComb, final_table_DT$regionID)
 signif_tads <- final_table_DT$regionID[final_table_DT$adjPvalComb <= tadSignifThresh]
 
 ###################
-### PREPARE THE GENE FC DATA
+### PREPARE THE GENE meanCorr DATA -> I don't have gene level info !!!
 ###################
-gene_tad_signif_dt <- get(load("GENE_RANK_TAD_RANK/all_gene_tad_signif_dt.Rdata"))
-gene_tad_signif_dt$regionID <- file.path(gene_tad_signif_dt$hicds, gene_tad_signif_dt$exprds,gene_tad_signif_dt$region )
-stopifnot(setequal(gene_tad_signif_dt$regionID, final_table_DT$regionID))
 
-# -> assign the fc to gene fc quantile
+
+
+
+# gene_tad_signif_dt <- get(load("GENE_RANK_TAD_RANK/all_gene_tad_signif_dt.Rdata"))
+# gene_tad_signif_dt$regionID <- file.path(gene_tad_signif_dt$hicds, gene_tad_signif_dt$exprds,gene_tad_signif_dt$region )
+# stopifnot(setequal(gene_tad_signif_dt$regionID, final_table_DT$regionID))
+
+# -> assign the meanCorr to gene meanCorr quantile
 # -> take the mean  by TAD
 # -> signif not signif
 # -> for the matched data, meanIntraDiff
-gene_tad_signif_dt$dataset <- file.path(gene_tad_signif_dt$hicds, gene_tad_signif_dt$exprds)
-
-if(buildTable) {
-  gene_tad_histfc_dt <- do.call(rbind, by(gene_tad_signif_dt, gene_tad_signif_dt$dataset, function(sub_dt) {
-    
-    all_aggFC_hist <- hist(sub_dt$logFC, breaks = seq(min(sub_dt$logFC), max(sub_dt$logFC), 
-                                                      length.out=nBreaks+1), plot=FALSE)# $breaks
-    # then for each value find in which break it falls
-    logFC_hist <- sapply(sub_dt$logFC, function(x) { 
-      xbreak <- which(hist(x, breaks = all_aggFC_hist$breaks, plot=FALSE)$counts == 1);
-      stopifnot(length(xbreak) == 1); 
-      xbreak})
-    check_histqt <- factor(logFC_hist, levels = seq_along(all_aggFC_hist$counts))
-    stopifnot(table(check_histqt) == all_aggFC_hist$counts)
-    stopifnot(max(logFC_hist) <= nBreaks)
-    stopifnot(min(logFC_hist) >= 1)
-    stopifnot(length(logFC_hist) == nrow(sub_dt))
-    sub_dt$logFC_histBreak <- logFC_hist
-    sub_dt
-  }))
-  
-  outFile <- file.path(outFolder, "gene_tad_histfc_dt.Rdata")
-  save(gene_tad_histfc_dt, file=outFile, version=2)
-  cat(paste0("... written: ", outFile, "\n"))
-  
-} else {
-  outFile <- file.path(outFolder, "gene_tad_histfc_dt.Rdata")
-  gene_tad_histfc_dt <- get(load(outFile))
-}
-
-
-stopifnot(nrow(gene_tad_histfc_dt) == nrow(gene_tad_signif_dt))
+# gene_tad_signif_dt$dataset <- file.path(gene_tad_signif_dt$hicds, gene_tad_signif_dt$exprds)
+# 
+# if(buildTable) {
+#   gene_tad_histMeanCorr_dt <- do.call(rbind, by(gene_tad_signif_dt, gene_tad_signif_dt$dataset, function(sub_dt) {
+#     
+#     all_aggMeanCorr_hist <- hist(sub_dt$meanCorr, breaks = seq(min(sub_dt$meanCorr), max(sub_dt$meanCorr), 
+#                                                       length.out=nBreaks+1), plot=FALSE)# $breaks
+#     # then for each value find in which break it falls
+#     meanCorr_hist <- sapply(sub_dt$meanCorr, function(x) { 
+#       xbreak <- which(hist(x, breaks = all_aggMeanCorr_hist$breaks, plot=FALSE)$counts == 1);
+#       stopifnot(length(xbreak) == 1); 
+#       xbreak})
+#     check_histqt <- factor(meanCorr_hist, levels = seq_along(all_aggMeanCorr_hist$counts))
+#     stopifnot(table(check_histqt) == all_aggMeanCorr_hist$counts)
+#     stopifnot(max(meanCorr_hist) <= nBreaks)
+#     stopifnot(min(meanCorr_hist) >= 1)
+#     stopifnot(length(meanCorr_hist) == nrow(sub_dt))
+#     sub_dt$meanCorr_histBreak <- meanCorr_hist
+#     sub_dt
+#   }))
+#   
+#   outFile <- file.path(outFolder, "gene_tad_histMeanCorr_dt.Rdata")
+#   save(gene_tad_histMeanCorr_dt, file=outFile, version=2)
+#   cat(paste0("... written: ", outFile, "\n"))
+#   
+# } else {
+#   outFile <- file.path(outFolder, "gene_tad_histMeanCorr_dt.Rdata")
+#   gene_tad_histMeanCorr_dt <- get(load(outFile))
+# }
+# 
+# 
+# stopifnot(nrow(gene_tad_histMeanCorr_dt) == nrow(gene_tad_signif_dt))
 
 # stop("-ok\n")
 
-tad_agg_fcHist_dt <- aggregate(logFC_histBreak~hicds+exprds+region+regionID, data=gene_tad_histfc_dt,
-                            FUN=mean)
-colnames(tad_agg_fcHist_dt)[ colnames(tad_agg_fcHist_dt) == "logFC_histBreak"] <- "meanLogFCbreak"
-all_meanLogFCbreaks <- setNames(tad_agg_fcHist_dt$meanLogFCbreak, tad_agg_fcHist_dt$regionID)
+# tad_agg_meanCorrHist_dt <- aggregate(meanCorr_histBreak~hicds+exprds+region+regionID, data=gene_tad_histMeanCorr_dt,
+#                             FUN=mean)
+# colnames(tad_agg_meanCorrHist_dt)[ colnames(tad_agg_meanCorrHist_dt) == "meanCorr_histBreak"] <- "meanCorrbreak"
+
+cat("prep corr. data")
+
+
+final_table_DT$dataset <- file.path(final_table_DT$hicds, final_table_DT$exprds)
+
+if(buildTable) {
+
+  tad_agg_meanCorrHist_dt <- do.call(rbind, by(final_table_DT, final_table_DT$dataset, function(sub_dt) {
+    
+    all_aggMeanCorr_hist <- hist(sub_dt$meanCorr, breaks = seq(min(sub_dt$meanCorr), max(sub_dt$meanCorr), 
+                                                               length.out=nBreaks+1), plot=FALSE)# $breaks
+    # then for each value find in which break it falls
+    meanCorr_hist <- sapply(sub_dt$meanCorr, function(x) { 
+      xbreak <- which(hist(x, breaks = all_aggMeanCorr_hist$breaks, plot=FALSE)$counts == 1);
+      stopifnot(length(xbreak) == 1); 
+      xbreak})
+    check_histqt <- factor(meanCorr_hist, levels = seq_along(all_aggMeanCorr_hist$counts))
+    stopifnot(table(check_histqt) == all_aggMeanCorr_hist$counts)
+    stopifnot(max(meanCorr_hist) <= nBreaks)
+    stopifnot(min(meanCorr_hist) >= 1)
+    stopifnot(length(meanCorr_hist) == nrow(sub_dt))
+    sub_dt$meanCorr_histBreak <- meanCorr_hist
+    sub_dt
+  }))
+  
+  outFile <- file.path(outFolder, "tad_agg_meanCorrHist_dt.Rdata")
+  save(tad_agg_meanCorrHist_dt, file=outFile, version=2)
+  cat(paste0("... written: ", outFile, "\n"))
+
+} else {
+  outFile <- file.path(outFolder, "tad_agg_meanCorrHist_dt.Rdata")
+  tad_agg_meanCorrHist_dt <- get(load(outFile))
+}
+# 
+
+
+all_meanCorrbreaks <- setNames(tad_agg_meanCorrHist_dt$meanCorr_histBreak, tad_agg_meanCorrHist_dt$regionID)
+
+cat("done")
 
 ###################
-### plot ggdensity the fc breaks signif and not signif 
+### plot ggdensity the meanCorr breaks signif and not signif 
 ###################
 
-stopifnot(!duplicated(tad_agg_fcHist_dt$regionID))
+stopifnot(!duplicated(tad_agg_meanCorrHist_dt$regionID))
 
-tad_agg_fcHist_dt$signif_lab <- ifelse(tad_agg_fcHist_dt$regionID %in% signif_tads,
+tad_agg_meanCorrHist_dt$signif_lab <- ifelse(tad_agg_meanCorrHist_dt$regionID %in% signif_tads,
                                        "signif.", "not signif.")
 
-stopifnot(sum(tad_agg_fcHist_dt$signif_lab=="signif.") == 
+stopifnot(sum(tad_agg_meanCorrHist_dt$signif_lab=="signif.") == 
             sum(final_table_DT$adjPvalComb <= tadSignifThresh))
 
 plotTit <- paste0("")
 
-mySub <- paste0("# DS = ", length(unique(tad_agg_fcHist_dt$hicds, tad_agg_fcHist_dt$exprds)), 
-                "; # TADs = ", nrow(tad_agg_fcHist_dt),
-                " (# signif.  = ", sum(tad_agg_fcHist_dt$signif_lab=="signif."), ")")
+mySub <- paste0("# DS = ", length(unique(tad_agg_meanCorrHist_dt$hicds, tad_agg_meanCorrHist_dt$exprds)), 
+                "; # TADs = ", nrow(tad_agg_meanCorrHist_dt),
+                " (# signif.  = ", sum(tad_agg_meanCorrHist_dt$signif_lab=="signif."), ")")
 
 
-plot_var <- "meanLogFCbreak"
+plot_var <- "meanCorr_histBreak"
 
 legTitle <- ""
 
-my_cols <- setNames(pal_jama()(5)[c(3, 2,4)], unique(tad_agg_fcHist_dt$signif_lab))
+my_cols <- setNames(pal_jama()(5)[c(3, 2,4)], unique(tad_agg_meanCorrHist_dt$signif_lab))
 
 
-p3 <- ggdensity(tad_agg_fcHist_dt,
+p3 <- ggdensity(tad_agg_meanCorrHist_dt,
                 x = paste0(plot_var),
                 y = "..density..",
                 # combine = TRUE,                  # Combine the 3 plots
@@ -153,22 +198,22 @@ cat(paste0("... written: ", outFile, "\n"))
 ###################
 ### merge the data --- matching regions
 ###################
-stopifnot(matching_dt$ref_region_ID %in% names(all_meanLogFCbreaks))
-stopifnot(matching_dt$matching_region_ID %in% names(all_meanLogFCbreaks))
-matching_dt$ref_meanLogFCbreaks <- all_meanLogFCbreaks[paste0(matching_dt$ref_region_ID)]
-matching_dt$matching_meanLogFCbreaks <- all_meanLogFCbreaks[paste0(matching_dt$matching_region_ID)]
+stopifnot(matching_dt$ref_region_ID %in% names(all_meanCorrbreaks))
+stopifnot(matching_dt$matching_region_ID %in% names(all_meanCorrbreaks))
+matching_dt$ref_meanCorrbreaks <- all_meanCorrbreaks[paste0(matching_dt$ref_region_ID)]
+matching_dt$matching_meanCorrbreaks <- all_meanCorrbreaks[paste0(matching_dt$matching_region_ID)]
 
 # selecte the signif. tads
 
 ###################
-### mean FC breaks and diff in mean intra norm for matching tad
+### mean meanCorr breaks and diff in mean intra norm for matching tad
 ###################
 
 matching_dt$diff_mean_intraNorm <- matching_dt$ref_mean_intraNorm-matching_dt$matching_mean_intraNorm
 
 plot_list <- list(
-  c(myxvar="tumorOverNorm_mean_intraNorm", myyvar="ref_meanLogFCbreaks"),
-  c(myxvar = "tumorOverNorm_mean_intraNorm", myyvar = "ref_meanLogFCbreaks")
+  c(myxvar="tumorOverNorm_mean_intraNorm", myyvar="ref_meanCorrbreaks"),
+  c(myxvar = "tumorOverNorm_mean_intraNorm", myyvar = "ref_meanCorrbreaks")
   )
 
 toplots <- c("all", "signif")
@@ -235,14 +280,14 @@ for(i in seq_along(plot_list)) {
 ### merge the data --- paired hi-c
 ###################
 
-sub_tad_agg_fcHist_dt <- tad_agg_fcHist_dt[(tad_agg_fcHist_dt$hicds %in% all_normal_ds | 
-                                              tad_agg_fcHist_dt$hicds %in% all_tumor_ds) & 
-                                             tad_agg_fcHist_dt$exprds %in% basename(all_pairs),]
+sub_tad_agg_meanCorrHist_dt <- tad_agg_meanCorrHist_dt[(tad_agg_meanCorrHist_dt$hicds %in% all_normal_ds | 
+                                              tad_agg_meanCorrHist_dt$hicds %in% all_tumor_ds) & 
+                                             tad_agg_meanCorrHist_dt$exprds %in% basename(all_pairs),]
 
-sub_tad_agg_fcHist_dt$hicds_regionID <- file.path(sub_tad_agg_fcHist_dt$hicds, sub_tad_agg_fcHist_dt$region)
+sub_tad_agg_meanCorrHist_dt$hicds_regionID <- file.path(sub_tad_agg_meanCorrHist_dt$hicds, sub_tad_agg_meanCorrHist_dt$region)
 all_inter_intra_dt$hicds_regionID <- file.path(all_inter_intra_dt$hicds, all_inter_intra_dt$region)
 
-matched_paired_dt <- merge(sub_tad_agg_fcHist_dt,all_inter_intra_dt[,c("hicds_regionID", 
+matched_paired_dt <- merge(sub_tad_agg_meanCorrHist_dt,all_inter_intra_dt[,c("hicds_regionID", 
                                                                    "mean_intraNorm",
                                                                    "matched_mean_intraNorm")],
       by="hicds_regionID")
@@ -253,7 +298,7 @@ matched_paired_dt$diff_mean_intraNorm <- matched_paired_dt$mean_intraNorm-
 
 
 myxvar <- "diff_mean_intraNorm"
-myyvar <- "meanLogFCbreak"
+myyvar <- "meanCorr_histBreak"
 
 for(toplot in toplots) {
   

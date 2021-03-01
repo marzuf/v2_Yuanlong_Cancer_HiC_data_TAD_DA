@@ -502,11 +502,15 @@ cat(paste0("... written: ", outFile, "\n"))
 
 matching_withRank_dt$abs_rankDiff <- abs(matching_withRank_dt$rankDiff)
 
+######################################################################################## PERMUTATION TEST - V1
+https://stats.stackexchange.com/questions/39150/permutation-test-to-test-significance-of-skewness-kurtosis-of-two-distributions
+
+######################################################################################## PERMUTATION TEST - V2
 plot_dt <- matching_withRank_dt
 outFile <- file.path(outFolder, "plot_dt.Rdata")
 save(plot_dt, file=outFile)
 cat(paste0("... written: ", outFile, "\n"))
-plot_dt=get(load("REVISION_RANKDIFF_ACTIVDIFF/plot_dt.Rdata"))
+# plot_dt=get(load("REVISION_RANKDIFF_ACTIVDIFF/plot_dt.Rdata"))
 
 signif_kurto <- kurtosis(plot_dt$rankDiff[plot_dt$ref_tadSignif == "signif."])
 signif_skew <- skewness(plot_dt$abs_rankDiff[plot_dt$ref_tadSignif == "signif."])
