@@ -1,5 +1,3 @@
-outFolder <- file.path("REVISION_EXPRESSIONDATA_MATCHDIFF")
-dir.create(outFolder, recursive = TRUE)
 
 
 # Rscript revision_expressionData_matchDiff.R
@@ -44,9 +42,15 @@ tadSignifThresh <- 0.01
 
 ratioAnnotThresh <- 0.75
 
-all_inter_intra1_dt <- get(load("REVISION_INTER_INTRA_PROBA_CORRECTED/all_inter_intra_dt.Rdata"))
-all_inter_intra2_dt <- get(load("REVISION_INTER_INTRA_PROBA2_CORRECTED/all_inter_intra_dt.Rdata"))
+# outFolder <- file.path("REVISION_EXPRESSIONDATA_MATCHDIFF_CORRECTED")
+# dir.create(outFolder, recursive = TRUE)
+# all_inter_intra1_dt <- get(load("REVISION_INTER_INTRA_PROBA_CORRECTED/all_inter_intra_dt.Rdata"))
+# all_inter_intra2_dt <- get(load("REVISION_INTER_INTRA_PROBA2_CORRECTED/all_inter_intra_dt.Rdata"))
 
+outFolder <- file.path("REVISION_EXPRESSIONDATA_MATCHDIFF_V2_CORRECTED")
+dir.create(outFolder, recursive = TRUE)
+all_inter_intra1_dt <- get(load("REVISION_INTER_INTRA_PROBA_V2_CORRECTED/all_inter_intra_dt.Rdata"))
+all_inter_intra2_dt <- get(load("REVISION_INTER_INTRA_PROBA2_V2_CORRECTED/all_inter_intra_dt.Rdata"))
 
 ###################
 ### PREPARE mrna + SIGNIF DATA

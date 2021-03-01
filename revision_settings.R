@@ -28,6 +28,13 @@ all_normal_ds <- as.character(sapply(all_pairs, function(x) dirname(dirname(x)))
 all_tumor_ds <-  as.character(sapply(all_pairs, function(x) basename(dirname(x))))
 
 
+all_pairs_dt <- data.frame(
+  hicds1 = dirname(dirname(all_pairs)),
+  hicds2 = basename(dirname(all_pairs)),
+  exprds = basename(all_pairs),
+  stringsAsFactors = FALSE
+)
+
 blank_theme <- theme_minimal()+
   theme(
     axis.title.x = element_blank(),

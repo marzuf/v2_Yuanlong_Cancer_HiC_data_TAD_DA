@@ -1,4 +1,4 @@
-# Rscript revision_cmp_sameConds.R
+# Rscript revision_cmp_sameConds_allGenes.R
 
 require(ggpubr)
 require(ggsci)
@@ -28,14 +28,15 @@ all_pairs_dt_all <- rbind(all_pairs_dt,all_pairs_dt2)
 cmp_dt <- get(load("CMP_SAME_CONDITIONS_V3/all_conds_dt.Rdata"))
 cmp_dt$entrezID <- as.character(cmp_dt$entrezID)
 
-outFolder <- file.path("REVISION_CMP_SAMECONDS")
+outFolder <- file.path("REVISION_CMP_SAMECONDS_ALLGENES")
 dir.create(outFolder, recursive=TRUE)
 
-signifThresh <- 0.01
+# signifThresh <- 0.01
+signif_cmp_dt <- cmp_dt
 
-signif_cmp_dt <- cmp_dt[cmp_dt$tad_adjCombPval_hicds1 <= signifThresh &
-                          cmp_dt$tad_adjCombPval_hicds2 <= signifThresh ,
-                          ]
+# signif_cmp_dt <- cmp_dt[cmp_dt$tad_adjCombPval_hicds1 <= signifThresh &
+#                           cmp_dt$tad_adjCombPval_hicds2 <= signifThresh ,
+#                           ]
 signif_cmp_dt$ds_pair <- file.path(signif_cmp_dt$hicds_hicds1, signif_cmp_dt$hicds_hicds2, signif_cmp_dt$exprds)
 
 all_dspairs <- unique(signif_cmp_dt$ds_pair)
@@ -141,7 +142,8 @@ for(plot_type in c("all", "sub")) {
   
   all_cmps <- unique(file.path(sub_tad_genepairs_dt$hicds1, sub_tad_genepairs_dt$hicds2, sub_tad_genepairs_dt$exprds))
   
-  mySub <- paste0("# DS comparisons = ", length(all_cmps), "; signif: p-val <= ", signifThresh)
+  # mySub <- paste0("# DS comparisons = ", length(all_cmps), "; signif: p-val <= ", signifThresh)
+  mySub <- paste0("# DS comparisons = ", length(all_cmps), "; all genes")
   
   legTitle <- ""
   
