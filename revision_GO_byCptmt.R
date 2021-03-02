@@ -254,7 +254,8 @@ for(i in seq_along(all_data_list)) {
     stopifnot(signif_notPF_genes %in% gff_dt$symbol)
     signif_notPF_entrez <- gff_dt$entrezID[gff_dt$symbol %in% signif_notPF_genes]
     
-    univers_genes <- unique(unlist(strsplit(as.character(data_dt$region_genes), split=",")))
+    # CHANGED HERE - WHEN DOING BY CPTMT -> UNIVERSE IS ALL GENES
+    univers_genes <- unique(unlist(strsplit(as.character(init_data_dt$region_genes), split=",")))
     stopifnot(univers_genes %in% gff_dt$symbol)
     univers_entrez <- gff_dt$entrezID[gff_dt$symbol %in% univers_genes]
     
