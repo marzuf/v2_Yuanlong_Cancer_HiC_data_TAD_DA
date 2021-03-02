@@ -16,9 +16,13 @@ plotCex <- 1.2
 
 tadSignifThresh <- 0.01
 
-# Rscript revision_expressionLevel_cptmts.R
+### SAMPLE SAME SIZE DIST AS IN B22
 
-outFolder <- file.path("REVISION_EXPRESSIONLEVEL_CPTMTS")
+nRandom <- 1000
+
+# Rscript revision_expressionLevel_cptmts_b22Dist.R
+
+outFolder <- file.path("REVISION_EXPRESSIONLEVEL_CPTMTS_B22DIST")
 dir.create(outFolder, recursive=TRUE)
 
 

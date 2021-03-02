@@ -16,10 +16,54 @@ plotCex <- 1.2
 
 tadSignifThresh <- 0.01
 
-# Rscript revision_expressionLevel_cptmts.R
 
-outFolder <- file.path("REVISION_EXPRESSIONLEVEL_CPTMTS")
+### - discardPF => discard the purity-flagged TADs, will include those without purity annotation
+
+# Rscript revision_expressionLevel_cptmts_notPF.R
+
+outFolder <- file.path("REVISION_EXPRESSIONLEVEL_CPTMTS_NOTPF")
 dir.create(outFolder, recursive=TRUE)
+
+
+
+#### #### #### #### #### #### #### #### #### #### #### #### 
+#### retrieve the purity tagged tads
+
+runFolder <- "."
+
+purity_ds <- "aran"
+pm <- "CPE"
+purity_plot_name <- paste0("Aran - ", pm)
+
+corMet <- "pearson"
+transfExpr <- "log10"
+corrPurityQtThresh <- 0.05
+signif_column <- "adjPvalComb"
+signifThresh <- 0.01
+signifcol <- paste0(signif_column, "_", signifThresh)
+
+
+purity_file <- file.path(runFolder,"ALLTADS_AND_PURITY_FINAL", purity_ds, pm, transfExpr, "all_ds_corrPurity_dt.Rdata") # here _final INPUT
+purityData <- get(load(purity_file))
+agg_purity <- aggregate(purityCorr~dataset+region, FUN=mean, data=purityData)
+
+result_file <- file.path(runFolder,"CREATE_FINAL_TABLE", "all_result_dt.Rdata")
+resultData <- get(load(result_file))
+resultData$dataset <- file.path(resultData$hicds, resultData$exprds)
+
+merge_dt <- merge(agg_purity, resultData, by=c("dataset", "region"))  # !!! WILL DISCARD DATA WITHOUT PURITY SCORE !!!
+merge_dt$region_ID <- file.path(merge_dt$dataset, merge_dt$region)
+merge_dt$signif <- merge_dt$adjPvalComb <= signifThresh
+merge_dt$signif_lab <- ifelse(merge_dt$signif, paste0("adj. p-val <=", signifThresh), paste0("adj. p-val >", signifThresh) )
+purityCorrThresh <- as.numeric(quantile(merge_dt$purityCorr[!merge_dt$signif], probs = corrPurityQtThresh ))
+
+# purity_flagged_tads <- merge_dt$region_ID[merge_dt$purityCorr <= purityCorrThresh]
+tokeep_tads <- merge_dt$region_ID[merge_dt$purityCorr > purityCorrThresh]
+cat(paste0( "purityCorrThresh = ", round(purityCorrThresh, 4), "\n"))
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### 
+
+
+
 
 
 inFolder <- "REVISION_CHANGES_CPTMTLABELS_ALLDS"
@@ -82,6 +126,12 @@ all_exprLevel_dt <- get(load(file.path("REVISION_EXPRESSION_LEVEL", paste0(expr_
 exprVar_values <- setNames(all_exprLevel_dt[,paste0(expr_var)], all_exprLevel_dt$regionID)
 stopifnot(setequal(names(exprVar_values), tad2cptmt_dt$region_ID))
 tad2cptmt_dt[,paste0(expr_var)] <- exprVar_values[tad2cptmt_dt$region_ID]
+
+#########################################################
+# filter here !
+stopifnot(tokeep_tads %in% tad2cptmt_dt$region_ID)
+tad2cptmt_dt <- tad2cptmt_dt[tad2cptmt_dt$region_ID %in% tokeep_tads,]
+#########################################################
 
 
 plotTit <- ""
