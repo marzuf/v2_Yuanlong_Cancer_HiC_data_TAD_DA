@@ -4,12 +4,27 @@
 require(foreach)
 require(doMC)
 registerDoMC(50)
+require(ggplot2)
+require(ggpubr)
+require(ggsci)
+
+source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 
 initbinsize <- 40000
 hicdcbinsize <- 20000
 signifThresh <- 0.05
 
-buildTable <- TRUE
+plotType <- "png"
+myHeight <- 400
+myWidth <- 400
+myWidthGG <- 7
+myHeightGG <- 5
+plotCex <- 1.2
+
+buildTable <- F
+
+tad_signifThresh <- 0.01
+
 
 setDir <- "/media/electron"
 setDir <- ""
@@ -18,6 +33,9 @@ all_pairs_cols <- c("ENCSR346DCU_LNCaP_40kb" = "LNCaP",
                     "GSE118514_RWPE1_40kb" = "RWPE1",
                     "GSE118514_22Rv1_40kb"="22Rv1")
 
+outFolder <- file.path("REVISION_INTERACTOME")
+dir.create(outFolder, recursive = TRUE)
+
 all_chrs <- paste0("chr", 1:22)
 
 ds=names(all_pairs_cols)[1]
@@ -25,7 +43,8 @@ ds=names(all_pairs_cols)[1]
 if(buildTable){
   # all_hicdc_dt <- foreach(ds = c("GSE118514_22Rv1_40kb", .combine='rbind') %do% {
   
-  all_hicdc_dt <- foreach(ds = names(all_pairs_cols), .combine='rbind') %do% {
+  # all_hicdc_dt <- foreach(ds = names(all_pairs_cols), .combine='rbind') %do% {
+  for(ds in names(all_pairs_cols)) {
     
     cat(paste0("start ", ds, "\n"))
     
@@ -49,6 +68,9 @@ if(buildTable){
     all_interactome_dt <- foreach(i= seq_along(dt), .combine='rbind') %dopar% {
       
       i_dt <- dt[[i]]
+      
+      if(i_dt[["hic_dc_mat"]] == "query_out_of_range") return(NULL)
+      
       summary_dt <- i_dt[["summary_tab"]]
       
       chromo <- gsub("(.+):.+:.+", "chr\\1", names(dt)[i])
@@ -74,12 +96,14 @@ if(buildTable){
       stopifnot(chromo_nbr == summary_dt[["chr_num"]])
       
       sub_dt <- unique(summary_dt[,grepl("mean_p", colnames(summary_dt)) | grepl("sig_ratio", colnames(summary_dt))])
-      if(nrow(sub_dt) != 1) {
-        outFile <- file.path(paste0(ds, "_",i, "_", "i_dt_debug.Rdata"))
-        save(i_dt, file=outFile, version=2)
-        outFile <- file.path(paste0(ds, "_",i, "_", "sub_dt_debug.Rdata"))
-        save(sub_dt, file=outFile, version=2)
-      }
+      
+      # if(nrow(sub_dt) != 1) {
+      #   outFile <- file.path(paste0(ds, "_",i, "_", "i_dt_debug.Rdata"))
+      #   save(i_dt, file=outFile, version=2)
+      #   outFile <- file.path(paste0(ds, "_",i, "_", "sub_dt_debug.Rdata"))
+      #   save(sub_dt, file=outFile, version=2)
+      # }
+      
       # stopifnot(nrow(sub_dt) == 1)   # can be 0 e.g.                                     
       # > dt[[5122]][["summary_tab"]]
       # [1] gene                          LNCaP_prostate_cancer        
@@ -100,14 +124,14 @@ if(buildTable){
       sub_dt$tad_start <- tad_start
       sub_dt$tad_end <- tad_end
 
-      if(ds== "GSE118514_22Rv1_40kb" & i == 5710) {
-        outFile <- file.path(paste0(ds, "_",i, "_", "i_dt_debug.Rdata"))
-        save(i_dt, file=outFile, version=2)
-        outFile <- file.path(paste0(ds, "_",i, "_", "sub_dt_debug.Rdata"))
-        save(sub_dt, file=outFile, version=2)
-      }
-      
-      
+      # if(ds== "GSE118514_22Rv1_40kb" & i == 5710) {
+      #   outFile <- file.path(paste0(ds, "_",i, "_", "i_dt_debug.Rdata"))
+      #   save(i_dt, file=outFile, version=2)
+      #   outFile <- file.path(paste0(ds, "_",i, "_", "sub_dt_debug.Rdata"))
+      #   save(sub_dt, file=outFile, version=2)
+      # }
+      # 
+      # 
       # sur chacune des submats, avec hicds comme ref. compter le nombre d'interactions qui sont différentes
       all_mats <- i_dt[["hic_dc_mat"]]
       ref_ds <- as.character(all_pairs_cols[ds])
@@ -117,10 +141,10 @@ if(buildTable){
       stopifnot(length(i_others) == 2)
       ref_mat <- as.matrix(all_mats[[i_ref]])
       stopifnot(nrow(ref_mat) == ncol(ref_mat))
-      
+
       stopifnot(nrow(ref_mat) == (tad_end-tad_start+1)/initbinsize*(initbinsize/hicdcbinsize))
       ref_values <- ref_mat[lower.tri(ref_mat, diag=TRUE)]
-      stopifnot(length(ref_values) == nrow(ref_mat) * (nrow(ref_mat)+1) * 0.5) 
+      stopifnot(length(ref_values) == nrow(ref_mat) * (nrow(ref_mat)+1) * 0.5)
       i_mat=2
       for(i_mat in i_others) {
         match_mat <- all_mats[[i_mat]]
@@ -138,26 +162,33 @@ if(buildTable){
         sub_dt[,paste0("nSameEntries_", ref_ds, "_", names(all_mats)[i_mat])] <- nSameEntries
         sub_dt[,paste0("nRatioMatchEntries_", ref_ds, "_", names(all_mats)[i_mat])] <- nSameEntries/nMatchingEntries
       } # end iterating over hicdc matrices
+      
+      
       sub_dt
     } # end iterating over TAD
     
     all_interactome_dt$hicds_hicdc <- ds
-    all_interactome_dt
+    # all_interactome_dt
+    outFile <- file.path(outFolder, paste0(ds, "_all_interactome_dt.Rdata"))
+    save(all_interactome_dt, file=outFile, version=2)
+    cat(paste0("... written: ", outFile, "\n"))
+    # return(NULL)
+    
   } # end iterating over ds
-  
-  outFile <- file.path(outFolder, "all_hicdc_dt.Rdata")
-  save(all_hicdc_dt, file=outFile, version=2)
-  cat(paste0("... written: ", outFile, "\n"))
-} else {
-  outFile <- file.path(outFolder, "all_hicdc_dt.Rdata")
-  all_hicdc_dt <- get(load(outFile))
-}
-stop("--ok \n")
+  ### NEED TO BE STORED SEPARATELY BECAUSE OF NON MATCHING COLUMN NAMES
+  # outFile <- file.path(outFolder, "all_hicdc_dt.Rdata")
+  # save(all_hicdc_dt, file=outFile, version=2)
+  # cat(paste0("... written: ", outFile, "\n"))
+} 
+# else {
+#   outFile <- file.path(outFolder, "all_hicdc_dt.Rdata")
+#   all_hicdc_dt <- get(load(outFile))
+# }
+# load("REVISION_INTERACTOME/all_hicdc_dt.Rdata")
+# stop("--ok \n")
 
 
 source("revision_settings.R")
-
-
 
 myds <- all_pairs[grepl("prad", basename(all_pairs))]
 all_cmps <- c(myds,
@@ -180,53 +211,300 @@ sub_final_table_DT <- final_table_DT[final_table_DT$hicds %in% dirname(dirname(a
                                    ] 
 stopifnot(nrow(sub_final_table_DT) > 0)
 
-merged_dt <- merge(sub_final_table_DT, all_interactome_dt, by=c("chromo", "tad_start", "tad_end"))
+stopifnot(length(unique(sub_final_table_DT$exprds)) == 1)
 
-stopifnot(!duplicated(merged_dt$regionID))
+densplotcols <- c("nRatioMatchEntries", "sig_ratio", "mean_p")
+densitycols <- c("signif_lab", "signif_lab2", "signif_lab3")
 
 cmp=all_cmps[1]
-for(cmp in all_cmps) {
-
-  plot_dt <- merged_dt
+all_plot_dt <- foreach(cmp = all_cmps, .combine='rbind') %dopar% {
+  
+  cat(paste0("> start plotting - ", cmp, "\n"))
   
   ref_hicds <- dirname(dirname(cmp))
   match_hicds <- basename(dirname(cmp))
   exprds <- basename(cmp)
+  
+  ref_hicds_col <- as.character(all_pairs_cols[paste0(ref_hicds)])
+  match_hicds_col <- as.character(all_pairs_cols[paste0(match_hicds)])
+  
+  # ref_lab <- gsub(".+_(.+)_40kb", "\\1", ref_hicds)
+  # match_lab <- gsub(".+_(.+)_40kb", "\\1", match_hicds)
+  
+  ref_lab <- ref_hicds_col
+  match_lab <- match_hicds_col
+  
+  ds_hicdc_dt <- get(load(file.path(outFolder,paste0(ref_hicds, "_all_interactome_dt.Rdata"))))
+  ds_hicdc_dt$hicds <- ds_hicdc_dt$hicds_hicdc
+  
+  merged_dt <- merge(sub_final_table_DT, ds_hicdc_dt, by=c("hicds", "chromo", "tad_start", "tad_end"))
+  
+  stopifnot(!duplicated(merged_dt$regionID))
+  
+  merged_dt$tad_signif <- merged_dt$adjPvalComb <= tad_signifThresh
+  merged_dt$signif_lab <- ifelse(merged_dt$tad_signif, "signif.", "not signif.")
+  merged_dt$signif_lab2 <- ifelse(merged_dt$meanLogFC > 0, "up", "down")
+  merged_dt$signif_lab3 <- paste0(merged_dt$signif_lab, merged_dt$signif_lab2)
+  merged_dt$signif_lab2[merged_dt$signif_lab == "not signif."] <- "not signif."
+  
+  plot_dt <- merged_dt
+  
 
   sub_plot_dt <- plot_dt[plot_dt$hicds == ref_hicds &
                            plot_dt$exprds == exprds, ]
+  stopifnot(nrow(sub_plot_dt) == nrow(plot_dt))
   stopifnot(nrow(sub_plot_dt) > 0)
   
   stopifnot(ref_hicds %in% names(all_pairs_cols))
   stopifnot(match_hicds %in% names(all_pairs_cols))
-  ref_hicds_col <- as.character(all_pairs_cols[paste0(ref_hicds)])
-  match_hicds_col <- as.character(all_pairs_cols[paste0(match_hicds)])
 
   icol ="sig_ratio"
-  for(icol in c("sig_ratio", "mean_p")) {
+  for(icol in densplotcols) {
     
-    sub_plot_dt$match_ref_diff <- sub_plot_dt[,paste0(icol, "_", match_hicds_col)] - 
-                                    sub_plot_dt[,paste0(icol, "_", ref_hicds_col)] 
+    icol_lab <- gsub("_", "", icol)
     
-    myxlab <- paste0("match - ref ", icol)
-    myylab <- "ref. TAD adj. Pval [-log10]"
+    if(icol == "nRatioMatchEntries") {
+      # cat(paste0(paste0(icol,"_",ref_hicds_col, "_", match_hicds_col  ), "\n"))
+      # cat(paste0("..\n",colnames(sub_plot_dt), "\n"))
+      sub_plot_dt$match_ref_diff <- sub_plot_dt[,paste0(icol,"_",ref_hicds_col, "_", match_hicds_col  )]
+    } else {
       
-    mySub <- paste0("ref = ", ref_hicds, "; match = ", match_hicds, "; ", exprds, "; # TADs = ", nrow(sub_plot_dt))
+
+      
+      
+      myxlab <-paste0( ref_lab, " ", icol_lab)
+      myylab <- paste0(ref_lab, " TAD adj. p-val[-log10]")
+      
+      plotTit <- paste0(icol_lab, " ", ref_lab)
+      
+      mySub <- paste0(exprds, "; # signif. TADs = ", sum(sub_plot_dt$tad_signif), "/", nrow(sub_plot_dt))
+      
+      myy <- -log10(sub_plot_dt$adjPvalComb)
+      myx <- sub_plot_dt[,paste0(icol, "_", ref_hicds_col)] 
+
+      
+      outFile <- file.path(outFolder, paste0(icol, "_", ref_hicds_col, "_vs_adjPval.", plotType))
+      do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+      densplot(x=myx,
+               y=myy,
+               xlab = myxlab,
+               ylab =myylab,
+               main =plotTit,
+               cex.main=plotCex,
+               cex.lab=plotCex,
+               cex.axis=plotCex)
+      mtext(side=3, text = plotTit)
+      foo <- dev.off()
+      cat(paste0("... written: ", outFile, "\n"))
+      
+      
+      for(plotvar in densitycols) {
+        legTitle <- paste0("")
+        # my_cols <- setNames(pal_jama()(5)[c(3, 2,4)], sort(unique(sub_plot_dt[,paste0("tad_signif")])))
+        my_cols <- setNames(pal_jama()(5)[c(3, 2,4, 1)], sort(unique(sub_plot_dt[,paste0(plotvar)])))
+        # plotTit <- paste0(icol)
+        plotTit <- paste0(icol_lab, " ", ref_lab)
+        
+        mySub <- paste0(names(table(sub_plot_dt[,plotvar])),"=", as.numeric(table(sub_plot_dt[,plotvar])), collapse="; ") 
+        
+        p3 <- ggdensity(sub_plot_dt,
+                        x = paste0(paste0(icol, "_", ref_hicds_col)),
+                        y = "..density..",
+                        # combine = TRUE,                  # Combine the 3 plots
+                        xlab = paste0(myxlab),
+                        # add = "median",                  # Add median line.
+                        rug = FALSE,                      # Add marginal rug
+                        color = paste0(plotvar),
+                        fill = paste0(plotvar),
+                        # color = paste0("tad_signif"),
+                        # fill = paste0("tad_signif"),
+                        palette = "jco"
+        ) +
+          ggtitle(plotTit, subtitle = mySub)+
+          scale_color_manual(values=my_cols)+
+          scale_fill_manual(values=my_cols)  +
+          labs(color=paste0(legTitle),fill=paste0(legTitle), y="Density") +
+          guides(color=FALSE)+
+          scale_y_continuous(breaks = scales::pretty_breaks(n = 10))+
+          scale_x_continuous(breaks = scales::pretty_breaks(n = 10))+
+          mytheme
+        
+        outFile <- file.path(outFolder, paste0(icol, "_", ref_hicds_col, "_", plotvar, "_density.", plotType))
+        ggsave(p3, file=outFile, height=myHeightGG, width=myWidthGG)
+        cat(paste0("... written: ", outFile, "\n"))
+        
+        
+        
+        
+      } # end iterating over signif_lab
+      
+      
+      
+      
+      
+      sub_plot_dt$match_ref_diff <- sub_plot_dt[,paste0(icol, "_", match_hicds_col)] - 
+        sub_plot_dt[,paste0(icol, "_", ref_hicds_col)] 
+    }
+    
+    
+    myxlab <-paste0(match_lab, " - ", ref_lab, " ", icol_lab)
+    myylab <- paste0(ref_lab, " TAD adj. p-val[-log10]")
+    
+    plotTit <- paste0(icol_lab, " ", ref_lab, " (ref) vs. ", match_lab)
+      
+    mySub <- paste0(exprds, "; # signif. TADs = ", sum(sub_plot_dt$tad_signif), "/", nrow(sub_plot_dt))
     
     myy <- -log10(sub_plot_dt$adjPvalComb)
     myx <- sub_plot_dt$match_ref_diff
     
-    plot(x=myx,
+    outFile <- file.path(outFolder, paste0(icol, "_", ref_hicds_col, "_vs_", match_hicds_col, "_vs_adjPval.", plotType))
+    do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+    densplot(x=myx,
          y=myy,
+         xlab = myxlab,
+         ylab =myylab,
+         main =plotTit,
          cex.main=plotCex,
          cex.lab=plotCex,
          cex.axis=plotCex)
+    mtext(side=3, text = plotTit)
+    foo <- dev.off()
+    cat(paste0("... written: ", outFile, "\n"))
     
     
-  }
-  
-}
+    for(plotvar in densitycols) {
+      legTitle <- paste0("")
+      # my_cols <- setNames(pal_jama()(5)[c(3, 2,4)], sort(unique(sub_plot_dt[,paste0("tad_signif")])))
+      my_cols <- setNames(pal_jama()(5)[c(3, 2,4, 1)], sort(unique(sub_plot_dt[,paste0(plotvar)])))
+      # plotTit <- paste0(icol)
+      plotTit <- paste0(icol_lab, " ", ref_lab, " (ref) vs. ", match_lab)
+      
+      mySub <- paste0(names(table(sub_plot_dt[,plotvar])),"=", as.numeric(table(sub_plot_dt[,plotvar])), collapse="; ") 
+      
+      p3 <- ggdensity(sub_plot_dt,
+                      x = paste0("match_ref_diff"),
+                      y = "..density..",
+                      # combine = TRUE,                  # Combine the 3 plots
+                      xlab = paste0(myxlab),
+                      # add = "median",                  # Add median line.
+                      rug = FALSE,                      # Add marginal rug
+                      color = paste0(plotvar),
+                      fill = paste0(plotvar),
+                      # color = paste0("tad_signif"),
+                      # fill = paste0("tad_signif"),
+                      palette = "jco"
+      ) +
+        ggtitle(plotTit, subtitle = mySub)+
+        scale_color_manual(values=my_cols)+
+        scale_fill_manual(values=my_cols)  +
+        labs(color=paste0(legTitle),fill=paste0(legTitle), y="Density") +
+        guides(color=FALSE)+
+        scale_y_continuous(breaks = scales::pretty_breaks(n = 10))+
+        scale_x_continuous(breaks = scales::pretty_breaks(n = 10))+
+        mytheme
+      
+      outFile <- file.path(outFolder, paste0(icol, "_", ref_hicds_col, "_vs_", match_hicds_col, "_", plotvar, "_density.", plotType))
+      ggsave(p3, file=outFile, height=myHeightGG, width=myWidthGG)
+      cat(paste0("... written: ", outFile, "\n"))
+      
+      
+      
+      
+    } # end iterating over signif_lab
+    
+    
+    sub_plot_dt[,paste0(icol, "_match_ref_diff")] <- sub_plot_dt$match_ref_diff
+  } # end iterating over columns to plot
+  sub_plot_dt$ref_hicds <- ref_hicds
+  sub_plot_dt$match_hicds <- match_hicds
+  sub_plot_dt[,c("ref_hicds","exprds","adjPvalComb", "match_hicds","tad_signif",paste0(densplotcols, "_match_ref_diff"), densitycols)]
+} # end iterating over ds
 
+outFile <- file.path(outFolder, "all_plot_dt.Rdata")
+save(all_plot_dt, file=outFile, version=2)
+cat(paste0("... written: ", outFile, "\n"))
+
+exprds <- unique(all_plot_dt$exprds)
+stopifnot(length(exprds) == 1)
+
+icol ="sig_ratio"
+for(icol in densplotcols) {
+  
+  plotcol <- paste0(icol, "_match_ref_diff")
+  
+  nCmps <- length(unique(file.path(all_plot_dt$ref_hicds, all_plot_dt$match_hicds)))
+  
+  icol_lab <- gsub("_", "", icol)
+  
+  myxlab <-paste0( "match - ref", " ", icol_lab)
+  myylab <- paste0( "ref TAD adj. p-val[-log10]")
+  
+  plotTit <- paste0(icol_lab, " all DS (# cmps = ", nCmps, ")")
+  
+  mySub <- paste0(exprds, "; # signif. TADs = ", sum(all_plot_dt$tad_signif), "/", nrow(all_plot_dt))
+  
+  myy <- -log10(all_plot_dt$adjPvalComb)
+  myx <- all_plot_dt[,plotcol]
+  
+  outFile <- file.path(outFolder, paste0(icol, "", "ref", "_vs_", "match", "_vs_adjPval_allDS.", plotType))
+  do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+  densplot(x=myx,
+           y=myy,
+           xlab = myxlab,
+           ylab =myylab,
+           main =plotTit,
+           cex.main=plotCex,
+           cex.lab=plotCex,
+           cex.axis=plotCex)
+  mtext(side=3, text = plotTit)
+  foo <- dev.off()
+  cat(paste0("... written: ", outFile, "\n"))
+  
+  
+  for(plotvar in densitycols) {
+    legTitle <- paste0("")
+    # my_cols <- setNames(pal_jama()(5)[c(3, 2,4)], sort(unique(sub_plot_dt[,paste0("tad_signif")])))
+    my_cols <- setNames(pal_jama()(5)[c(3, 2,4, 1)], sort(unique(all_plot_dt[,paste0(plotvar)])))
+    # plotTit <- paste0(icol)
+    plotTit <- paste0(icol_lab, " allDS - ", "ref", " vs. ", "match",  " all DS (# cmps = ", nCmps, ")")
+    
+    mySub <- paste0(names(table(all_plot_dt[,plotvar])),"=", as.numeric(table(all_plot_dt[,plotvar])), collapse="; ") 
+    
+    p3 <- ggdensity(all_plot_dt,
+                    # x = paste0("match_ref_diff"),
+                    x = paste0(plotcol),
+                    y = "..density..",
+                    # combine = TRUE,                  # Combine the 3 plots
+                    xlab = paste0(myxlab),
+                    # add = "median",                  # Add median line.
+                    rug = FALSE,                      # Add marginal rug
+                    color = paste0(plotvar),
+                    fill = paste0(plotvar),
+                    # color = paste0("tad_signif"),
+                    # fill = paste0("tad_signif"),
+                    palette = "jco"
+    ) +
+      ggtitle(plotTit, subtitle = mySub)+
+      scale_color_manual(values=my_cols)+
+      scale_fill_manual(values=my_cols)  +
+      labs(color=paste0(legTitle),fill=paste0(legTitle), y="Density") +
+      guides(color=FALSE)+
+      scale_y_continuous(breaks = scales::pretty_breaks(n = 10))+
+      scale_x_continuous(breaks = scales::pretty_breaks(n = 10))+
+      mytheme
+    
+    outFile <- file.path(outFolder, paste0(icol, "ref_vs_match", "_", plotvar, "_density_allDS.", plotType))
+    ggsave(p3, file=outFile, height=myHeightGG, width=myWidthGG)
+    cat(paste0("... written: ", outFile, "\n"))
+    
+    
+    
+    
+  } # end iterating over signif_lab
+}
+  
+  
+  
 # cmp=all_cmps[1]
 # for(cmp in all_cmps) {
 #   
