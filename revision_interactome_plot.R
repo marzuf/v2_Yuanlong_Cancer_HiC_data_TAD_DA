@@ -90,6 +90,14 @@ for(ref_hicds in all_ref_hicds) {
     tad_lab <- paste0(gsub("chr", "", chromo), ":", tad_start, ":", tad_end)
     stopifnot(tad_lab %in% names(ref_data))
     
+    exp_dt <- ref_data[[tad_lab]][["summary_tab"]]
+    exp_dt <- exp_dt[,c(which(colnames(exp_dt) == "gene"), grep("exp_", colnames(exp_dt)))]
+    exp_dt <- exp_dt[exp_dt$gene != ".",]
+    stopifnot(ncol(exp_dt) == 4)
+    exp_dt[,2:4] <- round(exp_dt[,2:4],4)
+    print(exp_dt)
+    print(colSums(exp_dt[,2:4]))
+    
     print_dt <- ref_data[[tad_lab]][["summary_tab"]]
     print_dt <- unique(print_dt[,grepl("mean_p", colnames(print_dt)) | grepl("sig_", colnames(print_dt))])
     print_dt <- round(print_dt,4)
