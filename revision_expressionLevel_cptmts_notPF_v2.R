@@ -20,7 +20,7 @@ tadSignifThresh <- 0.01
 ### - notPF => keep only TADs for which I have association and not puritycorr
 ### v2 -> violinplot
 ###    -> cf pie -> barplot with ratio
-
+#### density with 3 cols
 # Rscript revision_expressionLevel_cptmts_notPF_v2.R
 
 outFolder <- file.path("REVISION_EXPRESSIONLEVEL_CPTMTS_NOTPF_V2")
@@ -115,8 +115,8 @@ stopifnot(!is.na(tad2cptmt_dt$tad_binaryCptmtLab))
 
 
 tad2cptmt_dt$tad_eightCptmtLab <- factor(tad2cptmt_dt$tad_eightCptmtLab,
-                                          levels=as.character(sort(unique(as.character(
-                                            tad2cptmt_dt$tad_eightCptmtLab)))))
+                                         levels=as.character(sort(unique(as.character(
+                                           tad2cptmt_dt$tad_eightCptmtLab)))))
 stopifnot(!is.na(tad2cptmt_dt$tad_eightCptmtLab))
 
 ###################
@@ -159,7 +159,7 @@ for(cptmt_var in all_cptmt_vars){
     plotTit <- paste0(plot_var, " by ", cptmt_var)
     
     mySub <- paste0("# DS = ", length(unique(file.path(tad2cptmt_dt$hicds,tad2cptmt_dt$exprds))),
-                                 "; # TADs = ", nrow(tad2cptmt_dt))
+                    "; # TADs = ", nrow(tad2cptmt_dt))
     
     pbox <- ggboxplot(tad2cptmt_dt, 
                       x=paste0(cptmt_var),
@@ -180,11 +180,12 @@ for(cptmt_var in all_cptmt_vars){
     
     
     pbox <- ggviolin(tad2cptmt_dt, 
-                      x=paste0(cptmt_var),
-                      y=paste0(plot_var),
-                      outlier.shape=NA#,
-                      # add="jitter"
-                      ) + 
+                     add = "boxplot",
+                     x=paste0(cptmt_var),
+                     y=paste0(plot_var),
+                     outlier.shape=NA#,
+                     # add="jitter"
+    ) + 
       mytheme +
       ggtitle(plotTit, subtitle = mySub)+
       # scale_color_manual(values=my_cols)+
@@ -196,6 +197,39 @@ for(cptmt_var in all_cptmt_vars){
     outFile <- file.path(outFolder,paste0(plot_var, "_byCptmt_", cptmt_var, "_violinplot.", plotType))
     ggsave(pbox, filename = outFile, height=myHeightGG, width=myWidthGG)
     cat(paste0("... written: ", outFile, "\n"))
+    
+    
+    if(cptmt_var == "tad_eightCptmtLab" ){
+      
+      tad2cptmt_dt$cptmt_var_grouped <- gsub("(.).+", "\\1", tad2cptmt_dt$tad_eightCptmtLab)
+      tad2cptmt_dt$cptmt_var_grouped[as.character(tad2cptmt_dt$tad_eightCptmtLab) == "B.2.2"] <- "B.2.2"
+      
+      save(tad2cptmt_dt, file="tmp_tad2cptmt_dt.Rdata", version=2)
+      
+      p3 <- ggdensity(tad2cptmt_dt,
+                      x = paste0(plot_var),
+                      # y = "..count..",
+                      y = "..density..",
+                      ylab="Density",
+                      rug = FALSE,                      # Add marginal rug
+                      color = paste0("cptmt_var_grouped"),
+                      fill = paste0("cptmt_var_grouped"),
+                      palette = "jco"
+      ) +
+        labs(color=paste0(legTitle),fill=paste0(legTitle), y="Density", x=paste0("TAD ", plot_var))+
+        
+        ggtitle(plotTit, subtitle = mySub)+
+        guides(color=FALSE)+
+        scale_y_continuous(breaks = scales::pretty_breaks(n = 10))+
+        scale_x_continuous(breaks = scales::pretty_breaks(n = 10))+
+        mytheme
+      
+      outFile <- file.path(outFolder,paste0(plot_var, "_byCptmt_", cptmt_var, "_groupedDensityplot.", plotType))
+      ggsave(p3, filename = outFile, height=myHeightGG, width=myWidthGG)
+      cat(paste0("... written: ", outFile, "\n"))
+      
+      
+    }
     
     
     
@@ -217,8 +251,8 @@ for(cptmt_var in all_cptmt_vars){
     
     myx <- tad2cptmt_dt[,paste0(cptmt_var)]
     myy <- tad2cptmt_dt[,paste0(plot_var)]
-
-        
+    
+    
     plotTit <- paste0( plot_var, " by ", cptmt_var)
     
     mySub <- paste0("# DS = ", length(unique(file.path(tad2cptmt_dt$hicds,tad2cptmt_dt$exprds))),
@@ -240,7 +274,7 @@ for(cptmt_var in all_cptmt_vars){
     foo <- dev.off()
     cat(paste0("... written: ", outFile, "\n"))
     
-
+    
   }
 }
 
@@ -305,6 +339,35 @@ for(cptmt_var in all_cptmt_vars){
   ### barplot ratio
   save(agg_dt, file="agg_dt.Rdata", version=2)
   save(tmp_dt, file="tmp_dt.Rdata", version=2)
+  
+  bp_all_dt <- tmp_dt
+  bp_signif_dt <- agg_dt
+  both_dt <- merge(bp_all_dt, bp_signif_dt, by=c(cptmt_var), suffixes = c("_all", "_signif"), all=TRUE)
+  
+  both_dt$signif_enrich <-  both_dt$ratioTADs_signif/both_dt$ratioTADs_all
+  stopifnot(!is.na(both_dt$signif_enrich))
+  
+  both_dt$signif_enrich_hk <-  both_dt$signif_enrich-1
+  
+  shift_trans = function(d = 0) {
+    scales::trans_new("shift", transform = function(x) x - d, inverse = function(x) x + d)
+  }
+  
+  myTit <- paste0("Signif./all TADs dist. across ", cptmt_var)
+  
+  
+  enrich_p <- ggbarplot(data=both_dt,x=cptmt_var, y = "signif_enrich", fill = cptmt_var,
+                        xlab="", ylab ="signif./all ratio of TADs") + 
+    geom_hline(yintercept = 1) +
+    scale_y_continuous(trans = shift_trans(1)) +
+    ggtitle(myTit, subtitle=mysub)+
+    labs(fill="") #+
+  # blank_theme
+  
+  outFile <- file.path(outFolder, paste0( "ratio_distSignifOverAllTADs_by_", cptmt_var, "_barplot.", plotType))
+  ggsave(enrich_p, file=outFile, height=myHeightGG, width=myWidthGG)
+  cat(paste0("... written: ", outFile, "\n"))
+  
   
 }
 

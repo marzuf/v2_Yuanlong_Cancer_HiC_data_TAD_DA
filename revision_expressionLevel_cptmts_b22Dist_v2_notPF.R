@@ -22,7 +22,7 @@ tadSignifThresh <- 0.01
 
 ### SAMPLE SAME SIZE DIST AS IN B22
 
-nRandom <- 100
+nRandom <- 100000
 runPermut <- TRUE
 # Rscript revision_expressionLevel_cptmts_b22Dist_v2_notPF.R
 
@@ -115,8 +115,8 @@ stopifnot(!is.na(tad2cptmt_dt$tad_binaryCptmtLab))
 
 
 tad2cptmt_dt$tad_eightCptmtLab <- factor(tad2cptmt_dt$tad_eightCptmtLab,
-                                          levels=as.character(sort(unique(as.character(
-                                            tad2cptmt_dt$tad_eightCptmtLab)))))
+                                         levels=as.character(sort(unique(as.character(
+                                           tad2cptmt_dt$tad_eightCptmtLab)))))
 stopifnot(!is.na(tad2cptmt_dt$tad_eightCptmtLab))
 
 
@@ -161,7 +161,7 @@ tad2cptmt_dt[,cptmt_var] <- as.character(tad2cptmt_dt[,cptmt_var])
 stopifnot(ref_cptmt %in% tad2cptmt_dt[,cptmt_var] )
 
 ref_sizeDist <-table( tad2cptmt_dt[,strat_var][tad2cptmt_dt[,cptmt_var] == ref_cptmt])
-  
+
 stopifnot(sum(ref_sizeDist) == sum(tad2cptmt_dt[,cptmt_var] == ref_cptmt))
 
 othercptmt_dt <- tad2cptmt_dt[tad2cptmt_dt[,cptmt_var] != ref_cptmt,]
@@ -237,7 +237,7 @@ for(cptmt_var in all_cptmt_vars){
     # plotTit <- paste0(plot_var, " by ", cptmt_var)
     
     mySub <- paste0("# DS = ", length(unique(file.path(tad2cptmt_dt$hicds,tad2cptmt_dt$exprds))),
-                                 "; # TADs = ", nrow(tad2cptmt_dt), "; # permut. = ", nRandom)
+                    "; # TADs = ", nrow(tad2cptmt_dt), "; # permut. = ", nRandom)
     
     pbox <- ggboxplot(tad2cptmt_dt, 
                       outlier.shape=NA,
@@ -256,16 +256,17 @@ for(cptmt_var in all_cptmt_vars){
     ggsave(pbox, filename = outFile, height=myHeightGG, width=myWidthGG)
     cat(paste0("... written: ", outFile, "\n"))
     
-
+    
     mySub <- paste0("# DS = ", length(unique(file.path(tad2cptmt_dt$hicds,tad2cptmt_dt$exprds))),
                     "; # TADs = ", nrow(tad2cptmt_dt), "; # permut. = ", nRandom)
     
     pbox <- ggviolin(tad2cptmt_dt, 
-                      outlier.shape=NA,
-                      x=paste0(cptmt_var),
-                      y=paste0(plot_var) #,
-                      # add="jitter"
-                     ) + 
+                     outlier.shape=NA,
+                     add = "boxplot",
+                     x=paste0(cptmt_var),
+                     y=paste0(plot_var) #,
+                     # add="jitter"
+    ) + 
       mytheme +
       ggtitle(plotTit, subtitle = mySub)+
       # scale_color_manual(values=my_cols)+
@@ -277,6 +278,36 @@ for(cptmt_var in all_cptmt_vars){
     outFile <- file.path(outFolder,paste0(plot_var, "_byCptmt_", cptmt_var, "_violinplot.", plotType))
     ggsave(pbox, filename = outFile, height=myHeightGG, width=myWidthGG)
     cat(paste0("... written: ", outFile, "\n"))
+    
+    if(cptmt_var == "tad_eightCptmtLab" ){
+      
+      tad2cptmt_dt$cptmt_var_grouped <- gsub("(.).+", "\\1", tad2cptmt_dt$tad_eightCptmtLab)
+      tad2cptmt_dt$cptmt_var_grouped[as.character(tad2cptmt_dt$tad_eightCptmtLab) == "B.2.2"] <- "B.2.2"
+      
+      # save(tad2cptmt_dt, file="tmp_tad2cptmt_dt.Rdata", version=2)
+      
+      p3 <- ggdensity(tad2cptmt_dt,
+                      x = paste0(plot_var),
+                      # y = "..count..",
+                      y = "..density..",
+                      ylab="Density",
+                      rug = FALSE,                      # Add marginal rug
+                      color = paste0("cptmt_var_grouped"),
+                      fill = paste0("cptmt_var_grouped"),
+                      palette = "jco"
+      ) +
+        labs(color=paste0(legTitle),fill=paste0(legTitle), y="Density", x=paste0("TAD ", plot_var))+
+        
+        ggtitle(plotTit, subtitle = mySub)+
+        guides(color=FALSE)+
+        scale_y_continuous(breaks = scales::pretty_breaks(n = 10))+
+        scale_x_continuous(breaks = scales::pretty_breaks(n = 10))+
+        mytheme
+      
+      outFile <- file.path(outFolder,paste0(plot_var, "_byCptmt_", cptmt_var, "_groupedDensityplot.", plotType))
+      ggsave(p3, filename = outFile, height=myHeightGG, width=myWidthGG)
+      cat(paste0("... written: ", outFile, "\n"))
+    }
     
     
     
