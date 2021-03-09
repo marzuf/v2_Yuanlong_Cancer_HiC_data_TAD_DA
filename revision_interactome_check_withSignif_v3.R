@@ -95,7 +95,7 @@ for(plotcol in all_cols) {
            cex.axis=plotCex)
   mtext(side=3, text = plotTit)
   addCorr(x=myx,y=myy, legPos="topleft", bty="n")
-  points(x=points_x,y=points_y, col="darkgreen", size=5)
+  points(x=points_x,y=points_y, col="darkgreen", size=8, pch=8)
   foo <- dev.off()
   cat(paste0("... written: ", outFile, "\n"))
 }

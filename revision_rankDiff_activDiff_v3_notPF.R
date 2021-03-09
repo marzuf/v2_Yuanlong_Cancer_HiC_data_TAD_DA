@@ -487,6 +487,60 @@ qt_rankdiff <- quantile(matching_withRank_dt$abs_rankDiff, probs=quantileThresh)
 
 ###### threshold 2- cptmt change
 qt_diffcptmt <- quantile(abs(cptmt_dt$rankDiff)[!cptmt_dt$sameCptmt_eight], probs=quantileThreshCptmt)
+outFile <- file.path(".", "cptmt_dt.Rdata")
+save(cptmt_dt, file=outFile)
+
+thresh1 <- quantile(abs(cptmt_dt$rankDiff)[!cptmt_dt$sameCptmt_eight], probs=0.75)
+thresh2 <- quantile(abs(cptmt_dt$rankDiff)[!cptmt_dt$sameCptmt_eight], probs=0.8)
+thresh3 <- quantile(abs(cptmt_dt$rankDiff)[!cptmt_dt$sameCptmt_eight], probs=0.9)
+
+cptmt_dt$abs_rankDiff <- abs(cptmt_dt$rankDiff)
+
+plotTit <- ""
+mySub <- ""
+
+qtcol <- "red"
+
+p3 <- gghistogram(cptmt_dt,
+                  x = paste0("abs_rankDiff"),
+                  # y = "..density..",
+                  y = "..density..",
+                  bins =nHistBins,
+                  # ylab="# TADs",
+                  ylab="Density", ## too different scale for numbers!
+                  # combine = TRUE,                  # Combine the 3 plots
+                  xlab = paste0("Abs. rank diff. with matched TAD"),
+                  # add = "median",                  # Add median line.
+                  rug = FALSE,                      # Add marginal rug
+                  color = "sameCptmt_eight",
+                  fill = "sameCptmt_eight",
+                  palette = "jco"
+) +
+  # ggtitle(plotTit, subtitle = mySub)+
+  # scale_color_manual(values=my_cols)+
+  # scale_fill_manual(values=my_cols)  +
+  # labs(color=paste0(legTitle),fill=paste0(legTitle), y="Density") +
+  # guides(color=FALSE)+
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 10))+
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
+  mytheme+
+  geom_vline(xintercept=c(thresh1, thresh2, thresh3), linetype=2, col=qtcol)
+
+
+txtY <- ggplot_build(p3)$layout$panel_scales_y[[1]]$range$range[2]
+
+p3 <- p3 +   annotate("text", 
+                      label=c("0.75-qt", "0.8-qt", "0.9-qt"), 
+                      x=c(thresh1, thresh2, thresh3),
+                      y =txtY, color = qtcol,
+                      hjust = 0, vjust=1)
+
+
+outFile <- file.path(outFolder, paste0("tad_absRankDiff_same_diff_cptmt_withQtThresh.", plotType))
+ggsave(p3, file=outFile, height=myHeightGG, width=myWidthGG*1.2)
+cat(paste0("... written: ", outFile, "\n"))
+
+stop("-ok\n")
 
 ##################
 plot_dt <- matching_withRank_dt
