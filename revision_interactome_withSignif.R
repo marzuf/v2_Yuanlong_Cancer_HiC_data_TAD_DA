@@ -21,7 +21,7 @@ myWidthGG <- 7
 myHeightGG <- 5
 plotCex <- 1.2
 
-buildTable <- F
+buildTable <- T
 
 tad_signifThresh <- 0.01
 
@@ -155,11 +155,18 @@ if(buildTable){
       stopifnot(length(i_others) == 2)
       ref_mat <- as.matrix(all_mats[[i_ref]])
       stopifnot(nrow(ref_mat) == ncol(ref_mat))
+      
 
       stopifnot(nrow(ref_mat) == (tad_end-tad_start+1)/initbinsize*(initbinsize/hicdcbinsize))
       ref_values <- ref_mat[lower.tri(ref_mat, diag=TRUE)]
       stopifnot(length(ref_values) == nrow(ref_mat) * (nrow(ref_mat)+1) * 0.5)
       i_mat=2
+      
+      
+      nSignif_refMat <- sum(na.omit(ref_values >= -log10(signifThresh)))
+        
+      sub_dt[,paste0("nSignif_", ref_ds)] <- nSignif_refMat
+      
       for(i_mat in i_others) {
         match_mat <- all_mats[[i_mat]]
         stopifnot(dim(match_mat) == dim(ref_mat))
@@ -169,6 +176,10 @@ if(buildTable){
         ### THEY ARE ALREADY IN -LOG10 !!!
         matching_vals <- na.omit((ref_values >= -log10(signifThresh)) == (match_values >= -log10(signifThresh)))
 
+        nSignif_matchMat <- sum(na.omit(match_values >= -log10(signifThresh)))
+        
+        sub_dt[,paste0("nSignif_", names(all_mats)[i_mat])] <- nSignif_matchMat
+        
         nMatchingEntries <- length(matching_vals)
         nSameEntries <- sum(matching_vals)
         stopifnot(nSameEntries/nMatchingEntries >= 0 &  nSameEntries/nMatchingEntries <= 1)
@@ -227,7 +238,8 @@ stopifnot(nrow(sub_final_table_DT) > 0)
 
 stopifnot(length(unique(sub_final_table_DT$exprds)) == 1)
 
-densplotcols <- c("nRatioMatchEntries", "sig_ratio", "mean_p", "p_two_side")
+# densplotcols <- c("nRatioMatchEntries", "sig_ratio", "mean_p", "p_two_side")
+densplotcols <- c("nSignif")
 # densplotcols <- c( "p_two_side")
 # densitycols <- c("signif_lab", "signif_lab2", "signif_lab3")
 densitycols <- c( "signif_lab2")
