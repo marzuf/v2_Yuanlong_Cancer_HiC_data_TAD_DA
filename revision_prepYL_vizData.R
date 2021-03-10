@@ -5,7 +5,11 @@ result_file <- file.path(runFolder,"CREATE_FINAL_TABLE", "all_result_dt.Rdata")
 resultData <- get(load(result_file))
 resultData$dataset <- file.path(resultData$hicds, resultData$exprds)
 resultData$region_id <- file.path(resultData$dataset, resultData$region)
-resultData$signif_lab <- ifelse(resultData$adjPvalComb <= pvalthresh, "signif.", "not signif.")
+resultData$signif_lab <- ifelse(resultData$adjPvalComb <= pvalthresh, "signif", "notsignif")
+resultData$direction_lab <- ifelse(resultData$meanLogFC <0, "down", 
+                                   ifelse(resultData$meanLogFC >0, "up",NA))
+stopifnot(!is.na(resultData$direction_lab))
+resultData$signif_lab <- paste0(resultData$signif_lab, ".", resultData$direction_lab)
 signif_labs <- setNames(resultData$signif_lab, resultData$region_id)
 
 hicds_of_interest <- c( "GSE118514_RWPE1_40kb", "ENCSR346DCU_LNCaP_40kb", "GSE118514_22Rv1_40kb")
