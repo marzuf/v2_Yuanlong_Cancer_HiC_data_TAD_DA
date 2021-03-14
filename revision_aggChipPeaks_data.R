@@ -38,6 +38,8 @@ exprds <- "TCGAprad_norm_prad"
 ref_hicds <- "GSE118514_RWPE1_40kb"
 match_hicds <- "GSE118514_22Rv1_40kb"
 
+# match_hicds<- "GSE118514_RWPE1_40kb"
+# ref_hicds <- "GSE118514_22Rv1_40kb"
 
 ref_lab <- gsub(".+_(.+)_40kb", "\\1", ref_hicds)
 match_lab <- gsub(".+_(.+)_40kb", "\\1", match_hicds)
@@ -219,4 +221,85 @@ for(plotvar in c("nbrPeaks", "meanQvalue")) {
   
   
 }
+for(plotvar in c("nbrPeaks", "meanQvalue")) {
+  
+
+  colplot <- paste0("ref_", plotvar)
+  stopifnot(colplot %in% colnames(tad_withPeaks_dt))
+  
+
+  plot_dt <- na.omit(tad_withPeaks_dt[,c(colplot, fillvar)])
+  
+  legTitle <- paste0("")
+  # my_cols <- setNames(pal_jama()(5)[c(3, 2,4)], sort(unique(sub_plot_dt[,paste0("tad_signif")])))
+  my_cols <- setNames(pal_jama()(5)[c(3, 2,4, 1)], sort(unique(plot_dt[,paste0(fillvar)])))
+  # plotTit <- paste0(icol)
+  plotTit <- paste0(plotvar, " ", ref_lab, " (ref.)")
+  
+  mySub1 <- paste0(nrow(plot_dt), "/", nrow(tad_withPeaks_dt))
+  mySub2 <-  paste0(names(table(plot_dt[,fillvar])),"=", as.numeric(table(plot_dt[,fillvar])), collapse="; ") 
+  
+  mySub <- paste0(mySub1, "; ", mySub2)
+  
+  myylab <- paste0(colplot)
+  
+  # p3 <- ggdensity(plot_dt,
+  #                 x = paste0(colplot),
+  #                 y = "..density..",
+  #                 # combine = TRUE,                  # Combine the 3 plots
+  #                 xlab = paste0(myxlab),
+  #                 # add = "median",                  # Add median line.
+  #                 rug = FALSE,                      # Add marginal rug
+  #                 color = paste0(fillvar),
+  #                 fill = paste0(fillvar),
+  #                 # color = paste0("tad_signif"),
+  #                 # fill = paste0("tad_signif"),
+  #                 palette = "jco"
+  # ) +
+  #   ggtitle(plotTit, subtitle = mySub)+
+  #   scale_color_manual(values=my_cols)+
+  #   scale_fill_manual(values=my_cols)  +
+  #   labs(color=paste0(legTitle),fill=paste0(legTitle), y="Density") +
+  #   guides(color=FALSE)+
+  #   scale_y_continuous(breaks = scales::pretty_breaks(n = 10))+
+  #   scale_x_continuous(breaks = scales::pretty_breaks(n = 10))+
+  #   mytheme
+  # 
+  # outFile <- file.path(outFolder, paste0(icol, "_", ref_hicds_col, "_vs_", match_hicds_col, "_", plotvar, "_density.", plotType))
+  # ggsave(p3, file=outFile, height=myHeightGG, width=myWidthGG)
+  # cat(paste0("... written: ", outFile, "\n"))
+  
+  
+  p3 <- ggboxplot(plot_dt,
+                  y = paste0(colplot),
+                  x = paste0(fillvar),
+                  # combine = TRUE,    
+                  xlab = "",
+                  ylab = paste0(myylab),
+                  # add = "median",                  # Add median line.
+                  rug = FALSE,                      # Add marginal rug
+                  color = paste0(fillvar),
+                  # fill = paste0(fillvar),
+                  # color = paste0("tad_signif"),
+                  # fill = paste0("tad_signif"),
+                  palette = "jco"
+  ) +
+    geom_hline(yintercept=1)+
+    ggtitle(plotTit, subtitle = mySub)+
+    scale_color_manual(values=my_cols)+
+    scale_fill_manual(values=my_cols)  +
+    labs(color=paste0(legTitle),fill=paste0(legTitle)) +
+    guides(color=FALSE)+
+    scale_y_continuous(breaks = scales::pretty_breaks(n = 10))+
+    # scale_x_continuous(breaks = scales::pretty_breaks(n = 10))+
+    mytheme
+  
+  outFile <- file.path(outFolder, paste0(plotvar, "_", ref_lab, "_boxplot.", plotType))
+  ggsave(p3, file=outFile, height=myHeightGG, width=myWidthGG)
+  cat(paste0("... written: ", outFile, "\n"))
+  
+  
+  
+}
+
 
