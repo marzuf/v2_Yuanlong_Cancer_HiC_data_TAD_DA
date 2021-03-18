@@ -58,7 +58,7 @@ axisCex <- 1.2
 myHeightGG <- 7
 myWidthGG <- 7
 
-cptmt_dt <- get(load("REVISION_CHANGES_CPTMTLABELS_V2_NOTPF/plot_dt.Rdata"))
+cptmt_dt <- get(load("REVISION_CHANGES_CPTMTLABELS_V3_NOTPF/plot_dt.Rdata"))
 
 
 #### #### #### #### #### #### #### #### #### #### #### #### 
@@ -114,7 +114,8 @@ tadSignifThresh <- 0.01
 
 nPlotted <- 10
 
-quantileThreshCptmt <- 0.75
+quantileThreshCptmt <- 0.5
+quantileThreshSameCptmt <- 1
 
 quantileThresh <- 0.9
 qtcol <- "red"
@@ -490,9 +491,28 @@ qt_diffcptmt <- quantile(abs(cptmt_dt$rankDiff)[!cptmt_dt$sameCptmt_eight], prob
 outFile <- file.path(".", "cptmt_dt.Rdata")
 save(cptmt_dt, file=outFile)
 
+###### threshold 3- same cptmt change
+qt_samecptmt <- quantile(abs(cptmt_dt$rankDiff)[cptmt_dt$sameCptmt_eight], probs=quantileThreshSameCptmt)
+
+
+
+same_thresh0 <- quantile(abs(cptmt_dt$rankDiff)[cptmt_dt$sameCptmt_eight], probs=0.9)
+same_thresh1 <- quantile(abs(cptmt_dt$rankDiff)[cptmt_dt$sameCptmt_eight], probs=0.95)
+same_thresh2 <- quantile(abs(cptmt_dt$rankDiff)[cptmt_dt$sameCptmt_eight], probs=0.99)
+
+
+thresh0 <- quantile(abs(cptmt_dt$rankDiff)[!cptmt_dt$sameCptmt_eight], probs=0.5)
 thresh1 <- quantile(abs(cptmt_dt$rankDiff)[!cptmt_dt$sameCptmt_eight], probs=0.75)
 thresh2 <- quantile(abs(cptmt_dt$rankDiff)[!cptmt_dt$sameCptmt_eight], probs=0.8)
 thresh3 <- quantile(abs(cptmt_dt$rankDiff)[!cptmt_dt$sameCptmt_eight], probs=0.9)
+
+all_threshsQt <- c(0.5,0.75,0.8,0.9)
+
+all_threshsSameQt <- c(0.9, 0.95, 0.99)
+
+all_threshs_same <- c(same_thresh0, same_thresh1, same_thresh2)
+
+all_threshs <- c(thresh0, thresh1, thresh2, thresh3)
 
 cptmt_dt$abs_rankDiff <- abs(cptmt_dt$rankDiff)
 
@@ -518,20 +538,24 @@ p3 <- gghistogram(cptmt_dt,
 ) +
   # ggtitle(plotTit, subtitle = mySub)+
   # scale_color_manual(values=my_cols)+
+  ggtitle("Qt changing-cptmt rank diff.", subtitle = "")+
   # scale_fill_manual(values=my_cols)  +
   # labs(color=paste0(legTitle),fill=paste0(legTitle), y="Density") +
   # guides(color=FALSE)+
   scale_y_continuous(breaks = scales::pretty_breaks(n = 10))+
   scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
   mytheme+
-  geom_vline(xintercept=c(thresh1, thresh2, thresh3), linetype=2, col=qtcol)
+  # geom_vline(xintercept=c(thresh1, thresh2, thresh3), linetype=2, col=qtcol)
+geom_vline(xintercept=c(all_threshs), linetype=2, col=qtcol)
+
 
 
 txtY <- ggplot_build(p3)$layout$panel_scales_y[[1]]$range$range[2]
 
 p3 <- p3 +   annotate("text", 
-                      label=c("0.75-qt", "0.8-qt", "0.9-qt"), 
-                      x=c(thresh1, thresh2, thresh3),
+                      # label=c("0.75-qt", "0.8-qt", "0.9-qt"), 
+                      label=paste0(all_threshsQt, c("-qt (diff. cptmt. dist.)")),
+                      x=c(all_threshs),
                       y =txtY, color = qtcol,
                       hjust = 0, vjust=1)
 
@@ -540,7 +564,149 @@ outFile <- file.path(outFolder, paste0("tad_absRankDiff_same_diff_cptmt_withQtTh
 ggsave(p3, file=outFile, height=myHeightGG, width=myWidthGG*1.2)
 cat(paste0("... written: ", outFile, "\n"))
 
-stop("-ok\n")
+
+
+
+
+
+p3 <- gghistogram(cptmt_dt,
+                  x = paste0("abs_rankDiff"),
+                  # y = "..density..",
+                  y = "..density..",
+                  bins =nHistBins,
+                  # ylab="# TADs",
+                  ylab="Density", ## too different scale for numbers!
+                  # combine = TRUE,                  # Combine the 3 plots
+                  xlab = paste0("Abs. rank diff. with matched TAD"),
+                  # add = "median",                  # Add median line.
+                  rug = FALSE,                      # Add marginal rug
+                  color = "sameCptmt_eight",
+                  fill = "sameCptmt_eight",
+                  palette = "jco"
+) +
+  ggtitle("Qt same-cptmt rank diff.", subtitle = "")+
+  # scale_color_manual(values=my_cols)+
+  # scale_fill_manual(values=my_cols)  +
+  # labs(color=paste0(legTitle),fill=paste0(legTitle), y="Density") +
+  # guides(color=FALSE)+
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 10))+
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
+  mytheme+
+  # geom_vline(xintercept=c(thresh1, thresh2, thresh3), linetype=2, col=qtcol)
+  geom_vline(xintercept=c(all_threshs_same), linetype=2, col=qtcol)
+
+
+
+txtY <- ggplot_build(p3)$layout$panel_scales_y[[1]]$range$range[2]
+
+p3 <- p3 +   annotate("text", 
+                      # label=c("0.75-qt", "0.8-qt", "0.9-qt"), 
+                      label=paste0(all_threshsSameQt, c("-qt (same cptmt. dist.)")),
+                      x=c(all_threshs_same),
+                      y =txtY, color = qtcol,
+                      hjust = 0, vjust=1)
+
+
+outFile <- file.path(outFolder, paste0("tad_absRankDiff_same_diff_cptmt_withSameQtThresh.", plotType))
+ggsave(p3, file=outFile, height=myHeightGG, width=myWidthGG*1.2)
+cat(paste0("... written: ", outFile, "\n"))
+
+
+
+
+
+
+
+
+
+p3 <- gghistogram(cptmt_dt,
+                  x = paste0("abs_rankDiff"),
+                  # y = "..density..",
+                  y = "..density..",
+                  bins =nHistBins,
+                  # ylab="# TADs",
+                  ylab="Density", ## too different scale for numbers!
+                  # combine = TRUE,                  # Combine the 3 plots
+                  xlab = paste0("Abs. rank diff. with matched TAD"),
+                  # add = "median",                  # Add median line.
+                  rug = FALSE,                      # Add marginal rug
+                  # color = "sameCptmt_eight",
+                  # fill = "sameCptmt_eight",
+                  palette = "jco"
+) +
+  # ggtitle(plotTit, subtitle = mySub)+
+  # scale_color_manual(values=my_cols)+
+  # scale_fill_manual(values=my_cols)  +
+  # labs(color=paste0(legTitle),fill=paste0(legTitle), y="Density") +
+  # guides(color=FALSE)+
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 10))+
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
+  mytheme+
+  # geom_vline(xintercept=c(thresh1, thresh2, thresh3), linetype=2, col=qtcol)
+  geom_vline(xintercept=c(qt_rankdiff), linetype=2, col=qtcol)
+
+
+
+txtY <- ggplot_build(p3)$layout$panel_scales_y[[1]]$range$range[2]
+
+p3 <- p3 +   annotate("text", 
+                      # label=c("0.75-qt", "0.8-qt", "0.9-qt"), 
+                      label=paste0(quantileThresh, c("-qt (all dist.)")),
+                      x=c(qt_rankdiff),
+                      y =txtY, color = qtcol,
+                      hjust = 0, vjust=1)
+
+
+outFile <- file.path(outFolder, paste0("tad_absRankDiff_allDist_cptmt_withQtThresh.", plotType))
+ggsave(p3, file=outFile, height=myHeightGG, width=myWidthGG*1.2)
+cat(paste0("... written: ", outFile, "\n"))
+
+
+
+
+p3 <- gghistogram(cptmt_dt,
+                  x = paste0("abs_rankDiff"),
+                  # y = "..density..",
+                  y = "..density..",
+                  bins =nHistBins,
+                  # ylab="# TADs",
+                  ylab="Density", ## too different scale for numbers!
+                  # combine = TRUE,                  # Combine the 3 plots
+                  xlab = paste0("Abs. rank diff. with matched TAD"),
+                  # add = "median",                  # Add median line.
+                  rug = FALSE,                      # Add marginal rug
+                  # color = "sameCptmt_eight",
+                  # fill = "sameCptmt_eight",
+                  palette = "jco"
+) +
+  # ggtitle(plotTit, subtitle = mySub)+
+  # scale_color_manual(values=my_cols)+
+  # scale_fill_manual(values=my_cols)  +
+  # labs(color=paste0(legTitle),fill=paste0(legTitle), y="Density") +
+  # guides(color=FALSE)+
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 10))+
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
+  mytheme+
+  # geom_vline(xintercept=c(thresh1, thresh2, thresh3), linetype=2, col=qtcol)
+  geom_vline(xintercept=c(qt_rankdiff), linetype=2, col=qtcol)
+
+
+
+txtY <- ggplot_build(p3)$layout$panel_scales_y[[1]]$range$range[2]
+
+p3 <- p3 +   annotate("text", 
+                      # label=c("0.75-qt", "0.8-qt", "0.9-qt"), 
+                      label=paste0(quantileThresh, c("-qt (all dist.)")),
+                      x=c(qt_rankdiff),
+                      y =txtY, color = qtcol,
+                      hjust = 0, vjust=1)
+
+
+outFile <- file.path(outFolder, paste0("tad_absRankDiff_allDist_cptmt_withSameQtThresh.", plotType))
+ggsave(p3, file=outFile, height=myHeightGG, width=myWidthGG*1.2)
+cat(paste0("... written: ", outFile, "\n"))
+
+# stop("-ok\n")
 
 ##################
 plot_dt <- matching_withRank_dt
@@ -560,18 +726,28 @@ nnonsignif <- sum(plot_dt$ref_tadSignif == "not signif.")
 
 col_var <- "abs_rankDiff"
 
-for(threshtype in c("qtDist", "qtCptmt")) {
+for(threshtype in c("qtDist", "qtCptmt", "qtSameCptmt")) {
   
   
   if(threshtype == "qtDist") {
     curr_thresh <- qt_rankdiff
+    curr_thresh_name <- quantileThresh
     threshLab <-   paste0(quantileThresh, "-qt for all TADs (", round(curr_thresh, 4), ")") 
   } else if(threshtype == "qtCptmt") {
     curr_thresh <- qt_diffcptmt
+    curr_thresh_name <- quantileThreshCptmt
     threshLab <-   paste0(quantileThreshCptmt, "-qt of cptmt-changing TADs (", round(curr_thresh, 4), ")")
-  } else {
+  } else if(threshtype == "qtSameCptmt") {
+    curr_thresh <- qt_samecptmt
+    curr_thresh_name <- quantileThreshSameCptmt
+    threshLab <-   paste0(quantileThreshSameCptmt, "-qt of same-cptmt TADs (", round(curr_thresh, 4), ")")
+  }else {
     stop("-ok\n")
   }
+  
+  print(paste0("THRESHTYPE=", threshtype, "\n"))
+  print(paste0("curr_thresh=", round(curr_thresh, 4), "\n"))
+  print(paste0("curr_thresh_name=", round(curr_thresh_name, 4), "\n"))
   
   tmp_ctg_dt <- matching_withRank_dt
   tmp_ctg_dt$aboveQt <- tmp_ctg_dt$abs_rankDiff >= curr_thresh
@@ -635,7 +811,8 @@ for(threshtype in c("qtDist", "qtCptmt")) {
                         y =txtY, color = qtcol, hjust = 0, vjust=1)
   
   
-  outFile <- file.path(outFolder, paste0("tad_absRankDiff_signif_notsignif_", threshtype, "_thresh_hist.", plotType))
+  outFile <- file.path(outFolder, paste0("tad_absRankDiff_signif_notsignif_", threshtype, "_thresh", 
+                                         gsub("\\.", "", as.character(curr_thresh_name)), "_hist.", plotType))
   ggsave(p3, file=outFile, height=myHeightGG, width=myWidthGG*1.2)
   cat(paste0("... written: ", outFile, "\n"))
   
@@ -688,7 +865,8 @@ for(threshtype in c("qtDist", "qtCptmt")) {
                         hjust = 0, vjust=1)
   
   
-  outFile <- file.path(outFolder, paste0("tad_absRankDiff_signif_notsignif_withAll_", threshtype, "_thresh_hist.", plotType))
+  outFile <- file.path(outFolder, paste0("tad_absRankDiff_signif_notsignif_withAll_", threshtype, "_thresh", 
+                                         gsub("\\.", "", as.character(curr_thresh_name)), "_hist.", plotType))
   ggsave(p3, file=outFile, height=myHeightGG, width=myWidthGG*1.2)
   cat(paste0("... written: ", outFile, "\n"))
   
@@ -697,7 +875,14 @@ for(threshtype in c("qtDist", "qtCptmt")) {
   tmp_ctg_dt <- matching_withRank_dt
   tmp_ctg_dt$aboveQt <- tmp_ctg_dt$abs_rankDiff >= curr_thresh
   ctg_mat <- table(tmp_ctg_dt$aboveQt, tmp_ctg_dt$ref_tadSignif)
+  
+  
   names(dimnames(ctg_mat)) <- c("GeQt", "TAD signif." )
+  
+  print(paste0("THRESHTYPE=", threshtype, "\n"))
+  print(paste0("curr_thresh=", round(curr_thresh, 4), "\n"))
+  print(paste0("curr_thresh_name=", round(curr_thresh_name, 4), "\n"))
+  
   print(ctg_mat)
   
   
@@ -756,7 +941,8 @@ for(threshtype in c("qtDist", "qtCptmt")) {
                         y =txtY, color = qtcol, hjust = 0, vjust=1)
   
   
-  outFile <- file.path(outFolder, paste0("tad_absRankDiff_signif_notsignif_", threshtype, "_thresh_density.", plotType))
+  outFile <- file.path(outFolder, paste0("tad_absRankDiff_signif_notsignif_", threshtype, "_thresh", 
+                                         gsub("\\.", "", as.character(curr_thresh_name)), "_density.", plotType))
   ggsave(p3, file=outFile, height=myHeightGG, width=myWidthGG*1.2)
   cat(paste0("... written: ", outFile, "\n"))
   
@@ -809,13 +995,14 @@ for(threshtype in c("qtDist", "qtCptmt")) {
                         hjust = 0, vjust=1)
   
   
-  outFile <- file.path(outFolder, paste0("tad_absRankDiff_signif_notsignif_withAll_", threshtype, "_thresh_density.", plotType))
+  outFile <- file.path(outFolder, paste0("tad_absRankDiff_signif_notsignif_withAll_", threshtype, "_thresh",
+                                         gsub("\\.", "", as.character(curr_thresh_name)), "_density.", plotType))
   ggsave(p3, file=outFile, height=myHeightGG, width=myWidthGG*1.2)
   cat(paste0("... written: ", outFile, "\n"))
 }
 
 
-
+stop("HELLO\n")
 
 # ######################################################################################## 2nd threshold: base on compartment change
 

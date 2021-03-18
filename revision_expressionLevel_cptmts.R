@@ -84,6 +84,8 @@ stopifnot(setequal(names(exprVar_values), tad2cptmt_dt$region_ID))
 tad2cptmt_dt[,paste0(expr_var)] <- exprVar_values[tad2cptmt_dt$region_ID]
 
 
+save(tad2cptmt_dt, file=file.path(outFolder, "tad2cptmt_dt.Rdata"), version=2)
+
 plotTit <- ""
 mysub <- ""
 

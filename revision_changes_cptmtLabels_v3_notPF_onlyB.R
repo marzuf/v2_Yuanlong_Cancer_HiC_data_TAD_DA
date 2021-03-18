@@ -5,7 +5,7 @@ require(ggsci)
 require(ggpubr)
 require(ggplot2)
 
-# Rscript revision_changes_cptmtLabels_v3_notPF.R
+# Rscript revision_changes_cptmtLabels_v3_notPF_onlyB.R
 
 ### FOCUS ON THE B->B compartments
 
@@ -18,10 +18,10 @@ myWidthGG <- 7
 
 source("revision_settings.R")
 
-outFolder <- "REVISION_CHANGES_CPTMTLABELS_V3_NOTPF"
+outFolder <- "REVISION_CHANGES_CPTMTLABELS_V3_NOTPF_ONLYB"
 dir.create(outFolder)
 
-buildTable <- F
+buildTable <- TRUE
 
 hierarchyFolder <- file.path(setDir, 
 "/mnt/ndata/Yuanlong/1.Projects/2.PROFILE/2.Results_review/2.Sup_tab_used_for_2nd_submission",
@@ -497,13 +497,12 @@ for(p_type in plot_types) {
   cat(paste0("... written: ", file.path(outFolder, "plot_dt.Rdata"), "\n"))
   
   ### >> for this version, plot only the B->B changes
-  # plot_dt <- plot_dt[plot_dt$norm2tumor_cptmtChange == "B->B",] 
-  plot_dt <- plot_dt ## plot here all for PF !!!
+  plot_dt <- plot_dt[plot_dt$norm2tumor_cptmtChange == "B->B",]
   stopifnot(nrow(plot_dt) > 0)
   init_plot_dt <- plot_dt
   
-  all_suffices <- c("binary", "_eight")
-  # all_suffices <- c( "_eight")
+  all_suffices <- c("", "_eight")
+  all_suffices <- c( "_eight")
   
   for(suffix in all_suffices) {
     
