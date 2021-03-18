@@ -7,12 +7,6 @@ all_infiles <- c("REVISION_GO_SIGNIF/keepnotPF_entrez_signif_enrich.Rdata",
                  "REVISION_GO_BYCPTMT_WITHOUTPURITYFILTER/B22_withoutPF_entrez_signif_enrich.Rdata")
 infile <- "REVISION_GO_SIGNIF/keepnotPF_entrez_signif_enrich.Rdata"
 
-all_infiles <- c("REVISION_GO_TFT_SIGNIF/MIR/discardPF_entrez_signif_enrich.Rdata",
-                 "REVISION_GO_TFT_SIGNIF/TFT/discardPF_entrez_signif_enrich.Rdata",
-                 "REVISION_GO_TFT_SIGNIF/ALL/discardPF_entrez_signif_enrich.Rdata")
-                 
-
-
 for(infile in all_infiles) {
   
   outfile <- gsub(".Rdata", "_topTable.txt", infile)
