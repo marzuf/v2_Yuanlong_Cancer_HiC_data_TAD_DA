@@ -1,3 +1,8 @@
+outFolder <- file.path("PREP_PRAD_DATA")
+dir.create(outFolder,recursive = TRUE)
+
+# Rscript prep_prad_data.R
+
 pvalthresh <- 0.01
 
 runFolder <- "."
@@ -27,5 +32,36 @@ head(cptmt_dt)
 
 out_dt <- merge(dt, cptmt_dt[,c("hicds", "exprds", "region", "tadCptmtLabel", "tadCptmtNormRank","tadCptmtScore")],
                 by=c("hicds", "exprds", "region"),all.x=T,all.y=F)
+out_dt <- dt[order(out_dt$hicds, out_dt$exprds, out_dt$adjPvalComb),]
 rownames(out_dt) <- NULL
 stopifnot(!is.na(out_dt))
+
+change_cptmt_dt <- get(load("REVISION_CHANGES_CPTMTLABELS_V2/plot_dt.Rdata"))
+change_cptmt_dt <- change_cptmt_dt[change_cptmt_dt$hicds %in% hicds_of_interest & change_cptmt_dt$exprds %in% exprds_of_interest ,]
+
+change_cptmt_dt$hicds <- change_cptmt_dt$ref_hicds
+change_cptmt_dt$exprds <- change_cptmt_dt$ref_exprds
+change_cptmt_dt$region <- change_cptmt_dt$refID
+
+out_dt2 <- merge(dt, change_cptmt_dt[,c("hicds", "exprds", "region",
+                                 "ref_region_cptmt_eight", "ref_region_pval",
+                                 "matching_region_cptmt_eight", "matching_region_pval")],
+                by=c("hicds", "exprds", "region"),all.x=T,all.y=F)
+# stopifnot(!is.na(out_dt2))
+which(apply(out_dt2, 1, function(x)any(is.na(x))))
+out_dt2 <- out_dt2[order(out_dt2$hicds, out_dt2$exprds, out_dt2$ref_region_pval),]
+rownames(out_dt2) <- NULL
+
+out_dt$dataset <- file.path(out_dt$hicds, out_dt$exprds)
+head_out_dt = do.call(rbind, by(out_dt, out_dt$dataset, function(x) {tmp=x[1:10,];tmp$tad_rank <- rank(tmp$adjPvalComb); tmp}))
+
+out_dt2$dataset <- file.path(out_dt2$hicds, out_dt2$exprds)
+head_out_dt2 = do.call(rbind, by(out_dt2, out_dt2$dataset, function(x) {tmp=x[1:10,];tmp$tad_rank <- rank(tmp$adjPvalComb); tmp}))
+
+
+write.table(out_dt, file=file.path(outFolder, "prad_results.txt"), sep="\t", quote=F, col.names=T, row.names=F)
+write.table(out_dt2, file=file.path(outFolder, "prad_results_withMatch.txt"), sep="\t", quote=F, col.names=T, row.names=F)
+
+write.table(head_out_dt, file=file.path(outFolder, "prad_results_top10.txt"), sep="\t", quote=F, col.names=T, row.names=F)
+write.table(head_out_dt2, file=file.path(outFolder, "prad_results_withMatch_top10.txt"), sep="\t", quote=F, col.names=T, row.names=F)
+

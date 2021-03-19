@@ -21,7 +21,7 @@ myWidthGG <- 7
 myHeightGG <- 5
 plotCex <- 1.2
 
-buildTable <- T
+buildTable <- F
 
 tad_signifThresh <- 0.01
 
@@ -238,8 +238,8 @@ stopifnot(nrow(sub_final_table_DT) > 0)
 
 stopifnot(length(unique(sub_final_table_DT$exprds)) == 1)
 
-# densplotcols <- c("nRatioMatchEntries", "sig_ratio", "mean_p", "p_two_side")
-densplotcols <- c("nSignif")
+densplotcols <- c("nRatioMatchEntries", "sig_ratio", "mean_p", "p_two_side")
+# densplotcols <- c("nSignif")
 # densplotcols <- c( "p_two_side")
 # densitycols <- c("signif_lab", "signif_lab2", "signif_lab3")
 densitycols <- c( "signif_lab2")
