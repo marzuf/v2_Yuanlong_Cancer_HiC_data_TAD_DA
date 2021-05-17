@@ -542,6 +542,9 @@ for(p_type in plot_types) {
                             x="ref_tadSignif", 
                             fill=paste0("norm2tumor_cptmtChange", suffix)) +
         ggtitle(plotTit, subtitle=mySub)+
+        
+        scale_fill_igv()+
+        
         mytheme +
         labs(x="" , y ="ratio of TADs", color=paste0(legTitle),fill=paste0(legTitle)) + 
         theme(
