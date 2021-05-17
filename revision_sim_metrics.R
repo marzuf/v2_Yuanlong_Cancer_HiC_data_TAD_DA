@@ -327,7 +327,7 @@ get_bin_JaccardIndex <- function(file1, file2, binSize, chrSize=NULL, nCpu = 1){
 
 # requirement: GenomicRanges
 
-get_boundaries_JaccardIndex <- function(file1, file2, tolRad, matchFor="all", nCpu = 1){
+get_boundaries_JaccardIndex <- function(file1, file2, tolRad, matchFor="all", nCpu = 1, start1Based=TRUE){
 
   stopifnot(length(tolRad) == 1)
   stopifnot(is.numeric(tolRad))
@@ -377,14 +377,14 @@ get_boundaries_JaccardIndex <- function(file1, file2, tolRad, matchFor="all", nC
 
   # boundaries matching -> treat starts and ends equally:
   # (handle 1-based and 0-based start coordinates)
-  if(unique(set1DT$start %%10) == 1) { 
+  if(start1Based) { 
     bd1_DT <- data.frame(chromo=mychr, bdPos=c(set1DT$start-1, set1DT$end))
   } else {
     bd1_DT <- data.frame(chromo=mychr, bdPos=c(set1DT$start, set1DT$end))
   }
   bd1_DT <- unique(bd1_DT)
   bd1_DT <- bd1_DT[order(bd1_DT$bdPos),]
-  if(unique(set2DT$start %%10) == 1) { 
+  if(start1Based) { 
     bd2_DT <- data.frame(chromo=mychr, bdPos=c(set2DT$start-1, set2DT$end))
   } else {
     bd2_DT <- data.frame(chromo=mychr, bdPos=c(set2DT$start, set2DT$end))
@@ -431,7 +431,7 @@ get_boundaries_JaccardIndex <- function(file1, file2, tolRad, matchFor="all", nC
 
 # requirement: GenomicRanges
 
-get_ratioMatchingTADs <- function(file1, file2, coverMatchRatioThresh, matchFor="all", nCpu = 1){
+get_ratioMatchingTADs <- function(file1, file2, coverMatchRatioThresh, matchFor="all", nCpu = 1, start1Based=TRUE){
   
   stopifnot(matchFor %in% c("set1", "set2", "all"))
   
@@ -483,8 +483,8 @@ get_ratioMatchingTADs <- function(file1, file2, coverMatchRatioThresh, matchFor=
   # chr6 1425000 1600000 set1_chr6_TAD5
   # chr6 775000 1425000 set2_chr6_TAD1
   # (handle 1-based and 0-based start coordinates) # for TAD size calc. # ensure correct 1-based start for GenomicRange overlap calc.
-  if(unique(set1DT$start %%10) == 0) set1DT$start <- set1DT$start+1
-  if(unique(set2DT$start %%10) == 0) set2DT$start <- set2DT$start+1
+  if(!start1Based) set1DT$start <- set1DT$start+1
+  if(!start1Based) set2DT$start <- set2DT$start+1
 
   set1DT$region <- paste0("set1_", mychr, "_TAD", 1:nrow(set1DT))
   set1_GR <- GRanges(seqnames=mychr, ranges=IRanges(start=set1DT$start, end=set1DT$end, names=set1DT$region))
@@ -575,7 +575,7 @@ get_ratioMatchingTADs <- function(file1, file2, coverMatchRatioThresh, matchFor=
 #' 
 #' # requirement: GenomicRanges, get_MoC.R (for fill_part function)
 
-get_variationInformation <- function(file1, file2, chrSize=NULL, gapsAsDomains=FALSE){
+get_variationInformation <- function(file1, file2, chrSize=NULL, gapsAsDomains=FALSE, start1Based=TRUE){
   
   library(GenomicRanges)
 
@@ -622,8 +622,8 @@ get_variationInformation <- function(file1, file2, chrSize=NULL, gapsAsDomains=F
   # chr6 1425000 1600000 set1_chr6_TAD5
   # chr6 775000 1425000 set2_chr6_TAD1
   # (handle 1-based and 0-based start coordinates) # for TAD size calc. # ensure correct 1-based start for GenomicRange overlap calc.
-  if(unique(set1DT$start %%10) == 0) set1DT$start <- set1DT$start+1
-  if(unique(set2DT$start %%10) == 0) set2DT$start <- set2DT$start+1
+  if(!start1Based) set1DT$start <- set1DT$start+1
+  if(!start1Based) set2DT$start <- set2DT$start+1
   
   
   if(is.null(chrSize)) {

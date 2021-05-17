@@ -2,31 +2,144 @@ startTime <- Sys.time()
 
 source("revision_settings.R")
 
+require(GenomicRanges)
+
+# tolRad in bp
+get_set1_boundaryMatch <- function(set1DT, set2DT, tolRad, start1based=TRUE,
+                                   match_type=c("bd_vs_bd", "tad_vs_tad", "tad_vs_bd")) {
+  
+  stopifnot(c("chromo", "start", "end") %in% colnames(set1DT))
+  stopifnot(c("chromo", "start", "end") %in% colnames(set2DT) )
+  
+  mychr <- unique(set1DT$chromo)
+  stopifnot(mychr == set2DT$chromo)
+  stopifnot(length(mychr) == 1)
+  
+  if(start1based){
+    set1DT$start <- set1DT$start-1 
+    set2DT$start <- set2DT$start-1 
+  } 
+  
+  # 
+  # if(start1Based) { 
+  #   
+  #   all_bd1_DT <- data.frame(chromo=mychr, bdPos=c(set1DT$start-1, set1DT$end))
+  #   all_bd2_DT <- data.frame(chromo=mychr, bdPos=c(set2DT$start-1, set2DT$end))
+  # } else {
+  #   all_bd1_DT <- data.frame(chromo=mychr, bdPos=c(set1DT$start, set1DT$end))
+  #   all_bd2_DT <- data.frame(chromo=mychr, bdPos=c(set2DT$start, set2DT$end))
+  # }
+  
+  if(match_type=="bd_vs_bd"){
+    all_bd1_DT <- data.frame(chromo=mychr, bdPos=c(set1DT$start-1, set1DT$end))
+    all_bd2_DT <- data.frame(chromo=mychr, bdPos=c(set2DT$start-1, set2DT$end))
+    
+  }
+  if(match_type=="tad_vs_tad") {
+    # start should match start, end should match end 
+  }
+  if(match_type="tad_vs_bd") {
+    # start should match start or end and end should match start and end
+  }
+  
+  
+
+  
+    query1_GR <- GRanges(seqnames=mychr, ranges=IRanges(start=bd1_DT$bdPos, end=bd1_DT$bdPos))
+    ref2_GR <- GRanges(seqnames=mychr, ranges=IRanges(start=bd2_DT$bdPos-tolRad, end=bd2_DT$bdPos+tolRad))
+    match1 <- query1_GR %over% ref2_GR
+    stopifnot(length(match1) == length(query1_GR))
+    stopifnot(length(match1) == nrow(bd1_DT))
+  
+}
+
+get_set1_tadCoverMatch <- function(set1DT, set2DT,coverMatchRatioThresh ){
+  stopifnot(c("chromo", "start", "end") %in% colnames(set1DT))
+  stopifnot(c("chromo", "start", "end") %in% colnames(set2DT) )
+  
+  mychr <- unique(set1DT$chromo)
+  
+  cat(paste0("# of domains in set1\t=\t", nrow(set1DT), "\n"))
+  cat(paste0("# of domains in set2\t=\t", nrow(set2DT), "\n"))
+  
+  
+  #' NB: for correct TAD matching using GenomicRanges, start should be "1-based" and end "0-based", otherwise would find an overlap of 1 between the domains here below:
+  # chr6 1425000 1600000 set1_chr6_TAD5
+  # chr6 775000 1425000 set2_chr6_TAD1
+  # (handle 1-based and 0-based start coordinates) # for TAD size calc. # ensure correct 1-based start for GenomicRange overlap calc.
+  if(unique(set1DT$start %%10) == 0) set1DT$start <- set1DT$start+1
+  if(unique(set2DT$start %%10) == 0) set2DT$start <- set2DT$start+1
+  
+  set1DT$region <- paste0("set1_", mychr, "_TAD", 1:nrow(set1DT))
+  set1_GR <- GRanges(seqnames=mychr, ranges=IRanges(start=set1DT$start, end=set1DT$end, names=set1DT$region))
+  
+  set2DT$region <- paste0("set2_", mychr, "_TAD", 1:nrow(set2DT))
+  set2_GR <- GRanges(seqnames=mychr, ranges=IRanges(start=set2DT$start, end=set2DT$end, names=set2DT$region))
+  
+  ref_GR <- set1_GR
+  query_GR <- set2_GR
+  ref_tad_size_set1 <- setNames(c(set1DT$end-set1DT$start+1), c(set1DT$region))  # +1 since starts are "1-based" for GenomicRanges
+  # determine which features from the query overlap which features in the subject
+  overlap_GR <- findOverlaps(query=query_GR, subject=ref_GR)
+  if(length(overlap_GR) == 0) {  
+    set1_match <- 0
+    set1DT$set1_match <- FALSE
+  } else {
+    IDoverlap_hits_all <- findOverlaps(query=query_GR,
+                                       subject=query_GR)
+    IDoverlap_hits <- IDoverlap_hits_all[queryHits(IDoverlap_hits_all) != subjectHits(IDoverlap_hits_all)]
+    
+    refID <- names(ref_GR[subjectHits(overlap_GR)])
+    queryID <- names(query_GR[queryHits(overlap_GR)])
+    
+    stopifnot(refID %in% set1DT$region)
+    stopifnot(refID %in% names(ref_tad_size_set1))
+    
+    set1_overlapDT_bp <- data.frame(
+      refID = refID,
+      queryID = queryID,
+      overlapBp = width(pintersect(ref_GR[refID], query_GR[queryID])),
+      overlapBpRatio = width(pintersect(ref_GR[refID], query_GR[queryID]))/ref_tad_size_set1[refID],
+      stringsAsFactors = FALSE)
+    # retain only the matching that pass the threshold
+    set1_overlapDT_bp <- set1_overlapDT_bp[set1_overlapDT_bp$overlapBpRatio >= coverMatchRatioThresh,]
+    set1_match <- set1DT$region %in% set1_overlapDT_bp$refID
+    stopifnot(length(set1_match) == nrow(set1DT))
+    set1DT$set1_match <- set1_match
+  }
+  return(set1DT)
+}
+
+
+
+
+# all_pairs <- file.path  ds1 / ds2 / exprds_norm_tumor
+
 # Rscript revision_cellLines_sim_signif.R
 
 outFolder <- file.path("REVISION_CELLLINES_SIM_SIGNIF")
+
+pvalthresh <- 0.01
+runFolder <- "."
+result_file <- file.path(runFolder,"CREATE_FINAL_TABLE", "all_result_dt.Rdata")
+resultData <- get(load(result_file))
+resultData$dataset <- file.path(resultData$hicds, resultData$exprds)
+resultData$region_id <- file.path(resultData$dataset, resultData$region)
+resultData$signif <- resultData$adjPvalComb <= pvalthresh
+
 
 require(foreach)
 require(doMC)
 registerDoMC(50)
 
-all_hicds <- names(hicds_names)
+onlyPipTADs <- TRUE
 
 runFold <- "."
 
-bin_size <- 40*10^3
-coverTADmatchRatio <-  0.8
-boundariesJI_tolRad <- 2*bin_size
+dspair = all_pairs[1]
 
+all_hicds <- unique(c(basename(dirname(all_pairs)), dirname(dirname(all_pairs))))
 
-onlyPipTADs <- FALSE  # only implemented for normal vs. tumor !!!
-if(onlyPipTADs) outFolder <- file.path("REVISION_CELLLINES_SIM_ONLYPIPTADS")
-dir.create(outFolder, recursive = TRUE)
-
-
-all_hicds <- all_hicds[1:3] 
-
-hicds = all_hicds[1]
 
 all_tads <- foreach(hicds = all_hicds) %dopar% {
   tad_file <- file.path(runFold, hicds, "genes2tad", "all_assigned_regions.txt" )
@@ -36,7 +149,7 @@ all_tads <- foreach(hicds = all_hicds) %dopar% {
   if(onlyPipTADs) {
     hicds_exprds <- list.files(file.path("PIPELINE", "OUTPUT_FOLDER", hicds))
     hicds_exprds <- hicds_exprds[grepl("_norm_", hicds_exprds)]
-    if(length(hicds_exprds) == 0) return(NULL)
+    #  if(length(hicds_exprds) == 0) return(NULL) not here, i want norm tumor for all
     stopifnot(length(hicds_exprds) == 1)
     stopifnot(grepl(""))
     pip_tads <- get(load(file.path("PIPELINE", "OUTPUT_FOLDER", hicds, hicds_exprds, "0_prepGeneData", "pipeline_regionList.Rdata")))
@@ -56,11 +169,11 @@ all_ds_pairs <- combn(x=all_hicds, m=2)
 stopifnot(nrow(all_ds_pairs) == 2)
 stopifnot(ncol(all_ds_pairs) == length(all_hicds) * (length(all_hicds) -1) * 0.5)
 
-all_pairs_dt <- foreach(i = 1:ncol(all_ds_pairs), .combine='rbind') %dopar% {
+all_pairs_dt <- foreach(dspair = all_pairs, .combine='rbind') %dopar% {
   
   
-  hicds1 <- all_ds_pairs[1,i]
-  hicds2 <- all_ds_pairs[2,i]
+  hicds1 <- basename(dirname(all_pairs)) 
+  hicds2 <- dirname(dirname(all_pairs))
   
   stopifnot(hicds1 %in% names(all_tads))
   stopifnot(hicds2 %in% names(all_tads))
@@ -94,6 +207,10 @@ all_pairs_dt <- foreach(i = 1:ncol(all_ds_pairs), .combine='rbind') %dopar% {
     stopifnot(is.numeric(chrsize))
     
     cat(paste0("chrsize= ", chrsize, "\n"))
+    
+    # pour chaque TAD -> est-ce qu'il a un match
+    # match d'1 boundary, match des 2 boundaries, cover match
+    
     
     # outFile <- file.path(outFolder, "hicds1_chr_tads.Rdata")
     # save(hicds1_chr_tads, file=outFile, version=2)

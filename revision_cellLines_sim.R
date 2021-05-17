@@ -25,8 +25,7 @@ onlyPipTADs <- FALSE  # only implemented for normal vs. tumor !!!
 if(onlyPipTADs) outFolder <- file.path("REVISION_CELLLINES_SIM_ONLYPIPTADS")
 dir.create(outFolder, recursive = TRUE)
 
-
-# all_hicds <- all_hicds[1:3] 
+# all_hicds <- all_hicds[1:3]
 
 hicds = all_hicds[1]
 
