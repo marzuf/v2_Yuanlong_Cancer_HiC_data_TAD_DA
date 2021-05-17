@@ -2,6 +2,132 @@
 # copied get_moc from /mnt/etemp/marie/TADcall_protocol/fig2_fig3_fig4_fig5_moc_calc.R
 
 
+# added 17/5/21
+# get_set1_tadCoverMatch & get_set1_boundaryMatch
+
+# tolRad in bp
+get_set1_boundaryMatch <- function(set1DT, set2DT, tolRad, start1based=TRUE) {
+  
+  stopifnot(c("chromo", "start", "end") %in% colnames(set1DT))
+  stopifnot(c("chromo", "start", "end") %in% colnames(set2DT) )
+  
+  mychr <- unique(set1DT$chromo)
+  stopifnot(mychr == set2DT$chromo)
+  stopifnot(length(mychr) == 1)
+  
+  if(start1based){
+    set1DT$start <- set1DT$start-1 
+    set2DT$start <- set2DT$start-1 
+  } 
+  
+  all_start1_DT <- data.frame(chromo=mychr, bdPos=c(set1DT$start))
+  all_end1_DT <- data.frame(chromo=mychr, bdPos=c(set1DT$end))
+  
+  all_bd2_DT <- data.frame(chromo=mychr, bdPos=c(set2DT$start, set2DT$end))
+  all_start2_DT <- data.frame(chromo=mychr, bdPos=c(set2DT$start))
+  all_end2_DT <- data.frame(chromo=mychr, bdPos=c(set2DT$end))
+  
+  ### 1st match: start vs start
+  query1_GR <- GRanges(seqnames=mychr, ranges=IRanges(start=all_start1_DT$bdPos, end=all_start1_DT$bdPos))
+  ref2_GR <- GRanges(seqnames=mychr, ranges=IRanges(start=all_start2_DT$bdPos-tolRad, end=all_start2_DT$bdPos+tolRad))
+  start1_vs_start2_match <- query1_GR %over% ref2_GR
+  stopifnot(length(start1_vs_start2_match) == length(query1_GR))
+  stopifnot(length(start1_vs_start2_match) == nrow(all_start1_DT))
+  stopifnot(length(start1_vs_start2_match) == nrow(set1DT))
+  set1DT$start1_vs_start2_match <- start1_vs_start2_match
+  
+  ### 2nd match: start vs all
+  query1_GR <- GRanges(seqnames=mychr, ranges=IRanges(start=all_start1_DT$bdPos, end=all_start1_DT$bdPos))
+  ref2_GR <- GRanges(seqnames=mychr, ranges=IRanges(start=all_bd2_DT$bdPos-tolRad, end=all_bd2_DT$bdPos+tolRad))
+  start1_vs_all2_match <- query1_GR %over% ref2_GR
+  stopifnot(length(start1_vs_all2_match) == length(query1_GR))
+  stopifnot(length(start1_vs_all2_match) == nrow(all_start1_DT))
+  stopifnot(length(start1_vs_all2_match) == nrow(set1DT))
+  set1DT$start1_vs_all2_match <- start1_vs_all2_match
+  
+  ### 3d match: end vs end
+  query1_GR <- GRanges(seqnames=mychr, ranges=IRanges(start=all_end1_DT$bdPos, end=all_end1_DT$bdPos))
+  ref2_GR <- GRanges(seqnames=mychr, ranges=IRanges(start=all_end2_DT$bdPos-tolRad, end=all_end2_DT$bdPos+tolRad))
+  end1_vs_end2_match <- query1_GR %over% ref2_GR
+  stopifnot(length(end1_vs_end2_match) == length(query1_GR))
+  stopifnot(length(end1_vs_end2_match) == nrow(all_end1_DT))
+  stopifnot(length(end1_vs_end2_match) == nrow(set1DT))
+  set1DT$end1_vs_end2_match <- end1_vs_end2_match
+  
+  ### 3d match: end vs all
+  query1_GR <- GRanges(seqnames=mychr, ranges=IRanges(start=all_end1_DT$bdPos, end=all_end1_DT$bdPos))
+  ref2_GR <- GRanges(seqnames=mychr, ranges=IRanges(start=all_bd2_DT$bdPos-tolRad, end=all_bd2_DT$bdPos+tolRad))
+  end1_vs_all2_match <- query1_GR %over% ref2_GR
+  stopifnot(length(end1_vs_all2_match) == length(query1_GR))
+  stopifnot(length(end1_vs_all2_match) == nrow(all_end1_DT))
+  stopifnot(length(end1_vs_all2_match) == nrow(set1DT))
+  set1DT$end1_vs_all2_match <- end1_vs_all2_match
+  
+  return(set1DT)
+  
+}
+
+get_set1_tadCoverMatch <- function(set1DT, set2DT,coverMatchRatioThresh ){
+  stopifnot(c("chromo", "start", "end") %in% colnames(set1DT))
+  stopifnot(c("chromo", "start", "end") %in% colnames(set2DT) )
+  
+  mychr <- unique(set1DT$chromo)
+  
+  cat(paste0("# of domains in set1\t=\t", nrow(set1DT), "\n"))
+  cat(paste0("# of domains in set2\t=\t", nrow(set2DT), "\n"))
+  
+  
+  #' NB: for correct TAD matching using GenomicRanges, start should be "1-based" and end "0-based", otherwise would find an overlap of 1 between the domains here below:
+  # chr6 1425000 1600000 set1_chr6_TAD5
+  # chr6 775000 1425000 set2_chr6_TAD1
+  # (handle 1-based and 0-based start coordinates) # for TAD size calc. # ensure correct 1-based start for GenomicRange overlap calc.
+  if(unique(set1DT$start %%10) == 0) set1DT$start <- set1DT$start+1
+  if(unique(set2DT$start %%10) == 0) set2DT$start <- set2DT$start+1
+  
+  set1DT$regionTmp <- paste0("set1_", mychr, "_TAD", 1:nrow(set1DT))
+  set1_GR <- GRanges(seqnames=mychr, ranges=IRanges(start=set1DT$start, end=set1DT$end, names=set1DT$regionTmp))
+  
+  set2DT$regionTmp <- paste0("set2_", mychr, "_TAD", 1:nrow(set2DT))
+  set2_GR <- GRanges(seqnames=mychr, ranges=IRanges(start=set2DT$start, end=set2DT$end, names=set2DT$regionTmp))
+  
+  ref_GR <- set1_GR
+  query_GR <- set2_GR
+  ref_tad_size_set1 <- setNames(c(set1DT$end-set1DT$start+1), c(set1DT$regionTmp))  # +1 since starts are "1-based" for GenomicRanges
+  # determine which features from the query overlap which features in the subject
+  overlap_GR <- findOverlaps(query=query_GR, subject=ref_GR)
+  if(length(overlap_GR) == 0) {  
+    set1_match <- 0
+    set1DT$set1_match <- FALSE
+  } else {
+    IDoverlap_hits_all <- findOverlaps(query=query_GR,
+                                       subject=query_GR)
+    IDoverlap_hits <- IDoverlap_hits_all[queryHits(IDoverlap_hits_all) != subjectHits(IDoverlap_hits_all)]
+    
+    refID <- names(ref_GR[subjectHits(overlap_GR)])
+    queryID <- names(query_GR[queryHits(overlap_GR)])
+    
+    stopifnot(refID %in% set1DT$regionTmp)
+    stopifnot(refID %in% names(ref_tad_size_set1))
+    
+    set1_overlapDT_bp <- data.frame(
+      refID = refID,
+      queryID = queryID,
+      overlapBp = width(pintersect(ref_GR[refID], query_GR[queryID])),
+      overlapBpRatio = width(pintersect(ref_GR[refID], query_GR[queryID]))/ref_tad_size_set1[refID],
+      stringsAsFactors = FALSE)
+    # retain only the matching that pass the threshold
+    set1_overlapDT_bp <- set1_overlapDT_bp[set1_overlapDT_bp$overlapBpRatio >= coverMatchRatioThresh,]
+    set1_match <- set1DT$regionTmp %in% set1_overlapDT_bp$refID
+    stopifnot(length(set1_match) == nrow(set1DT))
+    set1DT$set1_match <- set1_match
+  }
+  set1DT$regionTmp <- NULL
+  return(set1DT)
+}
+
+
+
+
 #' Calculate Measure of Concordance (MoC); adapted from formula given in Pfitzner et al. 2009
 #'
 # 

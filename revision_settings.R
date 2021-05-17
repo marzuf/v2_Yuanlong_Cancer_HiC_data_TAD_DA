@@ -82,5 +82,22 @@ all_hicds <- c(
 )
 
 
-
+all_tissues <- c("Barutcu_MCF-10A_40kb"="breast",
+              "Barutcu_MCF-7_40kb"="breast",               
+"ENCSR079VIJ_G401_40kb"="kidney",
+ "ENCSR312KHQ_SK-MEL-5_40kb"="skin",        
+ "ENCSR346DCU_LNCaP_40kb"="prostate",            "ENCSR401TBQ_Caki2_40kb"="kidney",           
+ "ENCSR444WCZ_A549_40kb"="lung",             "ENCSR489OCU_NCI-H460_40kb"="lung",        
+ "ENCSR504OTV_transverse_colon_40kb"="colon", "ENCSR549MGQ_T47D_40kb"="breast",            
+ "ENCSR862OGI_RPMI-7951_40kb"="skin",        "GSE105194_cerebellum_40kb"="brain",        
+ "GSE105194_spinal_cord_40kb"="brain",        "GSE105318_DLD1_40kb"="colon",              
+ "GSE105381_HepG2_40kb"="liver",              "GSE109229_BT474_40kb"="breast",             
+ "GSE109229_SKBR3_40kb"="breast",              "GSE118514_22Rv1_40kb"="prostate",             
+"GSE118514_RWPE1_40kb"="prostate",              "GSE118588_Panc_beta_40kb"="pancreas",         
+ "GSE99051_786_O_40kb"="kidney",               "HMEC_40kb"="breast",                        
+ "K562_40kb"="lymph",                         "LG1_40kb"="lung",                         
+ "LG2_40kb"="lung",                          "LI_40kb"="liver",                          
+ "PA2_40kb"="pancreas",                          "PA3_40kb"="pancreas",                         
+ "Panc1_rep12_40kb"="pancreas",                  "Rao_HCT-116_2017_40kb"="colon"           
+)
 

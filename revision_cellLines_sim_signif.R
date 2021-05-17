@@ -1,116 +1,15 @@
 startTime <- Sys.time()
+require(ggplot2)
 
 source("revision_settings.R")
 
 require(GenomicRanges)
 
-# tolRad in bp
-get_set1_boundaryMatch <- function(set1DT, set2DT, tolRad, start1based=TRUE,
-                                   match_type=c("bd_vs_bd", "tad_vs_tad", "tad_vs_bd")) {
-  
-  stopifnot(c("chromo", "start", "end") %in% colnames(set1DT))
-  stopifnot(c("chromo", "start", "end") %in% colnames(set2DT) )
-  
-  mychr <- unique(set1DT$chromo)
-  stopifnot(mychr == set2DT$chromo)
-  stopifnot(length(mychr) == 1)
-  
-  if(start1based){
-    set1DT$start <- set1DT$start-1 
-    set2DT$start <- set2DT$start-1 
-  } 
-  
-  # 
-  # if(start1Based) { 
-  #   
-  #   all_bd1_DT <- data.frame(chromo=mychr, bdPos=c(set1DT$start-1, set1DT$end))
-  #   all_bd2_DT <- data.frame(chromo=mychr, bdPos=c(set2DT$start-1, set2DT$end))
-  # } else {
-  #   all_bd1_DT <- data.frame(chromo=mychr, bdPos=c(set1DT$start, set1DT$end))
-  #   all_bd2_DT <- data.frame(chromo=mychr, bdPos=c(set2DT$start, set2DT$end))
-  # }
-  
-  if(match_type=="bd_vs_bd"){
-    all_bd1_DT <- data.frame(chromo=mychr, bdPos=c(set1DT$start-1, set1DT$end))
-    all_bd2_DT <- data.frame(chromo=mychr, bdPos=c(set2DT$start-1, set2DT$end))
-    
-  }
-  if(match_type=="tad_vs_tad") {
-    # start should match start, end should match end 
-  }
-  if(match_type="tad_vs_bd") {
-    # start should match start or end and end should match start and end
-  }
-  
-  
+binSize <- 40* 10^3
+match_tolRad <- 2*binSize
+match_coverRatio <- 0.8
 
-  
-    query1_GR <- GRanges(seqnames=mychr, ranges=IRanges(start=bd1_DT$bdPos, end=bd1_DT$bdPos))
-    ref2_GR <- GRanges(seqnames=mychr, ranges=IRanges(start=bd2_DT$bdPos-tolRad, end=bd2_DT$bdPos+tolRad))
-    match1 <- query1_GR %over% ref2_GR
-    stopifnot(length(match1) == length(query1_GR))
-    stopifnot(length(match1) == nrow(bd1_DT))
-  
-}
-
-get_set1_tadCoverMatch <- function(set1DT, set2DT,coverMatchRatioThresh ){
-  stopifnot(c("chromo", "start", "end") %in% colnames(set1DT))
-  stopifnot(c("chromo", "start", "end") %in% colnames(set2DT) )
-  
-  mychr <- unique(set1DT$chromo)
-  
-  cat(paste0("# of domains in set1\t=\t", nrow(set1DT), "\n"))
-  cat(paste0("# of domains in set2\t=\t", nrow(set2DT), "\n"))
-  
-  
-  #' NB: for correct TAD matching using GenomicRanges, start should be "1-based" and end "0-based", otherwise would find an overlap of 1 between the domains here below:
-  # chr6 1425000 1600000 set1_chr6_TAD5
-  # chr6 775000 1425000 set2_chr6_TAD1
-  # (handle 1-based and 0-based start coordinates) # for TAD size calc. # ensure correct 1-based start for GenomicRange overlap calc.
-  if(unique(set1DT$start %%10) == 0) set1DT$start <- set1DT$start+1
-  if(unique(set2DT$start %%10) == 0) set2DT$start <- set2DT$start+1
-  
-  set1DT$region <- paste0("set1_", mychr, "_TAD", 1:nrow(set1DT))
-  set1_GR <- GRanges(seqnames=mychr, ranges=IRanges(start=set1DT$start, end=set1DT$end, names=set1DT$region))
-  
-  set2DT$region <- paste0("set2_", mychr, "_TAD", 1:nrow(set2DT))
-  set2_GR <- GRanges(seqnames=mychr, ranges=IRanges(start=set2DT$start, end=set2DT$end, names=set2DT$region))
-  
-  ref_GR <- set1_GR
-  query_GR <- set2_GR
-  ref_tad_size_set1 <- setNames(c(set1DT$end-set1DT$start+1), c(set1DT$region))  # +1 since starts are "1-based" for GenomicRanges
-  # determine which features from the query overlap which features in the subject
-  overlap_GR <- findOverlaps(query=query_GR, subject=ref_GR)
-  if(length(overlap_GR) == 0) {  
-    set1_match <- 0
-    set1DT$set1_match <- FALSE
-  } else {
-    IDoverlap_hits_all <- findOverlaps(query=query_GR,
-                                       subject=query_GR)
-    IDoverlap_hits <- IDoverlap_hits_all[queryHits(IDoverlap_hits_all) != subjectHits(IDoverlap_hits_all)]
-    
-    refID <- names(ref_GR[subjectHits(overlap_GR)])
-    queryID <- names(query_GR[queryHits(overlap_GR)])
-    
-    stopifnot(refID %in% set1DT$region)
-    stopifnot(refID %in% names(ref_tad_size_set1))
-    
-    set1_overlapDT_bp <- data.frame(
-      refID = refID,
-      queryID = queryID,
-      overlapBp = width(pintersect(ref_GR[refID], query_GR[queryID])),
-      overlapBpRatio = width(pintersect(ref_GR[refID], query_GR[queryID]))/ref_tad_size_set1[refID],
-      stringsAsFactors = FALSE)
-    # retain only the matching that pass the threshold
-    set1_overlapDT_bp <- set1_overlapDT_bp[set1_overlapDT_bp$overlapBpRatio >= coverMatchRatioThresh,]
-    set1_match <- set1DT$region %in% set1_overlapDT_bp$refID
-    stopifnot(length(set1_match) == nrow(set1DT))
-    set1DT$set1_match <- set1_match
-  }
-  return(set1DT)
-}
-
-
+source("revision_sim_metrics.R")
 
 
 # all_pairs <- file.path  ds1 / ds2 / exprds_norm_tumor
@@ -118,6 +17,9 @@ get_set1_tadCoverMatch <- function(set1DT, set2DT,coverMatchRatioThresh ){
 # Rscript revision_cellLines_sim_signif.R
 
 outFolder <- file.path("REVISION_CELLLINES_SIM_SIGNIF")
+dir.create(outFolder, recursive=TRUE )
+
+
 
 pvalthresh <- 0.01
 runFolder <- "."
@@ -132,60 +34,57 @@ require(foreach)
 require(doMC)
 registerDoMC(50)
 
-onlyPipTADs <- TRUE
+onlyPipTADs <- FALSE
+if(onlyPipTADs) stop("--not correctly implemented")
 
 runFold <- "."
+
+# rev_pairs <- file.path(  basename(dirname(all_pairs)), dirname(dirname(all_pairs)), basename(all_pairs))
 
 dspair = all_pairs[1]
 
 all_hicds <- unique(c(basename(dirname(all_pairs)), dirname(dirname(all_pairs))))
 
 
-all_tads <- foreach(hicds = all_hicds) %dopar% {
-  tad_file <- file.path(runFold, hicds, "genes2tad", "all_assigned_regions.txt" )
-  genome_dt <- read.delim(tad_file, sep="\t", header=FALSE, stringsAsFactors = FALSE, col.names=c("chromo", "region", "start", "end"))
-  tad_dt <- genome_dt[grepl("_TAD", genome_dt$region),]
+# all_pairs=all_pairs[1]
+
+all_pairs_dt <- foreach(dspair = c(all_pairs), .combine='rbind') %dopar% {
   
+  
+  hicds1 <- basename(dirname(dspair)) 
+  hicds2 <- dirname(dirname(dspair))
+  exprds <- basename(dspair)
+  
+  tad2_file <- file.path(runFold, hicds2, "genes2tad", "all_assigned_regions.txt" )
+  genome2_dt <- read.delim(tad2_file, sep="\t", header=FALSE, stringsAsFactors = FALSE, col.names=c("chromo", "region", "start", "end"))
+  tad2_dt <- genome2_dt[grepl("_TAD", genome2_dt$region),]
   if(onlyPipTADs) {
-    hicds_exprds <- list.files(file.path("PIPELINE", "OUTPUT_FOLDER", hicds))
-    hicds_exprds <- hicds_exprds[grepl("_norm_", hicds_exprds)]
-    #  if(length(hicds_exprds) == 0) return(NULL) not here, i want norm tumor for all
-    stopifnot(length(hicds_exprds) == 1)
-    stopifnot(grepl(""))
-    pip_tads <- get(load(file.path("PIPELINE", "OUTPUT_FOLDER", hicds, hicds_exprds, "0_prepGeneData", "pipeline_regionList.Rdata")))
-    stopifnot(pip_tads %in% tad_dt$region)
-    tad_dt <- tad_dt[tad_dt$region %in% pip_tads,]
+    pip_tads <- get(load(file.path("PIPELINE", "OUTPUT_FOLDER", hicds2, exprds, "0_prepGeneData", "pipeline_regionList.Rdata")))
+    stopifnot(pip_tads %in% tad2_dt$region)
+    tad2_dt <- tad2_dt[tad2_dt$region %in% pip_tads,]
   }
-  
-  stopifnot(nrow(tad_dt) > 0)
-  tad_dt
-}
-names(all_tads) <- all_hicds
-outFile <- file.path(outFolder, "all_tads.Rdata")
-save(all_tads, file=outFile, version=2)
-cat(paste0("... written: ", outFile, "\n"))
+  stopifnot(nrow(tad2_dt) > 0)
 
-all_ds_pairs <- combn(x=all_hicds, m=2)
-stopifnot(nrow(all_ds_pairs) == 2)
-stopifnot(ncol(all_ds_pairs) == length(all_hicds) * (length(all_hicds) -1) * 0.5)
-
-all_pairs_dt <- foreach(dspair = all_pairs, .combine='rbind') %dopar% {
+    
+  tad1_file <- file.path(runFold, hicds1, "genes2tad", "all_assigned_regions.txt" )
+  genome1_dt <- read.delim(tad1_file, sep="\t", header=FALSE, stringsAsFactors = FALSE, col.names=c("chromo", "region", "start", "end"))
+  tad1_dt <- genome1_dt[grepl("_TAD", genome1_dt$region),]
+  if(onlyPipTADs) {
+    pip_tads <- get(load(file.path("PIPELINE", "OUTPUT_FOLDER", hicds1, exprds, "0_prepGeneData", "pipeline_regionList.Rdata")))
+    stopifnot(pip_tads %in% tad1_dt$region)
+    tad1_dt <- tad1_dt[tad1_dt$region %in% pip_tads,]
+  }
+  stopifnot(nrow(tad1_dt) > 0)
   
   
-  hicds1 <- basename(dirname(all_pairs)) 
-  hicds2 <- dirname(dirname(all_pairs))
+  hicds1_tads <- tad1_dt
+  hicds2_tads <- tad2_dt
   
-  stopifnot(hicds1 %in% names(all_tads))
-  stopifnot(hicds2 %in% names(all_tads))
-  
-  
-  hicds1_tads <- all_tads[[paste0(hicds1)]]
-  hicds2_tads <- all_tads[[paste0(hicds2)]]
   
   stopifnot(grepl("_TAD", hicds1_tads$region))
-  hicds1_tads$region <- NULL
+  # hicds1_tads$region <- NULL
   stopifnot(grepl("_TAD", hicds2_tads$region))
-  hicds2_tads$region <- NULL
+  # hicds2_tads$region <- NULL
   
   all_chromo <- unique(c(hicds1_tads$chromo, hicds2_tads$chromo))
   stopifnot(all_chromo %in% hicds1_tads$chromo)
@@ -207,57 +106,86 @@ all_pairs_dt <- foreach(dspair = all_pairs, .combine='rbind') %dopar% {
     stopifnot(is.numeric(chrsize))
     
     cat(paste0("chrsize= ", chrsize, "\n"))
+   
     
-    # pour chaque TAD -> est-ce qu'il a un match
-    # match d'1 boundary, match des 2 boundaries, cover match
+    dt_set1_boundaryMatch <- get_set1_boundaryMatch(set1DT=hicds1_chr_tads, 
+                                               set2DT=hicds2_chr_tads, 
+                                               tolRad=match_tolRad)
     
+    head(dt_set1_boundaryMatch)
     
-    # outFile <- file.path(outFolder, "hicds1_chr_tads.Rdata")
-    # save(hicds1_chr_tads, file=outFile, version=2)
-    # cat(paste0("... written: ", outFile, "\n"))
-    # outFile <- file.path(outFolder, "hicds2_chr_tads.Rdata")
-    # save(hicds2_chr_tads, file=outFile, version=2)
-    # cat(paste0("... written: ", outFile, "\n"))
+    # because they are converted
+    dt_set1_boundaryMatch$start <- dt_set1_boundaryMatch$start + 1
     
-    ds1_ds2_moc <- get_MoC(hicds1_chr_tads, hicds2_chr_tads, chrSize=chrsize)
-    ds1_ds2_binJI <- get_bin_JaccardIndex(hicds1_chr_tads, hicds2_chr_tads, binSize=bin_size)
-    ds1_ds2_boundJI <- get_boundaries_JaccardIndex(hicds1_chr_tads, hicds2_chr_tads, tolRad=boundariesJI_tolRad,matchFor="set1" )
-    ds1_ds2_matchingTADs <- get_ratioMatchingTADs(hicds1_chr_tads, hicds2_chr_tads, coverMatchRatioThresh=coverTADmatchRatio, matchFor="set1" )
-    ds1_ds2_VI <- get_variationInformation(hicds1_chr_tads, hicds2_chr_tads)
+    cat(paste0("nrow dt_set1_boundaryMatch = ", nrow(dt_set1_boundaryMatch), "\n"))
     
-    ds2_ds1_boundJI <- get_boundaries_JaccardIndex(hicds2_chr_tads, hicds1_chr_tads, 
-                                                   tolRad=boundariesJI_tolRad,matchFor="set1" )
-    ds2_ds1_matchingTADs <- get_ratioMatchingTADs(hicds2_chr_tads, hicds1_chr_tads, 
-                                                  coverMatchRatioThresh=coverTADmatchRatio, matchFor="set1" )
-    ds2_ds1_VI <- get_variationInformation(hicds2_chr_tads, hicds1_chr_tads)
+      dt_set1_tadCoverMatch <- get_set1_tadCoverMatch(set1DT=hicds1_chr_tads, 
+                                                       set2DT=hicds2_chr_tads,
+                                                       coverMatchRatioThresh= match_coverRatio) 
     
-    stopifnot(ds1_ds2_VI == ds2_ds1_VI)
+      head(dt_set1_tadCoverMatch)
+        
+      cat(paste0("nrow dt_set1_tadCoverMatch = ", nrow(dt_set1_tadCoverMatch), "\n"))
+      
+      # save(dt_set1_boundaryMatch, file="dt_set1_boundaryMatch", version=2)
+      # save(dt_set1_tadCoverMatch, file="dt_set1_tadCoverMatch", version=2)
+      match_dt1 <- merge(dt_set1_boundaryMatch, dt_set1_tadCoverMatch, by=c("chromo", "start", "end", "region"))
+      # match_dt1 <- full_join(dt_set1_boundaryMatch, dt_set1_tadCoverMatch, by=c("chromo", "start", "end", "region"))
+      
+      cat(paste0("nrow match_dt1 = ", nrow(match_dt1), "\n"))
+      
+      
+      stopifnot(nrow(match_dt1) == nrow(dt_set1_tadCoverMatch))
+      stopifnot(nrow(match_dt1) == nrow(dt_set1_boundaryMatch))
+      stopifnot(nrow(match_dt1) == nrow(hicds1_chr_tads))
+      
+      match_dt1$ref_ds <- hicds1
+      match_dt1$match_ds <- hicds2
     
-    # rbind(
-    data.frame(
-      ds1 = hicds1,
-      ds2 = hicds2, 
-      chromo = chr,
-      moc =ds1_ds2_moc,
-      binJI =ds1_ds2_binJI,
-      VI = ds1_ds2_VI,
-      ds1_ds2_boundJI =ds1_ds2_boundJI,
-      ds1_ds2_matchingTADs = ds1_ds2_matchingTADs,
-      ds2_ds1_boundJI =ds2_ds1_boundJI,
-      ds2_ds1_matchingTADs = ds2_ds1_matchingTADs,
-      # ds2_ds1_VI = ds2_ds1_VI,
-      stringsAsFactors = FALSE
-    )
-    # ,data.frame(
-    #   ds1 = hicds2,
-    #   ds2 = hicds1, 
-    #   moc =ds1_ds2_moc,  # symmetric
-    #   binJI =ds1_ds2_binJI, # symmetric
-    #   ds1_ds2_boundJI =ds2_ds1_boundJI,
-    #   ds1_ds2_matchingTADs = ds2_ds1_matchingTADs,
-    #   ds1_ds2_VI = ds2_ds1_VI,
-    #   stringsAsFactors = FALSE
-    # ))
+      ################## do the same but ds2 vs ds1
+      
+      
+      
+      dt_set2_boundaryMatch <- get_set1_boundaryMatch(set1DT=hicds2_chr_tads, 
+                                                      set2DT=hicds1_chr_tads, 
+                                                      tolRad=match_tolRad)
+      
+      head(dt_set2_boundaryMatch)
+      
+      # because they are converted
+      dt_set2_boundaryMatch$start <- dt_set2_boundaryMatch$start + 1
+      
+      cat(paste0("nrow dt_set2_boundaryMatch = ", nrow(dt_set2_boundaryMatch), "\n"))
+      
+      dt_set2_tadCoverMatch <- get_set1_tadCoverMatch(set1DT=hicds2_chr_tads, 
+                                                      set2DT=hicds1_chr_tads,
+                                                      coverMatchRatioThresh= match_coverRatio) 
+      
+      head(dt_set2_tadCoverMatch)
+      
+      cat(paste0("nrow dt_set2_tadCoverMatch = ", nrow(dt_set2_tadCoverMatch), "\n"))
+      
+      # save(dt_set2_boundaryMatch, file="dt_set2_boundaryMatch", version=2)
+      # save(dt_set2_tadCoverMatch, file="dt_set2_tadCoverMatch", version=2)
+      match_dt2 <- merge(dt_set2_boundaryMatch, dt_set2_tadCoverMatch, by=c("chromo", "start", "end", "region"))
+      # match_dt2 <- full_join(dt_set2_boundaryMatch, dt_set2_tadCoverMatch, by=c("chromo", "start", "end", "region"))
+      
+      cat(paste0("nrow match_dt2 = ", nrow(match_dt2), "\n"))
+      
+      
+      stopifnot(nrow(match_dt2) == nrow(dt_set2_tadCoverMatch))
+      stopifnot(nrow(match_dt2) == nrow(dt_set2_boundaryMatch))
+      stopifnot(nrow(match_dt2) == nrow(hicds2_chr_tads))
+      
+      match_dt2$ref_ds <- hicds2
+      match_dt2$match_ds <- hicds1
+      
+      
+      match_dt <- rbind(match_dt1, match_dt2)
+      match_dt$exprds <- exprds
+      match_dt
+      
+    
   } # end iterating over chromo
   chr_dt
 } # end iterating over pair
@@ -265,6 +193,11 @@ all_pairs_dt <- foreach(dspair = all_pairs, .combine='rbind') %dopar% {
 outFile <- file.path(outFolder, "all_pairs_dt.Rdata")
 save(all_pairs_dt, file=outFile, version=2)
 cat(paste0("... written: ", outFile, "\n"))
+
+stopifnot(!duplicated(file.path(all_pairs_dt$chromo, all_pairs_dt$start, all_pairs_dt$end, 
+                                all_pairs_dt$region, all_pairs_dt$ref_ds, all_pairs_dt$match_ds, all_pairs_dt$exprds)))
+stopifnot(which(all_pairs_dt$end1_vs_end2_match) %in% which(all_pairs_dt$end1_vs_all2_match))   
+stopifnot(all(which(all_pairs_dt$start1_vs_start2_match) %in% which(all_pairs_dt$start1_vs_all2_match))           )
 
 cat("***Done\n")
 cat(paste0(startTime , " - ", Sys.time(), "\n"))
