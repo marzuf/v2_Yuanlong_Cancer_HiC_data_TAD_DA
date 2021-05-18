@@ -124,6 +124,7 @@ tad_genepairs_dt$ratioShared <- tad_genepairs_dt$intersect_nbrPairs/tad_genepair
 tad_genepairs_dt$ratioOnlyHicds1 <- tad_genepairs_dt$onlyHicds1_nbrPairs/tad_genepairs_dt$tot_nbrPairs
 tad_genepairs_dt$ratioOnlyHicds2 <- tad_genepairs_dt$onlyHicds2_nbrPairs/tad_genepairs_dt$tot_nbrPairs
 
+## sub is to take only the norm vs tumor DS
 
 for(plot_type in c("all", "sub")) {
   
@@ -179,7 +180,9 @@ for(plot_type in c("all", "sub")) {
                   # add = "median",                  # Add median line.
                   rug = FALSE,                      # Add marginal rug
                   color = "variable",
-                  fill = "variable",
+                  #fill = "variable",
+                  add="jitter",
+                  outlier.shape=NA,
                   palette = "jco"
   ) +
     ggtitle(plotTit, subtitle = mySub)+

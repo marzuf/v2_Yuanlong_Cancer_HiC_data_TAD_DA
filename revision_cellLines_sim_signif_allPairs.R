@@ -18,6 +18,8 @@ source("revision_sim_metrics.R")
 plotType <- "png"
 myHeightGG <- 5
 myWidthGG <- 6
+myHeight <- 400
+myWidth <- 400
 
 
 buildTable <- FALSE
@@ -42,6 +44,7 @@ final_normTum_dt <- resultData[grepl("_norm_", resultData$exprds),]
 stopifnot(nrow(final_normTum_dt) > 0)
 final_normTum_dt$region_id_hicds <- file.path(final_normTum_dt$hicds, final_normTum_dt$region)
 normtum_signif_tads <- final_normTum_dt$region_id_hicds[final_normTum_dt$signif ]
+normtum_notsignif_tads <- final_normTum_dt$region_id_hicds[!final_normTum_dt$signif ]
 
 require(foreach)
 require(doMC)
@@ -219,12 +222,24 @@ if(buildTable){
 
 all_plot_vars <- colnames(all_pairs_dt)[!colnames(all_pairs_dt)%in% c("ref_ds", "match_ds", "chromo", "start", "end", "region")]
 
+##### DO SOME CHECKS
+tmp_check_dt <- do.call(rbind, all_tads )
+tmp_check_dt$hicds <- gsub("(.+_40kb).+", "\\1", rownames(tmp_check_dt))
+stopifnot(tmp_check_dt$hicds %in% resultData$hicds)
+tmp_check_dt$region_id_hicds <- file.path(tmp_check_dt$hicds, tmp_check_dt$region)
+all_pairs_dt$region_id_hicds <- file.path(all_pairs_dt$ref_ds, all_pairs_dt$region)
+stopifnot(setequal(all_pairs_dt$region_id_hicds, tmp_check_dt$region_id_hicds)) 
+stopifnot(resultData$region_id_hicds %in% tmp_check_dt$region_id_hicds)
+##########
+
+
 stopifnot(!duplicated(file.path(all_pairs_dt$chromo, all_pairs_dt$start, all_pairs_dt$end, 
                                 all_pairs_dt$region, all_pairs_dt$ref_ds, all_pairs_dt$match_ds, all_pairs_dt$exprds)))
 stopifnot(which(all_pairs_dt$end1_vs_end2_match) %in% which(all_pairs_dt$end1_vs_all2_match))   
 stopifnot(all(which(all_pairs_dt$start1_vs_start2_match) %in% which(all_pairs_dt$start1_vs_all2_match)))
 
 all_pairs_dt$matchPair <- file.path(all_pairs_dt$ref_ds, all_pairs_dt$match_ds)
+
 
 all_pairs_init <- all_pairs
 all_pairs <- file.path( dirname(dirname(all_pairs_init)),   basename(dirname(all_pairs_init)))
@@ -237,9 +252,11 @@ stopifnot(!is.na(all_pairs_dt$ref_tissue))
 all_pairs_dt$match_tissue <- all_tissues[all_pairs_dt$match_ds]
 stopifnot(!is.na(all_pairs_dt$match_tissue))
 
+ds_selectedpairs <- c(rev_pairs, all_pairs)
+
 all_pairs_dt$pairType <- ifelse(all_pairs_dt$ref_tissue == all_pairs_dt$match_tissue,  "same_tissue", "diff_tissue")
-stopifnot(which(all_pairs_dt$matchPair %in% c(rev_pairs, all_pairs)) %in% which(all_pairs_dt$pairType=="same_tissue"))
-all_pairs_dt$pairType[all_pairs_dt$matchPair %in% c(rev_pairs, all_pairs)] <-  "norm_tumor_pair"
+stopifnot(which(all_pairs_dt$matchPair %in% ds_selectedpairs) %in% which(all_pairs_dt$pairType=="same_tissue"))
+all_pairs_dt$pairType[all_pairs_dt$matchPair %in% ds_selectedpairs] <-  "norm_tumor_pair"
 
 ncmps <- length(unique(file.path(all_pairs_dt$ref_ds,all_pairs_dt$match_ds )))
 
@@ -256,11 +273,14 @@ for(toplot in all_plot_vars) {
   mysub2 <- paste0(names(table(agg_dt$pairType)), "=", as.numeric(table(agg_dt$pairType)),
                    collapse=";")
 
+  agg_dt$pairType <- factor(agg_dt$pairType, levels=c("diff_tissue", "same_tissue", "norm_tumor_pair"))
+  stopifnot(!is.na(agg_dt$pairType))
+
   # plotTit <- paste0("ds1 vs. ds2 - ", toplot)
   plotTit <- paste0("ds1 vs. ds2 - ", toplot, " (# cmps = ", ncmps,")")
   # mySub <- paste0("# cmps = ", ncmps, "1 dot/comparison - onlyPipTADs=", as.character(onlyPipTADs) )
   mySub <- paste0( "1 dot/comparison ",myset)
-  
+
   legTitle <- ""
 
   p3 <-  ggboxplot(agg_dt,
@@ -287,34 +307,59 @@ for(toplot in all_plot_vars) {
 
 sub_dt <- all_pairs_dt[all_pairs_dt$pairType == "norm_tumor_pair",]
 sub_dt$region_id_hicds <- file.path(sub_dt$ref_ds, sub_dt$region)
-sub_dt$signif_region <- sub_dt$region_id_hicds %in% normtum_signif_tads
+sub_dt$signif_region <- NA
+
+sub_dt$signif_region[sub_dt$region_id_hicds %in% normtum_notsignif_tads] <- "not signif."
+sub_dt$signif_region[sub_dt$region_id_hicds %in% normtum_signif_tads] <- "signif."
+sub_dt$signif_region[! sub_dt$region_id_hicds %in% normtum_notsignif_tads & 
+                       ! sub_dt$region_id_hicds %in% normtum_signif_tads] <- "not used"
+stopifnot(unique(sub_dt$signif_region) %in% c("signif.", "not signif.", "not used"))
+
+sub_dt$signif_region <- factor(sub_dt$signif_region, levels=c("signif.", "not signif.", "not used"))
+stopifnot(!is.na(sub_dt$signif_region))
+
+ncmps <- length(unique(file.path(sub_dt$ref_ds,sub_dt$match_ds )))
+
+##### DO SOME CHECKS
+tmp_check <- all_tads[which(names(all_tads) %in% dirname(ds_selectedpairs))]
+tmp_check_dt <- do.call(rbind, tmp_check)
+tmp_check_dt$hicds <- gsub("(.+_40kb).+", "\\1", rownames(tmp_check_dt))
+stopifnot(tmp_check_dt$hicds %in% final_normTum_dt$hicds)
+tmp_check_dt$region_id_hicds <- file.path(tmp_check_dt$hicds, tmp_check_dt$region)
+stopifnot(setequal(sub_dt$region_id_hicds, tmp_check_dt$region_id_hicds)) 
+stopifnot(final_normTum_dt$region_id_hicds[final_normTum_dt$hicds %in% ds_selectedpairs] %in% tmp_check_dt$region_id_hicds)
+##########
 
 stopifnot(nrow(sub_dt) > 0)
 
-save(sub_dt, file="sub_dt.Rdata", version=2)
+save(sub_dt, file=file.path(outFolder, "sub_dt.Rdata"), version=2)
 
 for(toplot in all_plot_vars) {
-  
+
   cat(paste0("...SUB ", toplot, " - agg data sub\n"))
-  
-  agg_dt <- aggregate(as.formula(paste0(toplot, " ~ ref_ds + match_ds + pairType + signif_region")), 
+
+  agg_dt <- aggregate(as.formula(paste0(toplot, " ~ ref_ds + match_ds + pairType + signif_region")),
                       FUN = function(x) sum(x)/length(x), data=sub_dt)
-  
-  mysub2 <- paste0(names(table(file.path(agg_dt$pairType,agg_dt$signif_region ))), "=", 
-                   as.numeric(table(file.path(agg_dt$pairType, agg_dt$signif_region))), 
+
+  mysub2 <- paste0(names(table(file.path(agg_dt$pairType,agg_dt$signif_region ))), "=",
+                   as.numeric(table(file.path(agg_dt$pairType, agg_dt$signif_region))),
                    collapse=";")
-  
+
   plotTit <- paste0("ds1 vs. ds2 - ", toplot, " (# cmps = ", ncmps,")")
   # mySub <- paste0( "1 dot/comparison - onlyPipTADs=", as.character(onlyPipTADs) )
   mySub <- paste0( "1 dot/comparison ",myset)
-  
-  legTitle <- "signif. "
-  
+
+  legTitle <- "TAD DADo signif."
+
+  agg_dt$pairType <- factor(agg_dt$pairType, levels=c("diff_tissue", "same_tissue", "norm_tumor_pair"))
+  stopifnot(!is.na(agg_dt$pairType))
+
+
   p3 <-  ggboxplot(agg_dt,
                    y = paste0(toplot),
                    outlier.shape=NA,
                    add="jitter",
-                   rug = FALSE,  
+                   rug = FALSE,
                    ylab = paste0("ratio ", toplot, "TADs"),
                    xlab ="",
                    x="pairType",                   # fill = paste0("tad_signif"),
@@ -325,13 +370,64 @@ for(toplot in all_plot_vars) {
     labs(color=paste0(legTitle),fill=paste0(legTitle)) +
     # guides(color=TRUE)+FALSE, fill=FALSE)+
     scale_y_continuous(breaks = scales::pretty_breaks(n = 10))
-  
+
   outFile <- file.path(outFolder, paste0("ref_vs_match_", toplot, "_", "ratio_bySignif_boxplot.", plotType))
   ggsave(p3, file=outFile, height=myHeightGG, width=myWidthGG)
   cat(paste0("... written: ", outFile, "\n"))
-  
+
 }
 # get the ratio
+
+
+
+### Look at agreement among metrics
+
+source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
+
+# for(var1 in all_plot_vars[1:(length(all_plot_vars)-1)]) {
+#   for(var2 in all_plot_vars[2:(length(all_plot_vars))]) {
+for(i_var1 in c(1:(length(all_plot_vars)-1))) {
+  var1 <- all_plot_vars[i_var1]
+  
+  agg_dt1 <- aggregate(as.formula(paste0(var1, " ~ ref_ds + match_ds + pairType")), 
+                      FUN = function(x) sum(x)/length(x), data=all_pairs_dt)
+  
+  
+  
+  for(i_var2 in c((1+i_var1):length(all_plot_vars))) {
+    var2 <- all_plot_vars[i_var2]
+    
+    agg_dt2 <- aggregate(as.formula(paste0(var2, " ~ ref_ds + match_ds + pairType")), 
+                         FUN = function(x) sum(x)/length(x), data=all_pairs_dt)
+    
+    
+    stopifnot(agg_dt1$ref_ds == agg_dt2$ref_ds)
+    stopifnot(agg_dt1$match_ds == agg_dt2$match_ds)
+    stopifnot(agg_dt1$pairType == agg_dt2$pairType)
+    stopifnot(agg_dt1$signif_region == agg_dt2$signif_region)
+    
+    outFile <- file.path(outFolder, paste0("check_", var2, "_vs_", var1, ".", plotType))
+    do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+    densplot(
+      x=agg_dt1[,var1],
+      y=agg_dt2[, var2],
+      xlab=var1,
+      ylab=var2,
+      main=paste0(var2, " vs. ", var1),
+      cex.lab=1.2,
+      cex.main=1.2,
+      cex.axis=1.2
+    )
+    addCorr(x=all_pairs_dt[, var1],
+            y=all_pairs_dt[, var2],
+            legPos="topleft",
+            bty="n")
+    mtext(side=3, text=paste0("# cmps=", ncmps, "; # points=", nrow(all_pairs_dt)))
+    foo <- dev.off()
+    cat(paste0("... written: ", outFile, "\n"))
+  }
+}
+
 
 cat("***Done\n")
 cat(paste0(startTime , " - ", Sys.time(), "\n"))

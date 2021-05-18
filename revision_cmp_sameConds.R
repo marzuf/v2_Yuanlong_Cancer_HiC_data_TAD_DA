@@ -177,7 +177,9 @@ for(plot_type in c("all", "sub")) {
                   # add = "median",                  # Add median line.
                   rug = FALSE,                      # Add marginal rug
                   color = "variable",
-                  fill = "variable",
+                  add="jitter",
+                  outlier.shape=NA,
+                 # fill = "variable",
                   palette = "jco"
   ) +
     ggtitle(plotTit, subtitle = mySub)+

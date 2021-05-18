@@ -17,6 +17,8 @@ source("revision_sim_metrics.R")
 plotType <- "png"
 myHeightGG <- 5
 myWidthGG <- 6
+myHeight <- 400
+myWidth <- 400
 
 buildTable <- FALSE
 
@@ -79,8 +81,7 @@ if(buildTable) {
     
     
     hicds1 <- all_ds_pairs[1,i]
-    hicds2 <- hicds1
-    # hicds2 <- all_ds_pairs[2,i]
+    hicds2 <- all_ds_pairs[2,i]
     
     stopifnot(hicds1 %in% names(all_tads))
     stopifnot(hicds2 %in% names(all_tads))
@@ -115,13 +116,7 @@ if(buildTable) {
       
       cat(paste0("chrsize= ", chrsize, "\n"))
       
-      # outFile <- file.path(outFolder, "hicds1_chr_tads.Rdata")
-      # save(hicds1_chr_tads, file=outFile, version=2)
-      # cat(paste0("... written: ", outFile, "\n"))
-      # outFile <- file.path(outFolder, "hicds2_chr_tads.Rdata")
-      # save(hicds2_chr_tads, file=outFile, version=2)
-      # cat(paste0("... written: ", outFile, "\n"))
-      
+
       ds1_ds2_moc <- get_MoC(hicds1_chr_tads, hicds2_chr_tads, chrSize=chrsize)
       ds1_ds2_binJI <- get_bin_JaccardIndex(hicds1_chr_tads, hicds2_chr_tads, binSize=bin_size)
       ds1_ds2_boundJI <- get_boundaries_JaccardIndex(hicds1_chr_tads, hicds2_chr_tads, tolRad=boundariesJI_tolRad,matchFor="set1" )
@@ -208,6 +203,9 @@ ncmps <- length(unique(file.path(all_pairs_dt$ds1,all_pairs_dt$ds2 )))
 myset <- paste0("(TADcoverMatch=",coverTADmatchRatio, "; bdTolRad=", boundariesJI_tolRad, ")") 
 
 
+all_pairs_dt$pairType <- factor(all_pairs_dt$pairType, levels=c("diff_tissue", "same_tissue", "norm_tumor_pair"))
+stopifnot(!is.na(all_pairs_dt$pairType))
+
 for(toplot in all_plot_cols) {
   
   mysub2 <- paste0(names(table(all_pairs_dt$pairType)), "=", as.numeric(table(all_pairs_dt$pairType)), 
@@ -242,7 +240,37 @@ for(toplot in all_plot_cols) {
 }
 
 
+### Look at agreement among metrics
 
+source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
+
+# for(var1 in all_plot_cols[1:(length(all_plot_cols)-1)]) {
+#   for(var2 in all_plot_cols[2:(length(all_plot_cols))]) {
+for(i_var1 in c(1:(length(all_plot_cols)-1))) {
+  var1 <- all_plot_cols[i_var1]
+  for(i_var2 in c((1+i_var1):length(all_plot_cols))) {
+    var2 <- all_plot_cols[i_var2]
+    outFile <- file.path(outFolder, paste0("check_", var2, "_vs_", var1, ".", plotType))
+    do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+    densplot(
+      x=all_pairs_dt[, var1],
+      y=all_pairs_dt[, var2],
+      xlab=var1,
+      ylab=var2,
+      main=paste0(var2, " vs. ", var1),
+      cex.lab=1.2,
+      cex.main=1.2,
+      cex.axis=1.2
+    )
+    addCorr(x=all_pairs_dt[, var1],
+            y=all_pairs_dt[, var2],
+            legPos="topleft",
+            bty="n")
+    mtext(side=3, text=paste0("# cmps=", ncmps, "; # points=", nrow(all_pairs_dt)))
+    foo <- dev.off()
+    cat(paste0("... written: ", outFile, "\n"))
+  }
+}
 
 ##############################################3
 cat("***Done\n")
