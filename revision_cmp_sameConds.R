@@ -186,7 +186,7 @@ for(plot_type in c("all", "sub")) {
     # scale_color_manual(values=my_cols)+
     # scale_fill_manual(values=my_cols)  +
     labs(color=paste0(legTitle),fill=paste0(legTitle), y="Density") +
-    guides(color=FALSE)+
+    #guides(color=FALSE)+
     scale_y_continuous(breaks = scales::pretty_breaks(n = 10))+
     # scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
     mytheme

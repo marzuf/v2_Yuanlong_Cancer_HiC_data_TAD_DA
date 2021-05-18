@@ -418,8 +418,8 @@ for(i_var1 in c(1:(length(all_plot_vars)-1))) {
       cex.main=1.2,
       cex.axis=1.2
     )
-    addCorr(x=all_pairs_dt[, var1],
-            y=all_pairs_dt[, var2],
+    addCorr(x=agg_dt1[, var1],
+            y=agg_dt2[, var2],
             legPos="topleft",
             bty="n")
     mtext(side=3, text=paste0("# cmps=", ncmps, "; # points=", nrow(all_pairs_dt)))
